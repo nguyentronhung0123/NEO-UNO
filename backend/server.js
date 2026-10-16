@@ -17,6 +17,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// API Xác thực Auth
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 app.listen(PORT, () => {
   console.log(`[BE] Server đã khởi chạy tại: http://localhost:${PORT}`);
 });
