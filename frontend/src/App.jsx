@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import AuthPage from './pages/AuthPage';
+import LobbyPage from './pages/LobbyPage';
+import GameBoard from './pages/GameBoard';
+import OnlineGameBoard from './pages/OnlineGameBoard';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import GameRulesPage from './pages/GameRulesPage';
+import { clearActiveMatch } from './utils/activeMatchStorage.js';
 
+// [GIỮ NGUYÊN 100% CODE CỦA BẠN]
 function GameArenaPreview({ onBack }) {
   const { user, logout } = useAuth();
 
@@ -85,13 +92,108 @@ function GameArenaPreview({ onBack }) {
 }
 
 function MainApp() {
-  const [currentScreen, setCurrentScreen] = useState('auth'); // 'auth' | 'game'
+  const { user } = useAuth();
+  const [onlineRoom, setOnlineRoom] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('neo_online_room');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  // MẶC ĐỊNH VÀO SẢNH CHÍNH (LOBBY) TRỪ KHI ĐANG TRONG TRẬN ĐẤU BẠN BÈ ONLINE
+  const [currentScreen, setCurrentScreen] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('neo_online_room');
+      return saved ? 'online_game' : 'lobby';
+    } catch {
+      return 'lobby';
+    }
+  }); // 'lobby' | 'auth' | 'forgot_password' | 'game' | 'online_game' | 'rules'
+  const [matchConfig, setMatchConfig] = useState({ botCount: 3, timeLimit: 300 });
+  const [restoredMatchState, setRestoredMatchState] = useState(null);
 
-  if (currentScreen === 'game') {
-    return <GameArenaPreview onBack={() => setCurrentScreen('auth')} />;
+  const handleStartGame = (config, restoredState = null) => {
+    if (config) setMatchConfig(config);
+    setRestoredMatchState(restoredState || null);
+    setCurrentScreen('game');
+  };
+
+  const handleStartOnlineMatch = (room) => {
+    clearActiveMatch();
+    try {
+      sessionStorage.setItem('neo_online_room', JSON.stringify(room));
+    } catch {}
+    setOnlineRoom(room);
+    setCurrentScreen('online_game');
+  };
+
+  if (currentScreen === 'auth') {
+    return (
+      <AuthPage
+        onEnterGameWithBot={() => setCurrentScreen('lobby')}
+        onForgotPassword={() => setCurrentScreen('forgot_password')}
+        onBackToLobby={() => setCurrentScreen('lobby')}
+      />
+    );
   }
 
-  return <AuthPage onEnterGameWithBot={() => setCurrentScreen('game')} />;
+  if (currentScreen === 'forgot_password') {
+    return (
+      <ForgotPasswordPage
+        onBackToLogin={() => setCurrentScreen('auth')}
+        onSuccessLogin={() => setCurrentScreen('auth')}
+      />
+    );
+  }
+
+  if (currentScreen === 'rules') {
+    return (
+      <GameRulesPage
+        onBackToLobby={() => setCurrentScreen('lobby')}
+        onStartMatch={() => handleStartGame()}
+      />
+    );
+  }
+
+  if (currentScreen === 'game') {
+    return (
+      <GameBoard
+        matchConfig={matchConfig}
+        restoredMatchState={restoredMatchState}
+        onBack={() => {
+          setRestoredMatchState(null);
+          setCurrentScreen('lobby');
+        }}
+      />
+    );
+  }
+
+  if (currentScreen === 'online_game') {
+    return (
+      <OnlineGameBoard
+        room={onlineRoom}
+        user={user}
+        onBack={() => {
+          try {
+            sessionStorage.removeItem('neo_online_room');
+          } catch {}
+          setOnlineRoom(null);
+          setCurrentScreen('lobby');
+        }}
+      />
+    );
+  }
+
+  // MẶC ĐỊNH LÀ SẢNH CHÍNH (LOBBY)
+  return (
+    <LobbyPage
+      onJoinOfflineMatch={handleStartGame}
+      onJoinOnlineMatch={handleStartOnlineMatch}
+      onOpenRules={() => setCurrentScreen('rules')}
+      onOpenAuth={() => setCurrentScreen('auth')}
+    />
+  );
 }
 
 export default function App() {

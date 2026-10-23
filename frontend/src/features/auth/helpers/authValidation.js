@@ -28,6 +28,7 @@ export function validateEmail(email) {
   return { isValid: true, error: null };
 }
 
+// 3. Hàm kiểm tra độ mạnh mật khẩu và bắt buộc thỏa mãn 5 tiêu chí bảo mật
 export function calculatePasswordStrength(password) {
   if (!password) {
     return {
@@ -42,6 +43,7 @@ export function calculatePasswordStrength(password) {
       hasNumber: false,
       hasSpecial: false,
       isValid: false,
+      missingRequirements: ['Tối thiểu 8 ký tự', 'Chữ hoa (A-Z)', 'Chữ số (0-9)', 'Ký tự đặc biệt (@, #, $...)'],
     };
   }
 
@@ -51,16 +53,23 @@ export function calculatePasswordStrength(password) {
   const hasNumber = /[0-9]/.test(password);
   const hasSpecial = /[^a-zA-Z0-9]/.test(password);
 
-  // MỨC MẠNH: Bắt buộc tối thiểu 8 ký tự, có chữ hoa VÀ ký tự đặc biệt, kèm chữ thường và số
+  const missingRequirements = [];
+  if (!hasMinLength) missingRequirements.push('Tối thiểu 8 ký tự');
+  if (!hasUpper) missingRequirements.push('Ít nhất 1 chữ hoa (A-Z)');
+  if (!hasLetter) missingRequirements.push('Ít nhất 1 chữ thường (a-z)');
+  if (!hasNumber) missingRequirements.push('Ít nhất 1 chữ số (0-9)');
+  if (!hasSpecial) missingRequirements.push('Ít nhất 1 ký tự đặc biệt (@, #, $...)');
+
+  // ĐIỀU KIỆN HỢP LỆ CHẮC CHẮN: Phải thỏa mãn toàn bộ 5 tiêu chí
   const isStrong = hasMinLength && hasUpper && hasLetter && hasNumber && hasSpecial;
 
-  // MỨC TRUNG BÌNH: Đủ 8 ký tự, có cơ bản chữ + số (hoặc thiếu 1 trong 2: chữ hoa hoặc ký tự đặc biệt)
-  const isMedium = hasMinLength && ((hasLetter && hasNumber) || (hasUpper && hasNumber) || (hasLetter && hasSpecial));
+  // MỨC TRUNG BÌNH: Đạt chiều dài và 3 tiêu chí con (nhưng vẫn CHƯA ĐỦ để đăng ký)
+  const scoreCount = [hasMinLength, hasLetter, hasUpper, hasNumber, hasSpecial].filter(Boolean).length;
 
   if (isStrong) {
     return {
       score: 3,
-      label: 'Mạnh',
+      label: 'Mạnh (Hợp lệ)',
       color: 'bg-emerald-400',
       textColor: 'text-emerald-400',
       width: '100%',
@@ -70,22 +79,24 @@ export function calculatePasswordStrength(password) {
       hasNumber,
       hasSpecial,
       isValid: true,
+      missingRequirements: [],
     };
   }
 
-  if (isMedium) {
+  if (scoreCount >= 3) {
     return {
       score: 2,
-      label: 'Trung bình',
+      label: 'Trung bình (Chưa đủ điều kiện)',
       color: 'bg-yellow-400',
       textColor: 'text-yellow-400',
-      width: '66%',
+      width: `${Math.round((scoreCount / 5) * 100)}%`,
       hasMinLength,
       hasLetter,
       hasUpper,
       hasNumber,
       hasSpecial,
-      isValid: true,
+      isValid: false, // Bắt buộc phải đạt Mạnh mới được đăng ký!
+      missingRequirements,
     };
   }
 
@@ -94,13 +105,14 @@ export function calculatePasswordStrength(password) {
     label: 'Yếu',
     color: 'bg-red-500',
     textColor: 'text-red-400',
-    width: '33%',
+    width: `${Math.max(20, Math.round((scoreCount / 5) * 100))}%`,
     hasMinLength,
     hasLetter,
     hasUpper,
     hasNumber,
     hasSpecial,
     isValid: false,
+    missingRequirements,
   };
 }
 
@@ -112,4 +124,25 @@ export function validateConfirmPassword(password, confirmPassword) {
     return { isMatch: false, error: 'Mật khẩu xác nhận không trùng khớp' };
   }
   return { isMatch: true, error: null };
+}
+
+// 4. Kiểm tra hợp lệ cho form Đăng nhập
+export function validateLoginIdentifier(identifier) {
+  if (!identifier || identifier.trim() === '') {
+    return { isValid: false, error: 'Vui lòng nhập Email hoặc Tên tài khoản' };
+  }
+  if (identifier.trim().length < 3) {
+    return { isValid: false, error: 'Tài khoản hoặc email phải từ 3 ký tự trở lên' };
+  }
+  return { isValid: true, error: null };
+}
+
+export function validateLoginPassword(password) {
+  if (!password || password.trim() === '') {
+    return { isValid: false, error: 'Vui lòng nhập mật mã bảo mật' };
+  }
+  if (password.length < 6) {
+    return { isValid: false, error: 'Mật mã tối thiểu từ 6 ký tự' };
+  }
+  return { isValid: true, error: null };
 }

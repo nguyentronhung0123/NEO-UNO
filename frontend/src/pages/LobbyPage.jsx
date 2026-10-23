@@ -1,0 +1,776 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import UnoCard from '../components/UnoCard';
+import CardShowcaseModal from '../features/deckTest/components/CardShowcaseModal';
+import MatchSetupModal from '../components/MatchSetupModal';
+import LeaderboardModal, { getRankTier } from '../components/LeaderboardModal';
+import MatchHistoryModal from '../components/MatchHistoryModal';
+import OnlineRoomModal from '../components/OnlineRoomModal';
+import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
+
+export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
+  const { user, logout } = useAuth();
+  const [isShowcaseOpen, setIsShowcaseOpen] = useState(false);
+  const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isOnlineRoomOpen, setIsOnlineRoomOpen] = useState(false);
+  const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  // PHÁT HIỆN TRẬN ĐẤU DỞ DANG ĐỂ TIẾP TỤC CHƠI (RECONNECT / AFK)
+  const [rejoinMatch, setRejoinMatch] = useState(null);
+  const [isForfeiting, setIsForfeiting] = useState(false);
+  const [forfeitToast, setForfeitToast] = useState(null);
+
+  const profileMenuRef = useRef(null);
+
+  // Tự động kiểm tra và đồng bộ trực tiếp trận đấu dở dang theo thời gian thực (1s/lần)
+  useEffect(() => {
+    const updateActive = () => {
+      const active = getActiveMatch();
+      if (active && (active.status === 'in_progress' || active.status === 'finished') && active.playerHand) {
+        setRejoinMatch(active);
+      } else {
+        setRejoinMatch(null);
+      }
+    };
+
+    updateActive();
+    const interval = setInterval(updateActive, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleConfirmRejoin = () => {
+    if (!rejoinMatch) return;
+    const session = rejoinMatch;
+    setRejoinMatch(null);
+    onJoinOfflineMatch(session.matchConfig, session);
+  };
+
+  const handleRejectRejoin = async () => {
+    if (!rejoinMatch) return;
+    setIsForfeiting(true);
+    const session = rejoinMatch;
+    const totalP = 1 + (session.matchConfig?.botCount || 3);
+    const penalty = totalP === 4 ? -30 : -25;
+    try {
+      await forfeitActiveMatch(session);
+      setForfeitToast(`⚠️ Bạn đã bỏ cuộc! Bị xử Hạng chót và nhận hình phạt: ${penalty} ELO.`);
+      setTimeout(() => setForfeitToast(null), 5000);
+    } catch (err) {
+      console.warn('Forfeit active match error:', err);
+    }
+    clearActiveMatch();
+    setIsForfeiting(false);
+    setRejoinMatch(null);
+  };
+
+  // Xác định người dùng có phải là Khách (chưa đăng ký / chưa đăng nhập tài khoản chính thức)
+  const isGuest = !user || user.role === 'guest';
+  const userTier = getRankTier(user?.elo || 1000);
+
+  // Tự động đóng menu profile khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Tự động mở modal nếu URL có tham số mời ?room=
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('room')) {
+      setIsOnlineRoomOpen(true);
+    }
+  }, []);
+
+  const handleOnlineMultiplayerClick = () => {
+    setIsOnlineRoomOpen(true);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0b0e17] flex flex-col justify-between p-3 sm:p-5 text-slate-100 relative overflow-hidden font-body selection:bg-primary-container selection:text-black">
+      {/* Background Soft Glows */}
+      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[340px] bg-primary-container/10 blur-[130px] rounded-full"></div>
+        <div className="absolute -bottom-40 -left-20 w-[480px] h-[480px] bg-secondary-container/15 blur-[140px] rounded-full"></div>
+        <div className="absolute top-1/3 -right-20 w-[420px] h-[420px] bg-tertiary-container/10 blur-[120px] rounded-full"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(28,31,42,0.6)_0%,rgba(10,14,24,0.95)_100%)]"></div>
+      </div>
+
+      {/* ================= HEADER FULL-WIDTH CỰC ĐẸP ================= */}
+      <header className="relative z-30 w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-2 sm:px-6 pt-1 pb-4">
+        
+        {/* GÓC TRÊN TRÁI: LOGO GAME & CHẾ ĐỘ CHƠI */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex bg-surface-container-low/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-outline-variant/30 items-center gap-2 shadow-sm">
+            <span className="material-symbols-outlined text-primary-container text-xl">
+              style
+            </span>
+            <span className="font-headline text-lg sm:text-xl font-black tracking-wider uppercase text-white">
+              NEO <span className="text-primary-container">UNO</span>
+            </span>
+          </div>
+
+          <div className="hidden sm:flex bg-tertiary-container/15 border border-tertiary-container/40 text-tertiary px-3 py-1 rounded-full items-center gap-1.5 text-[10px] font-bold uppercase shadow-[0_0_10px_rgba(72,217,158,0.2)]">
+            <span className="w-1.5 h-1.5 bg-tertiary-container rounded-full animate-pulse"></span>
+            OFFLINE AI ARENA
+          </div>
+        </div>
+
+        {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
+        <div className="flex items-center gap-2.5 relative" ref={profileMenuRef}>
+          
+          {/* Nút Đăng Nhập Duy Nhất Góc Trên Phải (chỉ hiện khi là Khách) */}
+          {isGuest && (
+            <button
+              onClick={() => onOpenAuth && onOpenAuth()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.45)] hover:shadow-[0_0_25px_rgba(0,210,255,0.7)] transition-all cursor-pointer hover:scale-105 active:scale-95"
+              title="Bấm để Đăng nhập hoặc Tạo tài khoản leo Rank"
+            >
+              <span className="material-symbols-outlined text-base">login</span>
+              <span>Đăng Nhập</span>
+            </button>
+          )}
+
+          {/* Profile Capsule (Có thể hover hoặc bấm để mở Menu Tab) */}
+          <div
+            onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+            onMouseEnter={() => setIsProfileMenuOpen(true)}
+            className={`flex items-center gap-2.5 sm:gap-3 bg-[#131826]/90 hover:bg-[#1a2233] px-3 sm:px-3.5 py-1.5 rounded-full border transition-all cursor-pointer shadow-md select-none group ${
+              isProfileMenuOpen
+                ? 'border-cyan-400/80 shadow-[0_0_25px_rgba(0,210,255,0.35)]'
+                : 'border-outline-variant/30 hover:border-cyan-400/50'
+            }`}
+            title="Nhấn hoặc rê chuột để mở Menu tính năng Hồ Sơ"
+          >
+            <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-800 p-0.5 border border-cyan-400/40 flex items-center justify-center">
+              <img
+                src={user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.nickname || 'Guest'}`}
+                alt="Avatar"
+                className="w-full h-full object-cover rounded-full"
+              />
+              <span className="absolute -bottom-0.5 -right-0.5 text-[9px] leading-none">
+                {userTier.badge || '🥉'}
+              </span>
+            </div>
+
+            <div className="flex flex-col text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-xs sm:text-sm text-white max-w-[95px] sm:max-w-[130px] truncate group-hover:text-cyan-300 transition-colors">
+                  {user?.nickname || 'Khách Chơi Thử'}
+                </span>
+                <span
+                  className={`text-[8px] px-1.5 py-0.2 rounded-sm uppercase font-black ${
+                    isGuest
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      : 'bg-primary-container/20 text-primary-container'
+                  }`}
+                >
+                  {isGuest ? 'KHÁCH' : 'VIP'}
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono">
+                {isGuest ? 'Chưa Xếp Hạng' : `${user?.elo || 1000} ELO • Lv.${user?.level || 1}`}
+              </span>
+            </div>
+
+            <span
+              className={`material-symbols-outlined text-slate-400 text-sm transition-transform duration-200 ${
+                isProfileMenuOpen ? 'rotate-180 text-cyan-400' : 'group-hover:text-cyan-300'
+              }`}
+            >
+              keyboard_arrow_down
+            </span>
+          </div>
+
+          {/* ================= PROFILE DROPDOWN / MENU TAB POPUP ================= */}
+          {isProfileMenuOpen && (
+            <div
+              onMouseLeave={() => setIsProfileMenuOpen(false)}
+              className="absolute top-full right-0 mt-2 z-50 w-80 sm:w-96 rounded-3xl bg-[#0f1422]/95 backdrop-blur-xl border border-cyan-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(0,210,255,0.25)] p-4 sm:p-5 text-left animate-in fade-in zoom-in-95 duration-150"
+            >
+              {/* 1. Header Hồ Sơ Người Chơi */}
+              <div className="flex items-center gap-3.5 pb-3.5 border-b border-white/10">
+                <div className="relative w-13 h-13 rounded-2xl overflow-hidden flex-shrink-0 bg-black/40 p-1 border-2 border-cyan-400/60 shadow-[0_0_15px_rgba(0,210,255,0.3)]">
+                  <img
+                    src={user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.nickname || 'Guest'}`}
+                    alt="Avatar"
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-900 border border-cyan-400/50 flex items-center justify-center text-[10px] shadow-md">
+                    {userTier.badge || '🥉'}
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-headline font-black text-white text-base truncate">
+                      {user?.nickname || 'Khách Chơi Thử'}
+                    </h4>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold uppercase tracking-wider">
+                      {isGuest ? 'Khách' : 'VIP Member'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-1 text-xs">
+                    <span className="text-amber-400 font-bold">
+                      {userTier.badge} Bậc {userTier.name}
+                    </span>
+                    <span className="text-slate-500">•</span>
+                    <span className="text-cyan-300 font-bold">
+                      {user?.elo || 1000} ELO
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400">
+                    <span>🪙 <strong>{user?.coins || 1000}</strong> Vàng</span>
+                    <span>⭐ <strong>Lv.{user?.level || 1}</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Danh Mục Các Tab Chức Năng (Bảng Vinh Danh, Lịch Sử, Bộ Bài, Luật) */}
+              <div className="py-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-2 px-1">
+                  DANH MỤC TÍNH NĂNG
+                </span>
+
+                <div className="space-y-1.5">
+                  {/* Tab 1: Bảng Vinh Danh & Bậc Rank */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsLeaderboardOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-amber-500/15 border border-white/5 hover:border-amber-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        🏆
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
+                          Bảng Vinh Danh & Bậc Rank
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Xem Top 5 cao thủ & 6 bậc rank Cloud
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 2: Lịch Sử Đấu Trường */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsHistoryOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-cyan-500/15 border border-white/5 hover:border-cyan-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        📜
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors">
+                          Lịch Sử Đấu Trường
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Nhật ký ván đấu & biến động điểm ELO
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 3: Khám Phá 108 Lá Bài UNO */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsShowcaseOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-emerald-500/15 border border-white/5 hover:border-emerald-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        🃏
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition-colors">
+                          Bộ 108 Lá Bài UNO Neon
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Chiêm ngưỡng toàn bộ bộ bài & hiệu ứng
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-emerald-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 4: Cẩm Nang Luật Chơi */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      onOpenRules && onOpenRules();
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-sky-500/15 border border-white/5 hover:border-sky-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        📖
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-sky-300 transition-colors">
+                          Luật Chơi & Thẻ Bài
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Quy tắc đánh bài, phạt UNO & thẻ chức năng
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-sky-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Footer Menu Profile */}
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                {isGuest ? (
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      onOpenAuth && onOpenAuth();
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-headline font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all cursor-pointer hover:scale-[1.02]"
+                  >
+                    <span className="material-symbols-outlined text-base">login</span>
+                    <span>Đăng Nhập / Tạo Tài Khoản</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      logout();
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">logout</span>
+                    <span>Đăng Xuất Khỏi Thiết Bị</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* ================= KHU VỰC THÂN CHÍNH (CENTER CONTENT) ================= */}
+      <main className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center my-auto">
+        
+        {/* HERO SHOWCASE */}
+        <div className="relative mb-5 flex flex-col items-center">
+          {/* Card Fan (Xòe 4 lá bài Neon biểu tượng) */}
+          <div className="relative h-40 sm:h-48 w-72 sm:w-80 flex items-center justify-center">
+            {/* Lá 1 (Red Skip) */}
+            <div className="absolute transform -translate-x-16 -rotate-15 hover:-translate-y-4 hover:-rotate-12 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(255,43,112,0.3)]">
+              <UnoCard color="red" value="skip" />
+            </div>
+
+            {/* Lá 2 (Blue 7) */}
+            <div className="absolute transform -translate-x-5 -rotate-5 hover:-translate-y-4 hover:rotate-0 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(0,210,255,0.3)] z-10">
+              <UnoCard color="blue" value="7" />
+            </div>
+
+            {/* Lá 3 (Green Reverse) */}
+            <div className="absolute transform translate-x-5 rotate-5 hover:-translate-y-4 hover:rotate-0 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(72,217,158,0.3)] z-20">
+              <UnoCard color="green" value="reverse" />
+            </div>
+
+            {/* Lá 4 (Wild +4) */}
+            <div className="absolute transform translate-x-16 rotate-15 hover:-translate-y-4 hover:rotate-12 transition-all duration-300 cursor-pointer shadow-[0_0_40px_rgba(255,255,255,0.25)] z-30">
+              <UnoCard color="wild" value="wild_draw_four" />
+            </div>
+          </div>
+
+          <h1 className="font-headline text-4xl sm:text-5xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] mt-1">
+            NEO <span className="text-secondary-container">UNO</span>
+          </h1>
+          <p className="text-slate-400 text-xs sm:text-sm mt-0.5 max-w-md text-center font-medium">
+            Đấu trường thẻ bài UNO trực tuyến đỉnh cao với phong cách Cyberpunk và luật chơi chuẩn quốc tế
+          </p>
+        </div>
+
+        {/* KHUNG ĐIỀU KHIỂN CHÍNH (SẢNH THI ĐẤU) - ĐÃ LOẠI BỎ CÁC NÚT RỜI RẠC XẤU */}
+        <div className="w-full max-w-lg bg-[#111520]/80 backdrop-blur-xl border border-outline-variant/30 rounded-3xl p-6 sm:p-7 shadow-[0_15px_50px_rgba(0,0,0,0.6)] flex flex-col items-center gap-4 text-center mb-6">
+          
+          {/* Badge thông số ván đấu */}
+          <div className="flex flex-wrap items-center justify-center gap-2 w-full">
+            <span className="bg-primary-container/10 text-primary-container border border-primary-container/30 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 shadow-sm">
+              <span className="material-symbols-outlined text-sm">smart_toy</span>
+              Đấu với 3 Bot AI (Sẵn Sàng)
+            </span>
+            <span className="bg-surface-container text-slate-300 border border-outline-variant/30 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm">group</span>
+              Bàn 4 Người
+            </span>
+            <span className="bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 px-3 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm">bolt</span>
+              Tốc độ 60 FPS
+            </span>
+          </div>
+
+          <div className="text-slate-400 text-xs flex items-center justify-center gap-2 flex-wrap">
+            <span>Luật Chính Thức</span>
+            <span>•</span>
+            <span>Hô UNO Tự Động / Thủ Công</span>
+            <span>•</span>
+            <span>Thẻ Wild Đổi Màu</span>
+          </div>
+
+          {/* NÚT CHÍNH: ĐẤU VỚI BOT AI & ĐẤU ONLINE */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full mt-1">
+            {/* Nút 1: Đấu với Bot (Luôn mở cho cả Khách & Đấu thủ) */}
+            <button
+              onClick={() => setIsSetupOpen(true)}
+              className="flex-1 py-4 px-5 rounded-2xl bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline text-base font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(0,210,255,0.4)] hover:shadow-[0_0_40px_rgba(0,210,255,0.6)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-2xl">smart_toy</span>
+              <span>ĐẤU VỚI BOT AI</span>
+            </button>
+
+            {/* Nút 2: Đấu Online Bạn Bè */}
+            <button
+              onClick={handleOnlineMultiplayerClick}
+              className="flex-1 py-4 px-5 rounded-2xl border border-purple-500/50 bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 hover:text-white font-headline text-base font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:shadow-[0_0_35px_rgba(168,85,247,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer relative overflow-hidden"
+            >
+              <span className="material-symbols-outlined text-2xl text-purple-300">
+                groups
+              </span>
+              <span>ĐẤU PHÒNG BẠN BÈ</span>
+              <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[9px] font-black uppercase tracking-wider shadow-sm animate-pulse">
+                ONLINE
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* 3 THẺ CHỨC NĂNG DƯỚI CÙNG */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-4xl">
+          
+          {/* Thẻ 1: Hồ sơ / Xếp hạng */}
+          <div
+            onClick={() => setIsLeaderboardOpen(true)}
+            className="bg-[#151923] border border-outline-variant/20 rounded-2xl p-5 hover:bg-[#1a1f2b] transition-colors cursor-pointer group text-left"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-8 h-8 rounded-full bg-primary-container/20 text-primary-container flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm">leaderboard</span>
+              </div>
+              <span className="text-[9px] bg-tertiary-container/20 text-tertiary px-2 py-0.5 rounded-full font-black uppercase">
+                {isGuest ? 'Chưa Xếp Hạng' : `${user?.elo || 1000} ELO`}
+              </span>
+            </div>
+            <h3 className="text-white font-bold text-sm mb-1">Bảng Xếp Hạng & Hồ Sơ</h3>
+            <p className="text-slate-500 text-[10px] leading-relaxed mb-4 min-h-[30px]">
+              {isGuest
+                ? 'Đăng nhập để lưu điểm ELO và leo hạng cùng Top 5 cao thủ'
+                : 'Theo dõi tiến trình thăng hạng Rank và lịch sử ván đấu'}
+            </p>
+            <div className="flex items-center gap-1 text-primary-container text-[11px] font-bold group-hover:translate-x-1 transition-transform">
+              Xem bảng xếp hạng <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </div>
+          </div>
+
+          {/* Thẻ 2: Luật chơi & Thẻ Bài */}
+          <div
+            onClick={() => onOpenRules && onOpenRules()}
+            className="bg-[#151923] border border-outline-variant/20 rounded-2xl p-5 hover:bg-[#1a1f2b] transition-colors cursor-pointer group text-left"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-8 h-8 rounded-full bg-tertiary-container/20 text-tertiary-container flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm">menu_book</span>
+              </div>
+              <span className="text-[9px] bg-surface-container text-slate-400 border border-outline-variant/30 px-2 py-0.5 rounded-full font-black uppercase">
+                Cẩm nang
+              </span>
+            </div>
+            <h3 className="text-white font-bold text-sm mb-1">Luật Chơi & Thẻ Bài</h3>
+            <p className="text-slate-500 text-[10px] leading-relaxed mb-4 min-h-[30px]">
+              Hướng dẫn 3 bước đánh bài và 5 thẻ chức năng (Wild, +4, Skip...)
+            </p>
+            <div className="flex items-center gap-1 text-tertiary-container text-[11px] font-bold group-hover:translate-x-1 transition-transform">
+              Xem luật chơi <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </div>
+          </div>
+
+          {/* Thẻ 3: Đấu Online Bạn Bè */}
+          <div
+            onClick={handleOnlineMultiplayerClick}
+            className="bg-[#151923] border border-outline-variant/20 rounded-2xl p-5 hover:bg-[#1a1f2b] hover:border-purple-500/40 transition-all cursor-pointer group text-left"
+          >
+            <div className="flex justify-between items-start mb-4">
+              <div className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-300 flex items-center justify-center">
+                <span className="material-symbols-outlined text-sm">
+                  groups
+                </span>
+              </div>
+              <span className="text-[9px] px-2 py-0.5 rounded-full font-black uppercase border bg-purple-500/20 text-purple-300 border-purple-500/30">
+                MULTI PVP
+              </span>
+            </div>
+            <h3 className="text-white font-bold text-sm mb-1">Phòng Bạn Bè (Giao Hữu)</h3>
+            <p className="text-slate-500 text-[10px] leading-relaxed mb-4 min-h-[30px]">
+              Tạo phòng riêng so tài cùng bạn bè (Chế độ giao hữu giải trí, không tính điểm Rank ELO)
+            </p>
+            <div className="flex items-center gap-1 text-purple-400 text-[11px] font-bold group-hover:translate-x-1 transition-transform">
+              Tham gia ngay <span className="material-symbols-outlined text-sm">chevron_right</span>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+      {/* ================= FOOTER ================= */}
+      <footer className="relative z-10 w-full max-w-7xl mx-auto pt-6 pb-2 flex justify-between items-center text-[10px] text-slate-500 font-medium px-4">
+        <div className="flex items-center gap-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-tertiary-container"></span>
+          Chơi ngoại tuyến với AI • Tốc độ 60 FPS
+        </div>
+        <div>© 2026 NEO UNO Arcade Stadium. Mọi quyền được bảo lưu.</div>
+      </footer>
+
+      {/* MODAL THÔNG BÁO CHO CHẾ ĐỘ KHÁCH KHI BẤM ĐẤU ONLINE */}
+      {showGuestOnlineModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md bg-[#121622] border border-amber-500/40 rounded-3xl p-6 sm:p-7 shadow-[0_0_60px_rgba(245,158,11,0.25)] flex flex-col items-center text-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-300 flex items-center justify-center mb-4 text-3xl">
+              <span className="material-symbols-outlined text-3xl">lock</span>
+            </div>
+
+            <h3 className="font-headline font-black text-lg text-white uppercase tracking-wider mb-2">
+              TÍNH NĂNG ĐẤU ONLINE YÊU CẦU TÀI KHOẢN
+            </h3>
+
+            <p className="text-xs text-slate-300 leading-relaxed mb-6">
+              Bạn đang ở <strong>Chế Độ Khách</strong> (Guest Mode). Chế độ này chỉ cho phép chơi luyện tập với <strong>Bot AI</strong>. Để có thể thi đấu Online với người chơi thật và tham gia <strong>Bảng Xếp Hạng Rank ELO</strong>, vui lòng đăng nhập hoặc tạo tài khoản chính thức!
+            </p>
+
+            <div className="flex flex-col gap-2.5 w-full">
+              <button
+                onClick={() => {
+                  setShowGuestOnlineModal(false);
+                  if (onOpenAuth) onOpenAuth();
+                }}
+                className="w-full py-3 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:brightness-110 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base">login</span>
+                <span>ĐĂNG NHẬP NGAY</span>
+              </button>
+
+              <button
+                onClick={() => setShowGuestOnlineModal(false)}
+                className="w-full py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-slate-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Tiếp Tục Chơi Thử Với Bot
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Kiểm Thử Bộ Bài UNO Task 1 */}
+      <CardShowcaseModal
+        isOpen={isShowcaseOpen}
+        onClose={() => setIsShowcaseOpen(false)}
+      />
+
+      {/* Modal Thiết Lập Bàn Đấu (Chọn số Bot & Thời gian 5 phút) */}
+      <MatchSetupModal
+        isOpen={isSetupOpen}
+        onClose={() => setIsSetupOpen(false)}
+        onStartMatch={(config) => {
+          setIsSetupOpen(false);
+          onJoinOfflineMatch(config);
+        }}
+      />
+
+      {/* Modal Bảng Vinh Danh Cao Thủ (MongoDB Cloud) */}
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+        onOpenAuth={onOpenAuth}
+      />
+
+      {/* Modal Lịch Sử Đấu Trường (MongoDB Cloud) */}
+      <MatchHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onOpenAuth={onOpenAuth}
+        onPlayNow={() => setIsSetupOpen(true)}
+      />
+
+      {/* ================= MODAL PHÁT HIỆN TRẬN ĐẤU DỞ DANG (TIẾP TỤC CHƠI / AFK) ================= */}
+      {rejoinMatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="relative w-full max-w-lg bg-[#0f1422]/95 border-2 border-primary-container/60 rounded-3xl p-6 sm:p-7 shadow-[0_0_70px_rgba(0,210,255,0.35)] flex flex-col gap-5 overflow-hidden">
+            
+            {/* Glow effect */}
+            <div className="absolute -top-24 -left-24 w-60 h-60 bg-primary-container/20 rounded-full blur-[90px] pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-rose-500/15 rounded-full blur-[90px] pointer-events-none" />
+
+            {/* Header */}
+            <div className="flex items-center gap-3.5 border-b border-white/10 pb-4">
+              <div className={`w-12 h-12 rounded-2xl border flex items-center justify-center shrink-0 shadow-lg ${
+                rejoinMatch.status === 'finished'
+                  ? 'bg-rose-500/20 border-rose-500/50 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]'
+                  : 'bg-primary-container/20 border-primary-container/50 text-primary-container shadow-[0_0_20px_rgba(0,210,255,0.4)]'
+              }`}>
+                <span className="text-2xl">{rejoinMatch.status === 'finished' ? '⚠️' : '⏳'}</span>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-headline text-lg sm:text-xl font-black text-white uppercase tracking-wider">
+                    {rejoinMatch.status === 'finished' ? 'TRẬN ĐẤU ĐÃ KẾT THÚC' : 'TRẬN ĐẤU ĐANG DIỄN RA'}
+                  </h3>
+                  {rejoinMatch.status === 'in_progress' && (
+                    <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-black uppercase tracking-wider animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                      LIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-cyan-300">
+                  {rejoinMatch.status === 'finished'
+                    ? 'Ván đấu đã kết thúc trong thời gian bạn vắng mặt (AFK)!'
+                    : 'Trận đấu không dừng lại! Các Bot vẫn đang đánh và bạn đang treo AFK.'}
+                </p>
+              </div>
+            </div>
+
+            {/* Thông tin ván đấu dở dang */}
+            <div className="grid grid-cols-3 gap-2.5 sm:gap-3 text-center">
+              <div className="p-3 rounded-2xl bg-surface-container-high/60 border border-white/10 flex flex-col items-center">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Quy mô bàn</span>
+                <span className="font-headline font-black text-sm text-white mt-1">
+                  {1 + (rejoinMatch.matchConfig?.botCount || 3)} Người
+                </span>
+                <span className="text-[9px] text-cyan-400 font-medium">Bàn cờ đang chạy</span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-surface-container-high/60 border border-white/10 flex flex-col items-center">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Bài trên tay</span>
+                <span className="font-headline font-black text-sm text-amber-300 mt-1">
+                  {rejoinMatch.playerHand?.length || 0} Lá bài
+                </span>
+                <span className="text-[9px] text-amber-400 font-medium">Cập nhật thời gian thực</span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-surface-container-high/60 border border-white/10 flex flex-col items-center">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Thời gian còn</span>
+                <span className="font-headline font-black text-sm text-primary-container mt-1 font-mono">
+                  {Math.floor((rejoinMatch.matchTimeRemaining || 0) / 60).toString().padStart(2, '0')}:
+                  {((rejoinMatch.matchTimeRemaining || 0) % 60).toString().padStart(2, '0')}
+                </span>
+                <span className="text-[9px] text-slate-400 font-medium">Đang đếm lùi</span>
+              </div>
+            </div>
+
+            {/* Thông báo quy định */}
+            <div className={`p-3.5 rounded-2xl border text-xs leading-relaxed flex items-start gap-2.5 ${
+              rejoinMatch.status === 'finished'
+                ? 'bg-rose-500/15 border-rose-500/40 text-rose-200'
+                : 'bg-amber-500/10 border-amber-500/30 text-slate-300'
+            }`}>
+              <span className="text-base shrink-0 mt-0.5">⚠️</span>
+              <div>
+                {rejoinMatch.status === 'finished' ? (
+                  <span>
+                    Ván đấu đã kết thúc trong lúc bạn vắng mặt ({rejoinMatch.winner ? `Người thắng: ${rejoinMatch.winner}` : 'Hết giờ'}). Bạn bị xử <strong className="text-rose-400">THUA HẠNG CHÓT (-20 ELO)</strong> và chịu phạt thêm <strong className="text-rose-400">-10 ELO bỏ cuộc</strong> (Tổng phạt: {(1 + (rejoinMatch.matchConfig?.botCount || 3)) === 4 ? '-30 ELO' : '-25 ELO'}).
+                  </span>
+                ) : (
+                  <span>
+                    Trận đấu <strong>vẫn tiếp tục diễn ra theo thời gian thực</strong>! Các Bot vẫn đang đánh bình thường và mỗi lần tới lượt bạn, sau 15s hệ thống tự động bốc 2 lá phạt và mất lượt. Bấm <strong className="text-primary-container">"Tiếp Tục Chơi"</strong> để vào lại bàn đấu ngay. Nếu chọn <strong className="text-rose-400">"Từ Chối / Bỏ Cuộc"</strong>, bạn sẽ bị xử thua và phạt thêm <strong className="text-rose-400">-10 ELO</strong>.
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* 2 Nút hành động */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+              {rejoinMatch.status === 'finished' ? (
+                <button
+                  type="button"
+                  onClick={handleRejectRejoin}
+                  disabled={isForfeiting}
+                  className="w-full py-3.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white font-headline text-xs sm:text-sm font-black uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_25px_rgba(244,63,94,0.6)]"
+                >
+                  {isForfeiting ? 'Đang xử lý...' : 'Xác Nhận & Nhận Kết Quả Xử Thua'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleRejectRejoin}
+                    disabled={isForfeiting}
+                    className="w-full sm:w-auto sm:flex-1 py-3.5 rounded-full bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 hover:text-white font-headline text-xs font-bold uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isForfeiting ? 'Đang xử lý...' : 'Từ Chối / Bỏ Cuộc'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleConfirmRejoin}
+                    disabled={isForfeiting}
+                    className="w-full sm:flex-2 py-3.5 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-300 hover:to-primary-container text-black font-headline text-xs sm:text-sm font-black uppercase tracking-wider shadow-[0_0_30px_rgba(0,210,255,0.5)] hover:shadow-[0_0_40px_rgba(0,210,255,0.7)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-xl">play_arrow</span>
+                    <span>TIẾP TỤC VÀO LẠI TRẬN ĐẤU</span>
+                  </button>
+                </>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* TOAST THÔNG BÁO XỬ THUA KHI BỎ CUỘC */}
+      {forfeitToast && (
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-rose-950/90 border-2 border-rose-500 text-rose-200 text-xs font-bold shadow-[0_0_40px_rgba(244,63,94,0.6)] animate-bounce flex items-center gap-3 max-w-md">
+          <span className="material-symbols-outlined text-2xl text-rose-400 shrink-0">error</span>
+          <span>{forfeitToast}</span>
+        </div>
+      )}
+
+      {/* MODAL PHÒNG CHƠI ONLINE MULTIPLAYER VỚI BẠN BÈ */}
+      <OnlineRoomModal
+        isOpen={isOnlineRoomOpen}
+        onClose={() => setIsOnlineRoomOpen(false)}
+        user={user}
+        onStartOnlineMatch={(room) => {
+          setIsOnlineRoomOpen(false);
+          if (onJoinOnlineMatch) {
+            onJoinOnlineMatch(room);
+          } else {
+            alert(`🎮 Phòng ${room.code}: Tất cả đã sẵn sàng! Đang chuẩn bị chuyển vào bàn đấu thời gian thực...`);
+          }
+        }}
+      />
+    </div>
+  );
+}

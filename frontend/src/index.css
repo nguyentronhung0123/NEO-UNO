@@ -126,6 +126,10 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/* =========================================================================
+   ANIMATIONS & SPECIAL FX FOR UNO GAME BOARD
+   ========================================================================= */
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -139,4 +143,456 @@
 
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* 1. Hiệu ứng đánh bài đập xuống bàn (Card Slam) */
+@keyframes cardSlam {
+  0% {
+    transform: scale(1.6) translateY(35px) rotate(12deg);
+    opacity: 0.2;
+    filter: drop-shadow(0 25px 25px rgba(0,0,0,0.8));
+  }
+  60% {
+    transform: scale(0.92) translateY(-4px) rotate(-4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0) rotate(-3deg);
+    opacity: 1;
+    filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+  }
+}
+
+.animate-card-slam {
+  animation: cardSlam 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 2. Sóng xung kích khi bài chạm bàn (Impact Shockwave) */
+@keyframes shockwave {
+  0% {
+    transform: scale(0.4);
+    opacity: 1;
+    border-width: 4px;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+.animate-shockwave {
+  animation: shockwave 0.6s ease-out forwards;
+}
+
+/* 3. Hiệu ứng xáo bài (Deck Riffle Shuffle) */
+@keyframes shuffleLeft {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-36px) rotate(-14deg); }
+  50% { transform: translateX(18px) rotate(6deg); }
+  75% { transform: translateX(-12px) rotate(-4deg); }
+}
+
+@keyframes shuffleRight {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(36px) rotate(14deg); }
+  50% { transform: translateX(-18px) rotate(-6deg); }
+  75% { transform: translateX(12px) rotate(4deg); }
+}
+
+.animate-shuffle-left {
+  animation: shuffleLeft 0.5s ease-in-out infinite;
+}
+
+.animate-shuffle-right {
+  animation: shuffleRight 0.5s ease-in-out infinite;
+}
+
+/* 4. Hiệu ứng chia bài bay vào tay Người chơi (Deal to Player) */
+@keyframes dealToPlayer {
+  0% {
+    transform: translateY(-160px) scale(0.5) rotate(-20deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(10px) scale(1.05) rotate(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-deal-to-player {
+  animation: dealToPlayer 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 5. Hiệu ứng chia bài bay lên tay Bot (Deal to Bot) */
+@keyframes dealToBot {
+  0% {
+    transform: translateY(160px) scale(0.5) rotate(20deg);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(-10px) scale(1.05) rotate(-3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-deal-to-bot {
+  animation: dealToBot 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 6. Hiệu ứng gom bài & xáo lại khi hết bài rút (Reshuffle Deck Vortex) */
+@keyframes reshuffleVortex {
+  0% {
+    transform: scale(0.6) rotate(0deg);
+    opacity: 0;
+    filter: blur(10px);
+  }
+  40% {
+    transform: scale(1.2) rotate(180deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 35px rgba(0,210,255,0.9)) blur(0);
+  }
+  80% {
+    transform: scale(0.95) rotate(360deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 1;
+  }
+}
+
+.animate-reshuffle-vortex {
+  animation: reshuffleVortex 1s ease-in-out forwards;
+}
+
+/* 7. Hiệu ứng nổ Pop-up lá chức năng (Action Pop FX) */
+@keyframes actionPop {
+  0% {
+    transform: scale(0.3) rotate(-15deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.18) rotate(5deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-action-pop {
+  animation: actionPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 8. Hiệu ứng nổ pháo hoa UNO (UNO Explosion) */
+@keyframes unoExplosion {
+  0% {
+    transform: scale(0.2) rotate(-30deg);
+    opacity: 0;
+    filter: brightness(2.5);
+  }
+  40% {
+    transform: scale(1.25) rotate(10deg);
+    opacity: 1;
+    filter: brightness(1.5);
+  }
+  65% {
+    transform: scale(0.95) rotate(-4deg);
+    filter: brightness(1);
+  }
+  85% {
+    transform: scale(1.05) rotate(1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-uno-explosion {
+  animation: unoExplosion 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 9. Hiệu ứng vòng xoáy Đổi Chiều (Reverse Vortex) */
+@keyframes vortexSpin {
+  0% {
+    transform: rotate(0deg) scale(0.6);
+    opacity: 0;
+  }
+  40% {
+    transform: rotate(-180deg) scale(1.15);
+    opacity: 1;
+  }
+  80% {
+    transform: rotate(-360deg) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-450deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+.animate-vortex {
+  animation: vortexSpin 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 10. Hiệu ứng cấm lượt vỗ sầm xuống (Skip Slam) */
+@keyframes skipSlam {
+  0% {
+    transform: scale(2.8) rotate(35deg);
+    opacity: 0;
+  }
+  45% {
+    transform: scale(0.9) rotate(-8deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.1) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.animate-skip-slam {
+  animation: skipSlam 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 11. Hiệu ứng hào quang lấp lánh cầu vồng (Prismatic Rainbow Storm) */
+@keyframes rainbowGlow {
+  0% {
+    filter: hue-rotate(0deg) drop-shadow(0 0 25px rgba(255,0,80,0.8));
+    transform: scale(0.9);
+  }
+  50% {
+    filter: hue-rotate(180deg) drop-shadow(0 0 45px rgba(0,210,255,0.9));
+    transform: scale(1.1);
+  }
+  100% {
+    filter: hue-rotate(360deg) drop-shadow(0 0 25px rgba(255,0,80,0.8));
+    transform: scale(1);
+  }
+}
+
+.animate-rainbow-glow {
+  animation: rainbowGlow 2s linear infinite;
+}
+
+/* 12. Viền nhấp nháy khẩn cấp 5s đếm ngược UNO */
+@keyframes emergencyPulse {
+  0%, 100% {
+    box-shadow: inset 0 0 40px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: inset 0 0 90px rgba(239, 68, 68, 0.85);
+  }
+}
+
+.animate-emergency-border {
+  animation: emergencyPulse 0.8s ease-in-out infinite;
+}
+
+/* 13. Hiệu ứng rút bài từ Chồng bài bay về người chơi / Bot (Card Draw Trajectory) */
+@keyframes drawToBottom {
+  0% {
+    transform: translate(0, 0) scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 220px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes drawToTop {
+  0% {
+    transform: translate(0, 0) scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, -220px) scale(0.65);
+    opacity: 0;
+  }
+}
+
+@keyframes drawToLeft {
+  0% {
+    transform: translate(0, 0) scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-260px, -30px) scale(0.65);
+    opacity: 0;
+  }
+}
+
+@keyframes drawToRight {
+  0% {
+    transform: translate(0, 0) scale(0.9);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(260px, -30px) scale(0.65);
+    opacity: 0;
+  }
+}
+
+.animate-draw-bottom {
+  animation: drawToBottom 0.38s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+
+.animate-draw-top {
+  animation: drawToTop 0.38s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+
+.animate-draw-left {
+  animation: drawToLeft 0.38s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+
+.animate-draw-right {
+  animation: drawToRight 0.38s cubic-bezier(0.2, 0.8, 0.25, 1) forwards;
+}
+
+/* 14. Hiệu ứng đánh bài từ người chơi / Bot bay xuống Discard Pile (Card Play Slam Trajectory) */
+@keyframes playFromBottom {
+  0% {
+    transform: translate(0, 240px) scale(1.15) rotate(8deg);
+    opacity: 0.85;
+  }
+  75% {
+    transform: translate(0, -8px) scale(1.05) rotate(-3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(-3deg);
+    opacity: 1;
+  }
+}
+
+@keyframes playFromTop {
+  0% {
+    transform: translate(0, -240px) scale(0.65) rotate(-14deg);
+    opacity: 0.85;
+  }
+  75% {
+    transform: translate(0, 8px) scale(1.05) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(-3deg);
+    opacity: 1;
+  }
+}
+
+@keyframes playFromLeft {
+  0% {
+    transform: translate(-260px, -40px) scale(0.65) rotate(-20deg);
+    opacity: 0.85;
+  }
+  75% {
+    transform: translate(8px, 0) scale(1.05) rotate(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(-3deg);
+    opacity: 1;
+  }
+}
+
+@keyframes playFromRight {
+  0% {
+    transform: translate(260px, -40px) scale(0.65) rotate(20deg);
+    opacity: 0.85;
+  }
+  75% {
+    transform: translate(-8px, 0) scale(1.05) rotate(-3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(-3deg);
+    opacity: 1;
+  }
+}
+
+.animate-play-bottom {
+  animation: playFromBottom 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-play-top {
+  animation: playFromTop 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-play-left {
+  animation: playFromLeft 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-play-right {
+  animation: playFromRight 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* 15. Hào quang làm nổi bật người chơi đang đến lượt (Active Turn Spotlight) */
+@keyframes activeBotSpotlight {
+  0%, 100% {
+    box-shadow: 0 0 25px rgba(251, 191, 36, 0.6), inset 0 0 15px rgba(251, 191, 36, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 45px rgba(251, 191, 36, 0.95), inset 0 0 25px rgba(251, 191, 36, 0.45);
+  }
+}
+
+.animate-bot-spotlight {
+  animation: activeBotSpotlight 1.6s ease-in-out infinite;
+}
+
+@keyframes activePlayerSpotlight {
+  0%, 100% {
+    box-shadow: 0 0 30px rgba(0, 210, 255, 0.6), inset 0 0 15px rgba(0, 210, 255, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 55px rgba(0, 210, 255, 0.95), inset 0 0 25px rgba(0, 210, 255, 0.45);
+  }
+}
+
+.animate-player-spotlight {
+  animation: activePlayerSpotlight 1.6s ease-in-out infinite;
+}
+
+/* 16. Luồng chuyển động 4 mũi tên vòng cung chỉ lượt đánh (Curved Turn Flow) */
+@keyframes arcFlow {
+  from {
+    stroke-dashoffset: 36;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-arc-flow {
+  animation: arcFlow 0.85s linear infinite;
+}
+
+/* 17. Hiệu ứng rung lắc khi báo lỗi (Error Shake) */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
 }

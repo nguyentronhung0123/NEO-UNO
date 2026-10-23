@@ -1,0 +1,81 @@
+[
+  {
+    "id": "usr_001",
+    "nickname": "CyberStriker_99",
+    "email": "player@neouno.com",
+    "password": "$2b$10$mzcEyCH7V10dWXiKn6hcEOtnYnVz9BNCUZkO0fH2lbuxJyCazLF9K",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=CyberStriker",
+    "elo": 1250,
+    "coins": 500,
+    "matchesWon": 14,
+    "matchesLost": 6,
+    "role": "user",
+    "createdAt": "2025-01-10T00:00:00.000Z"
+  },
+  {
+    "id": "usr_002",
+    "nickname": "JokerNeon",
+    "email": "joker@neouno.com",
+    "password": "$2b$10$mzcEyCH7V10dWXiKn6hcEOtnYnVz9BNCUZkO0fH2lbuxJyCazLF9K",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=JokerNeon",
+    "elo": 1100,
+    "coins": 250,
+    "matchesWon": 8,
+    "matchesLost": 5,
+    "role": "user",
+    "createdAt": "2025-02-15T00:00:00.000Z"
+  },
+  {
+    "id": "usr_1792230607675",
+    "nickname": "hello",
+    "email": "hello@gmail.com",
+    "password": "$2b$10$.K98ZII7O358KdWHfgf0HekxZGfYY3WaHp3ilmz8JjhFhiYFTk1L.",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=hello",
+    "elo": 1000,
+    "coins": 200,
+    "matchesWon": 0,
+    "matchesLost": 0,
+    "role": "user",
+    "createdAt": "2026-10-17T09:50:07.675Z"
+  },
+  {
+    "id": "usr_1792231618279",
+    "nickname": "ProPlayer_88",
+    "email": "pro88@neouno.com",
+    "password": "$2b$10$TkMjv7oxF1TEUyWB94AHnu9z7mRd30DcCP5OaTRFEXzZwJtQPuAnC",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=ProPlayer_88",
+    "elo": 1000,
+    "coins": 200,
+    "matchesWon": 0,
+    "matchesLost": 0,
+    "role": "user",
+    "createdAt": "2026-10-17T10:06:58.279Z"
+  },
+  {
+    "id": "usr_1792232269202",
+    "nickname": "hung123",
+    "email": "nguyen@gmail.com",
+    "password": "$2b$10$WMN9WshIEkjnKLU7toHqGOVbcfrIZOsRVgywc3Hx67/ezFoSp3i26",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=hung123",
+    "elo": 1000,
+    "coins": 200,
+    "matchesWon": 0,
+    "matchesLost": 0,
+    "role": "user",
+    "createdAt": "2026-10-17T10:17:49.202Z"
+  },
+  {
+    "id": "usr_1792417232420",
+    "nickname": "hung0123",
+    "email": "nguyentronghung11102019@gmail.com",
+    "password": "$2b$10$rCfzCq4ox39sRYomsTmfo.q5x2/6QjLn5Sbfgi2qcATZtI2KmH23.",
+    "avatar": "https://api.dicebear.com/7.x/bottts/svg?seed=hung0123",
+    "elo": 1000,
+    "coins": 200,
+    "matchesWon": 0,
+    "matchesLost": 0,
+    "role": "user",
+    "createdAt": "2026-10-19T13:40:32.420Z",
+    "lastLoginAt": "2026-10-22T01:38:21.170Z"
+  }
+]

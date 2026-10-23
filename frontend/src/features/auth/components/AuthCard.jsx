@@ -10,9 +10,11 @@ import {
   validateEmail,
   calculatePasswordStrength,
   validateConfirmPassword,
+  validateLoginIdentifier,
+  validateLoginPassword,
 } from '../helpers/authValidation';
 
-export default function AuthCard({ onEnterGameWithBot }) {
+export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
   const { login, register, guestLogin } = useAuth();
 
   const [activeTab, setActiveTab] = useState('login');
@@ -44,7 +46,16 @@ export default function AuthCard({ onEnterGameWithBot }) {
   const [isBotLoading, setIsBotLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState(null);
 
-  // Real-time Validations
+  // Real-time Validations cho cả Đăng nhập & Đăng ký
+  const loginIdentifierStatus = useMemo(
+    () => validateLoginIdentifier(loginIdentifier),
+    [loginIdentifier]
+  );
+  const loginPasswordStatus = useMemo(
+    () => validateLoginPassword(loginPassword),
+    [loginPassword]
+  );
+
   const nicknameStatus = useMemo(() => validateNickname(registerNickname), [registerNickname]);
   const emailStatus = useMemo(() => validateEmail(registerEmail), [registerEmail]);
   const passwordStrength = useMemo(() => calculatePasswordStrength(registerPassword), [registerPassword]);
@@ -57,46 +68,45 @@ export default function AuthCard({ onEnterGameWithBot }) {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  // Nút tiện ích: Điền nhanh tài khoản test mẫu
-  const handleQuickFillTest = () => {
-    if (activeTab === 'login') {
-      setLoginIdentifier('player@neouno.com');
-      setLoginPassword('Password@123');
-      setStatusMessage({
-        type: 'info',
-        text: '⚡ Đã tự động điền tài khoản mẫu: player@neouno.com / Password@123',
-      });
-    } else {
-      const rand = Math.floor(100 + Math.random() * 900);
-      setRegisterNickname(`CyberAce_${rand}`);
-      setRegisterEmail(`player_${rand}@neouno.com`);
-      setRegisterPassword('Password@123');
-      setRegisterConfirmPassword('Password@123');
-      setStatusMessage({
-        type: 'info',
-        text: '⚡ Đã tạo ngẫu nhiên thông tin đăng ký mẫu đạt chuẩn!',
-      });
+  // Tự động ẩn thông báo sau 5 giây
+  React.useEffect(() => {
+    if (statusMessage) {
+      const timer = setTimeout(() => {
+        setStatusMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, [statusMessage]);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setStatusMessage(null);
 
-    if (!loginIdentifier.trim() || !loginPassword.trim()) {
-      setStatusMessage({ type: 'error', text: 'Vui lòng nhập đầy đủ tài khoản và mật mã!' });
+    setTouched((prev) => ({
+      ...prev,
+      loginIdentifier: true,
+      loginPassword: true,
+    }));
+
+    if (!loginIdentifierStatus.isValid) {
+      setStatusMessage({ type: 'error', text: loginIdentifierStatus.error });
+      return;
+    }
+
+    if (!loginPasswordStatus.isValid) {
+      setStatusMessage({ type: 'error', text: loginPasswordStatus.error });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await login(loginIdentifier, loginPassword);
+      const res = await login(loginIdentifier.trim(), loginPassword, rememberMe);
       setIsSubmitting(false);
 
       if (res.success) {
         setStatusMessage({
           type: 'success',
-          text: res.message || 'Đăng nhập thành công! Đang chuyển vào Đấu trường...',
+          text: res.message || 'Đăng nhập thành công! Đang chuyển vào Sảnh chính...',
         });
         setTimeout(() => {
           if (onEnterGameWithBot) {
@@ -123,6 +133,8 @@ export default function AuthCard({ onEnterGameWithBot }) {
     setStatusMessage(null);
 
     setTouched({
+      loginIdentifier: false,
+      loginPassword: false,
       registerNickname: true,
       registerEmail: true,
       registerPassword: true,
@@ -138,9 +150,12 @@ export default function AuthCard({ onEnterGameWithBot }) {
       return;
     }
     if (!passwordStrength.isValid) {
+      const missingText = passwordStrength.missingRequirements.length > 0
+        ? `Cần bổ sung: ${passwordStrength.missingRequirements.join(', ')}!`
+        : 'Mật khẩu phải đạt độ mạnh tối đa (8+ ký tự, chữ hoa, số và ký tự đặc biệt)!';
       setStatusMessage({
         type: 'error',
-        text: 'Mật khẩu phải từ 8 ký tự trở lên và bao gồm cả chữ và số!',
+        text: `Mật khẩu chưa đủ an toàn! ${missingText}`,
       });
       return;
     }
@@ -155,13 +170,18 @@ export default function AuthCard({ onEnterGameWithBot }) {
 
     setIsSubmitting(true);
     try {
-      const res = await register(registerNickname, registerEmail, registerPassword);
+      const res = await register(
+        registerNickname.trim(),
+        registerEmail.trim(),
+        registerPassword,
+        rememberMe
+      );
       setIsSubmitting(false);
 
       if (res.success) {
         setStatusMessage({
           type: 'success',
-          text: res.message || 'Khởi tạo tài khoản thành công! Đang chuyển vào Đấu trường...',
+          text: res.message || 'Khởi tạo tài khoản thành công! Đang chuyển vào Sảnh chính...',
         });
         setTimeout(() => {
           if (onEnterGameWithBot) {
@@ -241,19 +261,6 @@ export default function AuthCard({ onEnterGameWithBot }) {
             }}
           />
 
-          {/* Quick Test Accounts Fill Chip */}
-          <div className="mb-3 flex justify-end">
-            <button
-              type="button"
-              onClick={handleQuickFillTest}
-              className="text-[10px] py-1 px-2.5 rounded-full bg-surface-container-high hover:bg-surface-variant text-primary-container font-semibold flex items-center gap-1 border border-primary-container/30 transition-all hover:scale-105 cursor-pointer shadow-sm"
-              title="Tự động điền tài khoản mẫu để test nhanh"
-            >
-              <span className="material-symbols-outlined text-xs">bolt</span>
-              <span>Điền nhanh tài khoản test</span>
-            </button>
-          </div>
-
           {/* Status Alert Banner */}
           {statusMessage && (
             <div
@@ -284,9 +291,17 @@ export default function AuthCard({ onEnterGameWithBot }) {
               <div className="space-y-1">
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   <span>EMAIL LIÊN KẾT / TÀI KHOẢN</span>
-                  <span className="text-slate-500">P1</span>
+                  <span className={`font-semibold ${touched.loginIdentifier && !loginIdentifierStatus.isValid ? 'text-red-400' : 'text-slate-500'}`}>
+                    {touched.loginIdentifier && !loginIdentifierStatus.isValid ? 'CHƯA HỢP LỆ' : 'P1 TAG'}
+                  </span>
                 </div>
-                <div className="relative flex items-center bg-[#171b26] rounded-full px-3.5 py-2.5 border border-outline-variant/30 focus-within:border-primary-container/80 transition-colors">
+                <div
+                  className={`relative flex items-center bg-[#171b26] rounded-full px-3.5 py-2.5 border transition-colors ${
+                    touched.loginIdentifier && !loginIdentifierStatus.isValid
+                      ? 'border-red-500/80'
+                      : 'border-outline-variant/30 focus-within:border-primary-container/80'
+                  }`}
+                >
                   <span className="material-symbols-outlined text-slate-400 text-lg mr-2.5">
                     person
                   </span>
@@ -294,23 +309,40 @@ export default function AuthCard({ onEnterGameWithBot }) {
                     type="text"
                     required
                     value={loginIdentifier}
-                    onChange={(e) => setLoginIdentifier(e.target.value)}
+                    onChange={(e) => {
+                      setLoginIdentifier(e.target.value);
+                      if (statusMessage) setStatusMessage(null);
+                    }}
                     onBlur={() => handleBlur('loginIdentifier')}
-                    placeholder="vidu@example.com"
+                    placeholder="vidu@example.com hoặc CyberStriker"
                     className="w-full bg-transparent text-white text-xs sm:text-sm placeholder:text-slate-500 focus:outline-none"
                   />
                   <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#202533] text-slate-400 font-bold">
                     P1
                   </span>
                 </div>
+                {touched.loginIdentifier && !loginIdentifierStatus.isValid && (
+                  <p className="text-[10px] text-red-400 pl-3 pt-0.5 animate-fadeIn">
+                    {loginIdentifierStatus.error}
+                  </p>
+                )}
               </div>
 
               {/* Field 2: Password */}
               <div className="space-y-1">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   <span>MẬT MÃ BẢO MẬT</span>
+                  <span className={`font-semibold ${touched.loginPassword && !loginPasswordStatus.isValid ? 'text-red-400' : 'text-slate-500'}`}>
+                    {touched.loginPassword && !loginPasswordStatus.isValid ? 'CHƯA NHẬP' : 'MÃ KHÓA'}
+                  </span>
                 </div>
-                <div className="relative flex items-center bg-[#171b26] rounded-full px-3.5 py-2.5 border border-outline-variant/30 focus-within:border-primary-container/80 transition-colors">
+                <div
+                  className={`relative flex items-center bg-[#171b26] rounded-full px-3.5 py-2.5 border transition-colors ${
+                    touched.loginPassword && !loginPasswordStatus.isValid
+                      ? 'border-red-500/80'
+                      : 'border-outline-variant/30 focus-within:border-primary-container/80'
+                  }`}
+                >
                   <span className="material-symbols-outlined text-slate-400 text-lg mr-2.5">
                     lock
                   </span>
@@ -318,7 +350,10 @@ export default function AuthCard({ onEnterGameWithBot }) {
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
+                    onChange={(e) => {
+                      setLoginPassword(e.target.value);
+                      if (statusMessage) setStatusMessage(null);
+                    }}
                     onBlur={() => handleBlur('loginPassword')}
                     placeholder="••••••••••••"
                     className="w-full bg-transparent text-white text-xs sm:text-sm placeholder:text-slate-500 focus:outline-none"
@@ -333,6 +368,11 @@ export default function AuthCard({ onEnterGameWithBot }) {
                     </span>
                   </button>
                 </div>
+                {touched.loginPassword && !loginPasswordStatus.isValid && (
+                  <p className="text-[10px] text-red-400 pl-3 pt-0.5 animate-fadeIn">
+                    {loginPasswordStatus.error}
+                  </p>
+                )}
               </div>
 
               {/* Remember Me & Forgot Password */}
@@ -350,9 +390,13 @@ export default function AuthCard({ onEnterGameWithBot }) {
                   href="#forgot"
                   onClick={(e) => {
                     e.preventDefault();
-                    alert('Tài khoản mẫu để test: player@neouno.com / Mật khẩu: Password@123');
+                    if (onForgotPassword) {
+                      onForgotPassword();
+                    } else {
+                      alert('Tài khoản mẫu để test: player@neouno.com / Mật khẩu: Password@123');
+                    }
                   }}
-                  className="text-primary-container font-semibold hover:underline"
+                  className="text-primary-container font-semibold hover:underline cursor-pointer"
                 >
                   Quên mật khẩu?
                 </a>
@@ -371,8 +415,8 @@ export default function AuthCard({ onEnterGameWithBot }) {
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-xl">swords</span>
-                    <span>VÀO BÀN ĐẤU</span>
+                    <span className="material-symbols-outlined text-xl">login</span>
+                    <span>ĐĂNG NHẬP</span>
                   </>
                 )}
               </button>
@@ -411,7 +455,10 @@ export default function AuthCard({ onEnterGameWithBot }) {
                     type="text"
                     required
                     value={registerNickname}
-                    onChange={(e) => setRegisterNickname(e.target.value)}
+                    onChange={(e) => {
+                      setRegisterNickname(e.target.value);
+                      if (statusMessage) setStatusMessage(null);
+                    }}
                     onBlur={() => handleBlur('registerNickname')}
                     placeholder="Ví dụ: CyberStriker_99"
                     className="w-full bg-transparent text-white text-xs sm:text-sm placeholder:text-slate-500 focus:outline-none"
@@ -462,7 +509,10 @@ export default function AuthCard({ onEnterGameWithBot }) {
                     type="email"
                     required
                     value={registerEmail}
-                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    onChange={(e) => {
+                      setRegisterEmail(e.target.value);
+                      if (statusMessage) setStatusMessage(null);
+                    }}
                     onBlur={() => handleBlur('registerEmail')}
                     placeholder="email@example.com"
                     className="w-full bg-transparent text-white text-xs sm:text-sm placeholder:text-slate-500 focus:outline-none"
@@ -509,7 +559,10 @@ export default function AuthCard({ onEnterGameWithBot }) {
                     type={showPassword ? 'text' : 'password'}
                     required
                     value={registerPassword}
-                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    onChange={(e) => {
+                      setRegisterPassword(e.target.value);
+                      if (statusMessage) setStatusMessage(null);
+                    }}
                     onBlur={() => handleBlur('registerPassword')}
                     placeholder="Tối thiểu 8 ký tự (chữ hoa, số, ký tự đặc biệt)..."
                     className="w-full bg-transparent text-white text-xs sm:text-sm placeholder:text-slate-500 focus:outline-none"
@@ -589,7 +642,10 @@ export default function AuthCard({ onEnterGameWithBot }) {
                     type="password"
                     required
                     value={registerConfirmPassword}
-                    onChange={(e) => setRegisterConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setRegisterConfirmPassword(e.target.value);
+                      if (statusMessage) setStatusMessage(null);
+                    }}
                     onBlur={() => handleBlur('registerConfirmPassword')}
                     placeholder="Nhập lại mật khẩu để xác nhận..."
                     className="w-full bg-transparent text-white text-xs sm:text-sm placeholder:text-slate-500 focus:outline-none"
@@ -642,8 +698,8 @@ export default function AuthCard({ onEnterGameWithBot }) {
                   </>
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-lg">swords</span>
-                    <span>TẠO TÀI KHOẢN & VÀO BÀN ĐẤU</span>
+                    <span className="material-symbols-outlined text-lg">how_to_reg</span>
+                    <span>ĐĂNG KÝ TÀI KHOẢN & VÀO SẢNH</span>
                     <span className="material-symbols-outlined text-lg">arrow_forward</span>
                   </>
                 )}
