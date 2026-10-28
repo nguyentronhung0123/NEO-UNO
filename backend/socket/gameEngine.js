@@ -839,14 +839,20 @@ class OnlineGame {
       return { success: false, message: 'Không tìm thấy người chơi!' };
     }
 
+    // KHÓA CHẶT: Nếu bàn cờ đang trong quá trình chuyển lượt -> BỎ QUA NGAY LẬP TỨC!
+    if (this.isTransitioning) {
+      return { success: false, message: 'Đang chuyển lượt, vui lòng đợi!' };
+    }
+
     if (player.seatIndex !== this.currentTurnIndex) {
       return { success: false, message: 'Chưa tới lượt của bạn!' };
     }
 
     const curPlayer = player;
 
-    // 1. Nếu đang có chồng phạt +2
+    // 1. Nếu đang có chồng phạt +2: Nhận toàn bộ bài phạt và mất lượt
     if (this.drawTwoStack > 0) {
+      this.isTransitioning = true; // KHÓA NGAY LẬP TỨC chống click đúp bốc thêm bài thường
       const count = this.drawTwoStack;
       this.drawTwoStack = 0;
       this.drawnCountInTurn = 0;

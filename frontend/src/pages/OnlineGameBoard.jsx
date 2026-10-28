@@ -99,9 +99,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const [flyingDraw, setFlyingDraw] = useState(null); // { direction: 'bottom'|'top'|'left'|'right', id }
   const [flyingPlay, setFlyingPlay] = useState(null); // { direction, card, id }
 
-  // Quản lý số lá bài hiển thị trên tay để bốc từng lá một cho +2 / +4
-  const [localHandDelta, setLocalHandDelta] = useState(0); // Độ lệch tạm thời khi đang bốc từng lá
-  const [pendingHand, setPendingHand] = useState(null);
+  // Khóa chống click đúp bốc bài dồn dập
+  const [isDrawingThrottled, setIsDrawingThrottled] = useState(false);
 
   const [gameResult, setGameResult] = useState(null);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -212,12 +211,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
   // HIỆU ỨNG BỐC BÀI TỪNG LÁ MỘT CHO +2 / +4 (TUYỆT ĐỐI KHÔNG BỐC NGUYÊN 1 NẮM BÀI)
   const triggerSequentialDraw = useCallback(
-    (dir, count = 1, isMe = false) => {
+    (dir, count = 1) => {
       const safeCount = Math.max(1, count || 1);
-
-      if (isMe && safeCount > 1) {
-        setLocalHandDelta(-safeCount);
-      }
 
       for (let i = 0; i < safeCount; i++) {
         setTimeout(() => {
@@ -226,18 +221,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
             if (soundEnabledRef.current) soundEngine.playCardSlide();
           } catch {}
 
-          if (isMe && safeCount > 1) {
-            setLocalHandDelta((prev) => Math.min(0, prev + 1));
-          }
-
           setTimeout(() => setFlyingDraw(null), 360);
         }, i * 380);
-      }
-
-      if (isMe && safeCount > 1) {
-        setTimeout(() => {
-          setLocalHandDelta(0);
-        }, safeCount * 380 + 200);
       }
     },
     []
@@ -333,12 +318,44 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
     // Khi có người đánh bài (Hiệu ứng bài bay + Âm thanh + Sóng xung kích)
     const handleCardPlayed = ({ seatIndex, card, chosenColor, playerName, action }) => {
+      const cur = gameStateRef.current;
+      const isMe = cur && seatIndex === cur.mySeatIndex;
+
+      // 1. Nếu là chính mình vừa đánh:
+      // Client đã cập nhật lạc quan và chạy hiệu ứng rồi -> Không chạy lại lần 2 tránh nháy số!
+      if (isMe) {
+        setGameState((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            topCard: card,
+            activeColor: chosenColor || card.color,
+          };
+        });
+        return;
+      }
+
+      // 2. Nếu là đối thủ đánh (Bot hoặc người chơi khác):
       const dir = handlersRef.current.getDirectionForSeat(seatIndex);
 
+      // Kích hoạt hoạt ảnh bài bay từ ghế đối thủ
       setFlyingPlay({ direction: dir, card, id: Date.now() });
-      setTimeout(() => setFlyingPlay(null), 450);
 
-      handlersRef.current.triggerCardImpact();
+      // Khi lá bài bay chạm tâm bàn đấu (220ms): Đồng bộ ngay lập tức topCard và dằn bài
+      setTimeout(() => {
+        setGameState((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            topCard: card,
+            activeColor: chosenColor || card.color,
+          };
+        });
+        handlersRef.current.triggerCardImpact();
+      }, 220);
+
+      // Dọn dẹp hoạt ảnh bay sau khi đã tiếp đất
+      setTimeout(() => setFlyingPlay(null), 440);
 
       try {
         if (soundEnabledRef.current) {
@@ -361,10 +378,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
     // Khi có người bốc bài (Hỗ trợ bốc phạt nhiều lá tuần tự mượt mà từng lá)
     const handleCardDrawn = ({ seatIndex, count }) => {
-      const cur = gameStateRef.current;
-      const isMe = cur && seatIndex === cur.mySeatIndex;
       const dir = handlersRef.current.getDirectionForSeat(seatIndex);
-      handlersRef.current.triggerSequentialDraw(dir, count || 1, isMe);
+      handlersRef.current.triggerSequentialDraw(dir, count || 1);
     };
 
     // Khi có action event
@@ -609,22 +624,33 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     const activeCode = room?.code || gameState?.roomCode;
     if (!activeCode) return;
 
-    // KÍCH HOẠT HIỆU ỨNG ĐÁNH BÀI BAY TỨC THÌ TỪ TAY LÊN BÀN (0ms độ trễ)
-    setFlyingPlay({ direction: 'bottom', card, id: Date.now() });
-    setTimeout(() => setFlyingPlay(null), 450);
-
-    triggerCardImpact();
-
-    // Ẩn lá bài khỏi tay tạm thời
+    // 1. Ẩn ngay lá bài khỏi tay người chơi (phản hồi tức thì 0ms)
     setGameState((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
         myHand: (prev.myHand || []).filter((c) => c.id !== card.id),
-        topCard: card,
-        activeColor: chosenColor || card.color,
       };
     });
+
+    // 2. Kích hoạt hoạt ảnh bài bay từ tay lên giữa bàn đấu
+    setFlyingPlay({ direction: 'bottom', card, id: Date.now() });
+
+    // 3. Khi bài bay tiếp đất vào tâm bàn (sau 200ms): Cập nhật topCard và dằn bài
+    setTimeout(() => {
+      setGameState((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          topCard: card,
+          activeColor: chosenColor || card.color,
+        };
+      });
+      triggerCardImpact();
+    }, 200);
+
+    // 4. Kết thúc hoạt ảnh bay
+    setTimeout(() => setFlyingPlay(null), 420);
 
     const myUserId = getMyUserId();
     socket.emit(
@@ -645,13 +671,18 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     setPendingWildCard(null);
   };
 
-  // Click bốc bài
+  // Click bốc bài (có debounce và throttle chống click spam)
   const handleDrawCardClick = () => {
-    if (!isMyTurn || gameState?.isDealing || isDealing || isShuffling) return;
+    if (!isMyTurn || gameState?.isDealing || isDealing || isShuffling || isDrawingThrottled) return;
+
     if ((gameState?.drawnCountInTurn || 0) >= 2 && (gameState?.drawTwoStack || 0) === 0) {
       triggerActionFx('skip', 'ĐÃ BỐC ĐỦ 2 LÁ', 'Hãy đánh một lá bài hợp lệ hoặc bấm Bỏ Lượt ↷');
       return;
     }
+
+    setIsDrawingThrottled(true);
+    setTimeout(() => setIsDrawingThrottled(false), 800);
+
     const activeCode = room?.code || gameState?.roomCode;
     if (!activeCode) return;
     const myUserId = getMyUserId();
@@ -783,18 +814,14 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     }
   }, [gameState]);
 
-  // Bộ bài người chơi hiển thị thực tế (có animation chia bài và bốc từng lá)
+  // Bộ bài người chơi hiển thị thực tế
   const displayedPlayerHand = useMemo(() => {
     const rawHand = gameState?.myHand || [];
     if (isDealing) {
       return rawHand.slice(0, dealingRound);
     }
-    if (localHandDelta < 0) {
-      const visibleCount = Math.max(0, rawHand.length + localHandDelta);
-      return rawHand.slice(0, visibleCount);
-    }
     return rawHand;
-  }, [gameState?.myHand, isDealing, dealingRound, localHandDelta]);
+  }, [gameState?.myHand, isDealing, dealingRound]);
 
   // Helper render Bot / Người chơi bên Cánh Trái & Phải (GIỐNG 100% GAMEBOARD.JSX)
   const renderSidePlayer = (player, side) => {
