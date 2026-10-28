@@ -47,10 +47,26 @@ app.use('/api/matches', matchRoutes);
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 app.use('/api/leaderboard', leaderboardRoutes);
 
+// Bắt lỗi toàn cục chống crash server ngoài ý muốn
+process.on('uncaughtException', (err) => {
+  console.error('[BE] ⚠️ Uncaught Exception:', err.message);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[BE] ⚠️ Unhandled Rejection:', reason);
+});
+
 // Khởi động CSDL và Server
 connectDB().then(async () => {
   // Tự động đồng bộ tài khoản cũ sang MongoDB nếu có
   await migrateExistingUsers();
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`[BE] ⚠️ Cổng ${PORT} đang bị tiến trình khác chiếm dụng! Vui lòng tắt server cũ trước khi khởi động.`);
+    } else {
+      console.error('[BE] Lỗi server:', err);
+    }
+  });
 
   server.listen(PORT, () => {
     console.log(`[BE] 🚀 Server & Socket.io đã khởi chạy thành công tại: http://localhost:${PORT}`);

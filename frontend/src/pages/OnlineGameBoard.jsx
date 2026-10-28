@@ -675,19 +675,26 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     });
   };
 
-  // Click Hô UNO
+  // Click Hô UNO cho bản thân hoặc Bắt phạt đối thủ quên hô UNO
   const handleCallUnoClick = () => {
     const activeCode = room?.code || gameState?.roomCode;
     if (!activeCode) return;
     const handCount = (gameState?.myHand || []).length;
-    if (handCount > 2) {
+
+    // Kiểm tra xem có đối thủ nào còn đúng 1 lá mà chưa hô UNO không
+    const forgotOpponent = (gameState?.players || []).find(
+      (p) => p.seatIndex !== gameState?.mySeatIndex && p.handCount === 1 && !p.unoCalled
+    );
+
+    if (handCount > 2 && !forgotOpponent) {
       triggerActionFx(
         'skip',
         '❌ CHƯA THỂ HÔ UNO!',
-        `Bạn đang có ${handCount} lá bài trên tay. Chỉ được hô khi còn 1 hoặc 2 lá!`
+        `Bạn đang có ${handCount} lá bài trên tay và hiện không có đối thủ nào quên hô UNO!`
       );
       return;
     }
+
     const myUserId = getMyUserId();
     socket.emit('game:call_uno', { code: activeCode, userId: myUserId }, (res) => {
       if (res && res.success) {
@@ -1479,30 +1486,41 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
       </div>
 
-      {/* ================= NÚT BÁO UNO TO NỔI BẬT Ở GÓC DƯỚI PHẢI (GIỐNG 100% GAMEBOARD.JSX) ================= */}
+      {/* ================= NÚT BÁO UNO TO NỔI BẬT Ở GÓC DƯỚI PHẢI (HỖ TRỢ CẢ HÔ UNO & BẮT PHẠT ĐỐI THỦ) ================= */}
       <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-40 flex flex-col items-center">
         {(() => {
           const handCount = displayedPlayerHand.length;
           const hasCalledUno = myPlayer?.unoCalled || false;
           const canCallUno =
             handCount <= 2 && handCount > 0 && !hasCalledUno && !gameState?.isDealing && !isDealing && !isShuffling;
+
+          // Kiểm tra xem có đối thủ nào (kể cả Bot) còn đúng 1 lá mà CHƯA hô UNO không (BẮT UNO)
+          const forgotOpponent = (gameState?.players || []).find(
+            (p) => p.seatIndex !== gameState?.mySeatIndex && p.handCount === 1 && !p.unoCalled
+          );
+          const canCatchUno = Boolean(forgotOpponent) && !canCallUno && !gameState?.isDealing && !isDealing && !isShuffling;
+
           const isOverTwoCards = handCount > 2;
 
           return (
             <button
               onClick={handleCallUnoClick}
-              disabled={!canCallUno && !hasCalledUno}
+              disabled={!canCallUno && !hasCalledUno && !canCatchUno}
               className={`relative group flex flex-col items-center justify-center transition-all duration-300 rounded-full select-none transform-gpu ${
                 canCallUno
                   ? handCount === 1
                     ? 'w-22 h-22 sm:w-26 sm:h-26 bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 border-4 border-white shadow-[0_0_50px_rgba(244,63,94,0.95)] ring-4 ring-yellow-400 hover:scale-110 active:scale-95 animate-bounce cursor-pointer'
                     : 'w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 border-3 border-white shadow-[0_0_35px_rgba(245,158,11,0.85)] ring-2 ring-yellow-300 hover:scale-105 active:scale-95 cursor-pointer'
+                  : canCatchUno
+                  ? 'w-22 h-22 sm:w-26 sm:h-26 bg-gradient-to-tr from-purple-600 via-rose-600 to-amber-400 border-4 border-yellow-300 shadow-[0_0_55px_rgba(234,179,8,0.9)] ring-4 ring-amber-400 hover:scale-110 active:scale-95 animate-pulse cursor-pointer'
                   : hasCalledUno
                   ? 'w-18 h-18 sm:w-20 sm:h-20 bg-emerald-600/90 border-2 border-emerald-300 text-white shadow-[0_0_25px_rgba(16,185,129,0.7)] opacity-90 cursor-default'
                   : 'w-18 h-18 sm:w-20 sm:h-20 bg-surface-container-high/40 border border-white/10 text-slate-500 opacity-30 cursor-not-allowed'
               }`}
               title={
-                hasCalledUno
+                canCatchUno
+                  ? `BẮT QUẢ TANG! ${forgotOpponent.name} còn 1 lá mà chưa hô UNO! Bấm ngay để phạt 2 lá bài!`
+                  : hasCalledUno
                   ? 'Bạn đã báo UNO thành công!'
                   : handCount === 1
                   ? 'BÁO UNO NGAY! (Còn đúng 1 lá bài trên tay)'
@@ -1517,27 +1535,47 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 </span>
               )}
 
+              {canCatchUno && (
+                <span className="absolute -top-3 px-2 py-0.5 rounded-full bg-amber-300 text-black font-black text-[9px] uppercase tracking-tighter shadow-md animate-bounce whitespace-nowrap">
+                  🎯 BẮT PHẠT!
+                </span>
+              )}
+
               <span
                 className={`font-headline font-black italic tracking-tighter drop-shadow-lg ${
-                  canCallUno
+                  canCallUno || canCatchUno
                     ? 'text-2xl sm:text-3xl text-white'
                     : hasCalledUno
                     ? 'text-lg sm:text-xl text-emerald-100'
                     : 'text-base sm:text-lg text-slate-500'
                 }`}
               >
-                UNO
+                {canCatchUno ? 'BẮT!' : 'UNO'}
               </span>
 
               <span
                 className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wider ${
-                  hasCalledUno ? 'text-emerald-200' : canCallUno ? 'text-white/90' : 'text-slate-500'
+                  canCatchUno
+                    ? 'text-amber-200'
+                    : hasCalledUno
+                    ? 'text-emerald-200'
+                    : canCallUno
+                    ? 'text-white/90'
+                    : 'text-slate-500'
                 }`}
               >
-                {hasCalledUno ? '✓ ĐÃ BÁO' : canCallUno ? (handCount === 1 ? 'BÁO UNO' : 'BÁO TRƯỚC') : 'KHÓA'}
+                {canCatchUno
+                  ? 'PHẠT 2 LÁ'
+                  : hasCalledUno
+                  ? '✓ ĐÃ BÁO'
+                  : canCallUno
+                  ? handCount === 1
+                    ? 'BÁO UNO'
+                    : 'BÁO TRƯỚC'
+                  : 'KHÓA'}
               </span>
 
-              {isOverTwoCards && (
+              {isOverTwoCards && !canCatchUno && (
                 <span className="absolute -bottom-2 px-1.5 py-0.2 rounded-full bg-black/80 border border-white/10 text-[8px] text-slate-400 font-mono">
                   {handCount} lá
                 </span>

@@ -141,9 +141,11 @@ class OnlineGame {
     this.isDealing = true;
     this.dealingCountdown = 3;
     this.isTransitioning = false; // Cờ khóa trạng thái chuyển lượt (chống race condition AFK timeout)
+    this.penalizedThisTurn = false; // Đánh dấu đã bị phạt trong lượt này (chống phạt kép 2 lá UNO + 2 lá AFK)
 
     this.timerInterval = null;
     this.botTimeout = null;
+    this.botUnoTimer = null;
     this.unoPenaltyTimer = null;
     this.actionTransitionTimeout = null;
 
@@ -164,6 +166,7 @@ class OnlineGame {
       this.currentTurnIndex = this.getNextTurnIndex(nextSeatStep);
       this.turnTimeRemaining = 15;
       this.drawnCountInTurn = 0;
+      this.penalizedThisTurn = false;
       this.isTransitioning = false;
       this.broadcastState();
       this.checkBotTurn();
@@ -238,6 +241,7 @@ class OnlineGame {
   stopTimers() {
     if (this.timerInterval) clearInterval(this.timerInterval);
     if (this.botTimeout) clearTimeout(this.botTimeout);
+    if (this.botUnoTimer) clearTimeout(this.botUnoTimer);
     if (this.unoPenaltyTimer) clearTimeout(this.unoPenaltyTimer);
     if (this.actionTransitionTimeout) clearTimeout(this.actionTransitionTimeout);
     this.isTransitioning = false;
@@ -252,6 +256,19 @@ class OnlineGame {
     const curPlayer = this.players[this.currentTurnIndex];
     if (!curPlayer) {
       this.isTransitioning = false;
+      return;
+    }
+
+    // Nếu người chơi đã bị phạt do quên hô UNO trong lượt này, KHÔNG phạt kép thêm 2 lá AFK
+    if (this.penalizedThisTurn) {
+      this.penalizedThisTurn = false;
+      this.io.to(this.roomCode).emit('game:action_event', {
+        type: 'pass_turn',
+        playerName: curPlayer.name,
+        seatIndex: curPlayer.seatIndex,
+        message: `⏰ ${curPlayer.name} hết giờ: Tự động chuyển lượt.`,
+      });
+      this.scheduleTurnTransition(600, 1);
       return;
     }
 
@@ -271,8 +288,10 @@ class OnlineGame {
       return;
     }
 
-    // CHỈ PHẠT BỐC 2 LÁ NẾU NGƯỜI CHƠI HOÀN TOÀN AFK (không bốc, không đánh gì trong 15s)
+    // Nếu đang có chồng phạt +2: nhận toàn bộ chồng phạt đó
+    // Nếu hoàn toàn AFK: phạt đúng 2 lá
     const penaltyCount = this.drawTwoStack > 0 ? this.drawTwoStack : 2;
+    const isStackedPenalty = this.drawTwoStack > 0;
     this.drawTwoStack = 0;
     this.drawnCountInTurn = 0;
 
@@ -288,12 +307,16 @@ class OnlineGame {
       curPlayer.unoCalled = false;
     }
 
+    const msg = isStackedPenalty
+      ? `💥 ${curPlayer.name} hết giờ: Nhận dồn ${penaltyCount} lá phạt từ lá +2 và mất lượt!`
+      : `⏰ ${curPlayer.name} hết 15s (AFK)! Tự động phạt bốc 2 lá và mất lượt!`;
+
     this.io.to(this.roomCode).emit('game:action_event', {
       type: 'timeout_penalty',
       seatIndex: curPlayer.seatIndex,
       playerName: curPlayer.name,
       count: penaltyCount,
-      message: `⏰ ${curPlayer.name} hết 15s (AFK)! Tự động phạt bốc ${penaltyCount} lá và mất lượt!`,
+      message: msg,
     });
 
     this.io.to(this.roomCode).emit('game:card_drawn', {
@@ -327,7 +350,10 @@ class OnlineGame {
       countdown: 5,
     });
 
-    setTimeout(() => {
+    if (this.botUnoTimer) clearTimeout(this.botUnoTimer);
+    // Bot có thời gian phản xạ 2.0s - 3.5s trước khi hô UNO
+    // Trong thời gian này, người chơi có thể bấm nút "BẮT UNO" để phạt bot!
+    this.botUnoTimer = setTimeout(() => {
       if (this.status === 'in_game' && bot.hand.length === 1 && !bot.unoCalled) {
         bot.unoCalled = true;
         this.io.to(this.roomCode).emit('game:action_event', {
@@ -338,7 +364,7 @@ class OnlineGame {
         });
         this.broadcastState();
       }
-    }, 1200 + Math.random() * 1200);
+    }, 2200 + Math.random() * 1300);
   }
 
   executeBotTurn(bot) {
@@ -700,6 +726,7 @@ class OnlineGame {
         if (this.unoPenaltyTimer) clearTimeout(this.unoPenaltyTimer);
         this.unoPenaltyTimer = setTimeout(() => {
           if (this.status === 'in_game' && curPlayer.hand.length === 1 && !curPlayer.unoCalled) {
+            this.penalizedThisTurn = true; // Đánh dấu đã bị phạt trong lượt này (chống phạt kép khi hết 15s)
             const penaltyCards = [];
             for (let i = 0; i < 2; i++) {
               const c = this.drawOneCard();
@@ -724,6 +751,7 @@ class OnlineGame {
               isPenalty: true,
               playerName: curPlayer.name,
             });
+            this.broadcastState();
             this.scheduleTurnTransition(1600, 0);
           }
         }, 5500);
@@ -949,37 +977,83 @@ class OnlineGame {
     return { success: true };
   }
 
-  // Hô UNO chủ động (bắt buộc phải còn 1 hoặc 2 lá mới được hô)
+  // Hô UNO chủ động (còn 1-2 lá) hoặc Bắt quả tang đối thủ quên hô UNO (bất kể số lá trên tay)
   playerCallUno(socketId, userId) {
     const player = this.findActionPlayer(socketId, userId);
     if (!player) return { success: false, message: 'Không tìm thấy người chơi!' };
 
-    // Điều kiện: Chỉ được hô khi còn đúng 1 hoặc 2 lá!
-    if (player.hand.length > 2) {
-      return {
-        success: false,
-        message: `❌ Không thể hô UNO! Bạn đang có ${player.hand.length} lá trên tay. Chỉ được hô khi còn 1 hoặc 2 lá!`,
-      };
+    // 1. Tự hô UNO cho chính mình khi còn 1 hoặc 2 lá
+    if (player.hand.length <= 2) {
+      if (player.unoCalled) {
+        return { success: true, message: '✓ Bạn đã hô UNO từ trước!' };
+      }
+
+      player.unoCalled = true;
+      if (this.unoPenaltyTimer) {
+        clearTimeout(this.unoPenaltyTimer);
+        this.unoPenaltyTimer = null;
+      }
+
+      this.io.to(this.roomCode).emit('game:action_event', {
+        type: 'uno',
+        seatIndex: player.seatIndex,
+        playerName: player.name,
+        message: `🎉 ${player.name} đã hô UNO!`,
+      });
+      this.broadcastState();
+
+      return { success: true, message: '🎉 Bạn đã hô UNO thành công!' };
     }
 
-    if (player.unoCalled) {
-      return { success: true, message: '✓ Bạn đã hô UNO từ trước!' };
+    // 2. Bắt quả tang đối thủ (kể cả Bot) còn đúng 1 lá bài mà CHƯA hô UNO
+    const forgotOpponent = this.players.find(
+      (p) => p.seatIndex !== player.seatIndex && p.hand.length === 1 && !p.unoCalled
+    );
+
+    if (forgotOpponent) {
+      if (this.unoPenaltyTimer) {
+        clearTimeout(this.unoPenaltyTimer);
+        this.unoPenaltyTimer = null;
+      }
+      if (this.botUnoTimer) {
+        clearTimeout(this.botUnoTimer);
+        this.botUnoTimer = null;
+      }
+
+      const penaltyCards = [];
+      for (let i = 0; i < 2; i++) {
+        const c = this.drawOneCard();
+        if (c) {
+          forgotOpponent.hand.push(c);
+          penaltyCards.push(c);
+        }
+      }
+      forgotOpponent.unoCalled = false;
+
+      this.io.to(this.roomCode).emit('game:action_event', {
+        type: 'uno_penalty',
+        seatIndex: forgotOpponent.seatIndex,
+        playerName: forgotOpponent.name,
+        catcherName: player.name,
+        count: penaltyCards.length,
+        message: `🎯 ${player.name} BẮT QUẢ TANG ${forgotOpponent.name} QUÊN HÔ UNO! Phạt bốc 2 lá!`,
+      });
+
+      this.io.to(this.roomCode).emit('game:card_drawn', {
+        seatIndex: forgotOpponent.seatIndex,
+        count: penaltyCards.length,
+        isPenalty: true,
+        playerName: forgotOpponent.name,
+      });
+
+      this.broadcastState();
+      return { success: true, message: `🎯 Đã bắt quả tang ${forgotOpponent.name} quên hô UNO!` };
     }
 
-    player.unoCalled = true;
-    if (this.unoPenaltyTimer) {
-      clearTimeout(this.unoPenaltyTimer);
-      this.unoPenaltyTimer = null;
-    }
-
-    this.io.to(this.roomCode).emit('game:action_event', {
-      type: 'uno',
-      playerName: player.name,
-      message: `🎉 ${player.name} đã hô UNO!`,
-    });
-    this.broadcastState();
-
-    return { success: true };
+    return {
+      success: false,
+      message: `❌ Bạn đang có ${player.hand.length} lá trên tay và hiện không có đối thủ nào quên hô UNO!`,
+    };
   }
 
   finishGame(winnerPlayer) {
