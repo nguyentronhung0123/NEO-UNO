@@ -126,6 +126,9 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   const currentTurnIndexRef = useRef(currentTurnIndex);
   currentTurnIndexRef.current = currentTurnIndex;
 
+  // Khóa đồng bộ chống click nhanh đánh 2-3 lá bài trong cùng 1 lượt (LUẬT: 1 LƯỢT = 1 LÁ)
+  const isCardActionLockedRef = useRef(false);
+
   const turnDirectionRef = useRef(turnDirection);
   turnDirectionRef.current = turnDirection;
 
@@ -237,6 +240,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       });
       setTurnTimer(TURN_TIME_LIMIT);
       setDrawnCountInTurn(0);
+      isCardActionLockedRef.current = false; // Mở khóa đánh bài cho lượt mới
       setIsTurnTransitioning(false);
     },
     [getNextTurnIndex]
@@ -1315,6 +1319,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   // NGƯỜI CHƠI (P1 - BẠN) ĐÁNH BÀI
   // =========================================================================
   const handleCancelWildColor = () => {
+    isCardActionLockedRef.current = false;
     setColorPickerOpen(false);
     setPendingWildCard(null);
     setStatusMessage('Đã hủy chọn lá Wild. Bạn có thể chọn lá bài khác để đánh.');
@@ -1336,7 +1341,8 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   }, [playerRemainingHand]);
 
   const handlePlayCard = (card) => {
-    if (!isPlayerTurn || isDrawing || colorPickerOpen || winner || isShuffling || isDealing || isReshufflingDeck || isTurnTransitioning) return;
+    // KHÓA CHẶT: Mỗi lượt chỉ được đánh đúng 1 lá bài duy nhất, chặn tuyệt đối spam đánh 2-3 lá
+    if (isCardActionLockedRef.current || !isPlayerTurn || isDrawing || colorPickerOpen || winner || isShuffling || isDealing || isReshufflingDeck || isTurnTransitioning) return;
 
     if (!checkValidCard(card, activeDiscard, drawTwoStack)) {
       setShakingCardId(card.id);
@@ -1356,6 +1362,8 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       return;
     }
 
+    // KHÓA ĐỒNG BỘ 0ms NGAY LẬP TỨC
+    isCardActionLockedRef.current = true;
     executePlayCard(card, card.color);
   };
 
@@ -1364,6 +1372,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     const card = pendingWildCard;
     setColorPickerOpen(false);
     setPendingWildCard(null);
+    isCardActionLockedRef.current = true;
     executePlayCard(card, selectedColor);
   };
 
@@ -2174,6 +2183,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                 <div
                   key={card.id || `player_card_${index}`}
                   onClick={() => {
+                    if (isCardActionLockedRef.current) return;
                     if (isOtherCardWhilePicking) {
                       handleCancelWildColor();
                       setTimeout(() => handlePlayCard(card), 50);
@@ -2190,7 +2200,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       ? '-translate-y-7 scale-110 z-40 ring-4 ring-primary-container rounded-2xl shadow-[0_0_30px_rgba(0,210,255,0.8)] cursor-pointer'
                       : isOtherCardWhilePicking
                       ? 'opacity-40 hover:opacity-80 scale-95 transition-opacity cursor-pointer'
-                      : !isPlayerTurn || isDrawing || isShuffling || isDealing || isReshufflingDeck || isTurnTransitioning
+                      : !isPlayerTurn || isDrawing || isShuffling || isDealing || isReshufflingDeck || isTurnTransitioning || isCardActionLockedRef.current
                       ? 'opacity-40 grayscale-[40%] pointer-events-none'
                       : isPlayable
                       ? 'hover:-translate-y-5 hover:scale-105 hover:shadow-2xl hover:z-50 cursor-pointer ring-2 ring-primary-container/90 rounded-2xl shadow-[0_0_20px_rgba(0,210,255,0.6)]'

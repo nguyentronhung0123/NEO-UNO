@@ -102,6 +102,11 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   // Khóa chống click đúp bốc bài dồn dập
   const [isDrawingThrottled, setIsDrawingThrottled] = useState(false);
 
+  // Khóa đồng bộ chống click nhanh đánh 2-3 lá bài trong cùng 1 lượt (LUẬT: 1 LƯỢT = 1 LÁ)
+  const isCardActionLockedRef = useRef(false);
+  const [isCardActionLocked, setIsCardActionLocked] = useState(false);
+  const lastTurnIndexRef = useRef(-1);
+
   const [gameResult, setGameResult] = useState(null);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -281,6 +286,16 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   // LẮNG NGHE SỰ KIỆN TỪ SOCKET SERVER (CHỈ BIND 1 LẦN DUY NHẤT TRÊN MOUNT - KHÔNG LAG)
   useEffect(() => {
     const handleStateSync = (state) => {
+      // Khi lượt chơi thay đổi -> Giải phóng khóa đánh bài cho lượt mới
+      if (state.currentTurnIndex !== lastTurnIndexRef.current) {
+        lastTurnIndexRef.current = state.currentTurnIndex;
+        isCardActionLockedRef.current = false;
+        setIsCardActionLocked(false);
+      } else if (state.currentTurnIndex !== state.mySeatIndex) {
+        isCardActionLockedRef.current = false;
+        setIsCardActionLocked(false);
+      }
+
       setGameState(state);
 
       // Nếu là ván mới và chưa chạy intro phát bài -> kích hoạt intro chuẩn bàn bot
@@ -604,7 +619,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
   // CLICK ĐÁNH BÀI (HIỆU ỨNG TỨC THÌ 0ms - NATIVE 60 FPS)
   const handlePlayCardClick = (card) => {
-    if (!isMyTurn || isDealing || isShuffling) return;
+    // KHÓA CHẶT 1: Mỗi lượt chỉ được đánh đúng 1 lá bài duy nhất, chặn tuyệt đối spam đánh 2-3 lá
+    if (!isMyTurn || isDealing || isShuffling || isCardActionLockedRef.current || isCardActionLocked) return;
 
     if (!isCardPlayable(card)) {
       setShakingCardId(card.id);
@@ -623,6 +639,10 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const executePlayCard = (card, chosenColor) => {
     const activeCode = room?.code || gameState?.roomCode;
     if (!activeCode) return;
+
+    // KHÓA ĐỒNG BỘ 0ms NGAY LẬP TỨC: Tuyệt đối chặn các click liên tiếp kế sau
+    isCardActionLockedRef.current = true;
+    setIsCardActionLocked(true);
 
     // 1. Ẩn ngay lá bài khỏi tay người chơi (phản hồi tức thì 0ms)
     setGameState((prev) => {
@@ -664,6 +684,9 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       (res) => {
         if (res && !res.success) {
           triggerActionFx('skip', 'LỖI ĐÁNH BÀI', res.message);
+          // Mở lại khóa nếu server từ chối vì lỗi
+          isCardActionLockedRef.current = false;
+          setIsCardActionLocked(false);
         }
       }
     );
@@ -1412,6 +1435,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 <div
                   key={card.id || `player_card_${index}`}
                   onClick={() => {
+                    if (isCardActionLockedRef.current || isCardActionLocked) return;
                     if (isOtherCardWhilePicking) {
                       setColorPickerOpen(false);
                       setPendingWildCard(null);
@@ -1430,7 +1454,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       ? '-translate-y-7 scale-110 z-40 ring-4 ring-primary-container rounded-2xl shadow-[0_0_30px_rgba(0,210,255,0.8)] cursor-pointer'
                       : isOtherCardWhilePicking
                       ? 'opacity-40 hover:opacity-80 scale-95 transition-opacity cursor-pointer'
-                      : !isMyTurn || gameState?.isDealing || isDealing || isShuffling
+                      : !isMyTurn || gameState?.isDealing || isDealing || isShuffling || isCardActionLockedRef.current || isCardActionLocked
                       ? 'opacity-40 grayscale-[40%] pointer-events-none'
                       : isPlayable
                       ? 'hover:-translate-y-5 hover:scale-105 hover:shadow-2xl hover:z-50 cursor-pointer ring-2 ring-primary-container/90 rounded-2xl shadow-[0_0_20px_rgba(0,210,255,0.6)]'

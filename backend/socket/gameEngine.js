@@ -765,6 +765,11 @@ class OnlineGame {
       return { success: false, message: 'Không tìm thấy người chơi trong phòng!' };
     }
 
+    // KHÓA CHẶT 1: Nếu đang trong quá trình chuyển lượt -> BỎ QUA NGAY LẬP TỨC (chống spam đánh 2-3 lá/lượt)
+    if (this.isTransitioning) {
+      return { success: false, message: 'Mỗi lượt bạn chỉ được đánh 1 lá bài duy nhất! Đang chuyển lượt...' };
+    }
+
     if (player.seatIndex !== this.currentTurnIndex) {
       return { success: false, message: 'Chưa tới lượt của bạn!' };
     }
@@ -782,7 +787,9 @@ class OnlineGame {
       return { success: false, message: 'Lá bài này không hợp lệ với lá trên bàn!' };
     }
 
-    // Đánh bài hợp lệ
+    // KHÓA CHẶT 2: Đánh bài hợp lệ -> Khóa trạng thái chuyển lượt NGAY LẬP TỨC!
+    // Tuyệt đối chặn không cho nhận bất kỳ thao tác đánh thêm lá thứ 2 hoặc thứ 3 nào trong cùng một lượt!
+    this.isTransitioning = true;
     curPlayer.hand.splice(cardIdx, 1);
     this.discardPile.push(card);
     this.drawnCountInTurn = 0;
@@ -1054,6 +1061,10 @@ class OnlineGame {
       return { success: false, message: 'Không tìm thấy người chơi!' };
     }
 
+    if (this.isTransitioning) {
+      return { success: false, message: 'Đang chuyển lượt, vui lòng đợi!' };
+    }
+
     if (player.seatIndex !== this.currentTurnIndex) {
       return { success: false, message: 'Chưa tới lượt của bạn!' };
     }
@@ -1064,6 +1075,7 @@ class OnlineGame {
       return { success: false, message: 'Bạn cần bốc ít nhất 1 lá trước khi bỏ lượt!' };
     }
 
+    this.isTransitioning = true;
     this.drawnCountInTurn = 0;
     this.currentTurnIndex = this.getNextTurnIndex(1);
     this.turnTimeRemaining = 15;
