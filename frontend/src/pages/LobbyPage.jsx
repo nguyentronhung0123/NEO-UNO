@@ -31,6 +31,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [friendsRoomCode, setFriendsRoomCode] = useState(null);
   const [incomingInvite, setIncomingInvite] = useState(null);
   const [targetRoomCode, setTargetRoomCode] = useState(null);
+  const [onlineInitialRoom, setOnlineInitialRoom] = useState(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [activeChatFriend, setActiveChatFriend] = useState(null);
   const [copyIdToast, setCopyIdToast] = useState(false);
@@ -108,6 +109,54 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
     }
     setFriendsRoomCode(roomCode);
     setIsFriendsOpen(true);
+  };
+
+  // TẠO PHÒNG VÀ GỬI LỜI MỜI ĐẤU TRỰC TIẾP TỚI BẠN BÈ 1-CLICK (TASK 2)
+  const handleCreateRoomAndInvite = (friend) => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    let localUserId = localStorage.getItem('neo_user_id');
+    if (!localUserId) {
+      localUserId = 'user_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('neo_user_id', localUserId);
+    }
+    const chosenName =
+      (user?.nickname || user?.name || localStorage.getItem('neo_player_name') || 'Người chơi').trim();
+
+    const preparedUser = {
+      ...user,
+      id: user?.id || user?._id || localUserId,
+      userId: user?.id || user?._id || localUserId,
+      nickname: chosenName,
+      name: chosenName,
+      avatar: user?.avatar,
+    };
+
+    socket.emit('room:create', { user: preparedUser }, (res) => {
+      if (res && res.success && res.room) {
+        setOnlineInitialRoom(res.room);
+        setFriendsRoomCode(res.room.code);
+        setIsFriendsOpen(false);
+        setIsOnlineRoomOpen(true);
+
+        socket.emit(
+          'invite:send',
+          {
+            toUserId: friend._id,
+            roomCode: res.room.code,
+            sender: preparedUser,
+          },
+          (inviteRes) => {
+            if (inviteRes && inviteRes.success) {
+              console.log(`[Invite] Đã gửi lời mời tới ${friend.nickname}`);
+            }
+          }
+        );
+      } else {
+        alert(res?.message || 'Không thể tạo phòng lúc này!');
+      }
+    });
   };
 
   // Tự động kiểm tra và đồng bộ trực tiếp trận đấu dở dang theo thời gian thực (1s/lần)
@@ -977,9 +1026,13 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         onClose={() => {
           setIsOnlineRoomOpen(false);
           setTargetRoomCode(null);
+          setOnlineInitialRoom(null);
+          setFriendsRoomCode(null);
         }}
         user={user}
         targetRoomCode={targetRoomCode}
+        initialRoom={onlineInitialRoom}
+        onClearInitialRoom={() => setOnlineInitialRoom(null)}
         onClearTargetRoomCode={() => setTargetRoomCode(null)}
         onOpenFriends={(code) => handleOpenFriends(code)}
         onStartOnlineMatch={(room) => {
@@ -1018,10 +1071,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         currentRoomCode={friendsRoomCode}
         onOpenAuth={onOpenAuth}
         onOpenChat={(friend) => setActiveChatFriend(friend)}
-        onCreateAndInvite={() => {
-          setIsFriendsOpen(false);
-          setIsOnlineRoomOpen(true);
-        }}
+        onCreateAndInvite={(friend) => handleCreateRoomAndInvite(friend)}
       />
 
       {/* KHUNG CHAT TRỰC TIẾP BẠN BÈ 1-1 (TASK 2) */}
@@ -1044,7 +1094,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                 },
               });
             } else {
-              setIsOnlineRoomOpen(true);
+              handleCreateRoomAndInvite(friend);
             }
           }}
         />

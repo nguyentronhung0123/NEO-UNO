@@ -10,6 +10,8 @@ export default function OnlineRoomModal({
   targetRoomCode = null,
   onClearTargetRoomCode = null,
   onOpenFriends = null,
+  initialRoom = null,
+  onClearInitialRoom = null,
 }) {
   const [currentRoom, setCurrentRoom] = useState(null);
   const [inputCode, setInputCode] = useState('');
@@ -148,6 +150,14 @@ export default function OnlineRoomModal({
       if (onClearTargetRoomCode) onClearTargetRoomCode();
     }
   }, [isOpen, targetRoomCode]);
+
+  // Thiết lập phòng trực tiếp khi tạo phòng tự động kèm lời mời bạn bè
+  useEffect(() => {
+    if (isOpen && initialRoom) {
+      setCurrentRoom(initialRoom);
+      if (onClearInitialRoom) onClearInitialRoom();
+    }
+  }, [isOpen, initialRoom]);
 
   // Đổi tên trực tiếp khi đã ở trong phòng
   const handleUpdateMyName = (newName) => {
