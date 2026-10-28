@@ -929,10 +929,17 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               </span>
             </div>
 
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-black tracking-wider uppercase shadow-sm">
-              <span className="material-symbols-outlined text-xs text-purple-400">groups</span>
-              <span>PHÒNG: {room?.code || gameState?.roomCode}</span>
-            </div>
+            {(room?.isRanked || gameState?.isRanked) ? (
+              <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[10px] font-black tracking-wider uppercase shadow-[0_0_15px_rgba(251,191,36,0.3)] animate-pulse">
+                <span className="material-symbols-outlined text-xs text-amber-400">military_tech</span>
+                <span>ĐẤU XẾP HẠNG (RANK)</span>
+              </div>
+            ) : (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-[10px] font-black tracking-wider uppercase shadow-sm">
+                <span className="material-symbols-outlined text-xs text-purple-400">groups</span>
+                <span>GIAO HỮU: {room?.code || gameState?.roomCode}</span>
+              </div>
+            )}
           </div>
 
           {/* Center Info: 5-Phút Countdown */}
@@ -1731,10 +1738,58 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               👑 Người chiến thắng: <strong className="text-amber-300">{gameResult.winner}</strong>
             </div>
 
-            <div className="mb-4 px-3.5 py-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-[11px] text-purple-200 leading-relaxed">
-              🛡️ <strong>Chế độ Giao Hữu:</strong> Trận đấu bạn bè vui vẻ, kết quả này{' '}
-              <strong>KHÔNG</strong> tính điểm Rank ELO.
-            </div>
+            {/* THÔNG BÁO CHẾ ĐỘ XẾP HẠNG / GIAO HỮU */}
+            {gameResult.isRanked ? (
+              <div className="w-full mb-4">
+                <div className="mb-3 px-4 py-2 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-xs font-headline font-bold flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(251,191,36,0.3)]">
+                  <span className="material-symbols-outlined text-base text-amber-400">military_tech</span>
+                  <span>TRẬN ĐẤU GHÉP NHANH XẾP HẠNG (RANK MATCH)</span>
+                </div>
+
+                {(() => {
+                  const myRank = (gameResult.rankings || []).find(
+                    (r) =>
+                      String(r.userId) === String(user?.id || user?._id) ||
+                      r.name === (user?.nickname || user?.name)
+                  );
+                  if (!myRank) return null;
+
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-black/50 border border-cyan-500/30 flex items-center justify-around text-center shadow-inner">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase font-mono">Thứ Hạng</span>
+                        <span className="text-sm sm:text-base font-headline font-black text-amber-300">
+                          #{myRank.rank} {myRank.rank === 1 ? '🥇 Nhất' : myRank.rank === 2 ? '🥈 Nhì' : myRank.rank === 3 ? '🥉 Ba' : '4️⃣ Bét'}
+                        </span>
+                      </div>
+                      <div className="h-8 w-px bg-white/10" />
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase font-mono">Điểm Rank ELO</span>
+                        <span
+                          className={`text-sm sm:text-base font-headline font-black ${
+                            (myRank.eloDelta || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                          }`}
+                        >
+                          {(myRank.eloDelta || 0) > 0 ? `+${myRank.eloDelta}` : myRank.eloDelta} ELO
+                        </span>
+                      </div>
+                      <div className="h-8 w-px bg-white/10" />
+                      <div>
+                        <span className="text-[10px] text-slate-400 block uppercase font-mono">ELO Mới</span>
+                        <span className="text-sm sm:text-base font-headline font-black text-cyan-300">
+                          {myRank.newElo || 1000}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="mb-4 px-3.5 py-2 rounded-xl bg-purple-500/15 border border-purple-500/30 text-[11px] text-purple-200 leading-relaxed">
+                🛡️ <strong>Chế độ Giao Hữu:</strong> Trận đấu bạn bè vui vẻ, kết quả này{' '}
+                <strong>KHÔNG</strong> tính điểm Rank ELO.
+              </div>
+            )}
 
             {/* Bảng Xếp Hạng Ván */}
             <div className="w-full flex flex-col gap-2 mb-6">
@@ -1743,7 +1798,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                   key={idx}
                   className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold ${
                     idx === 0
-                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.15)]'
                       : 'bg-surface-container-high/40 border-white/10 text-slate-300'
                   }`}
                 >
@@ -1753,7 +1808,22 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       {r.name} {r.isBot && '(Bot AI)'}
                     </span>
                   </div>
-                  <span className="text-slate-400 font-mono">{r.cardsRemaining} lá còn lại</span>
+                  <div className="flex items-center gap-3">
+                    {gameResult.isRanked && r.eloDelta !== undefined && (
+                      <span
+                        className={`px-2 py-0.5 rounded-md font-mono text-[10px] font-bold ${
+                          r.eloDelta > 0
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : r.eloDelta < 0
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                            : 'bg-slate-500/20 text-slate-300'
+                        }`}
+                      >
+                        {r.eloDelta > 0 ? `+${r.eloDelta}` : r.eloDelta} ELO
+                      </span>
+                    )}
+                    <span className="text-slate-400 font-mono text-[11px]">{r.cardsRemaining} lá</span>
+                  </div>
                 </div>
               ))}
             </div>

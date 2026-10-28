@@ -1,8 +1,74 @@
 /**
  * Game Engine - Trọng tài ván cờ thời gian thực cho NEO-UNO
  */
+const User = require('../models/User');
+const Match = require('../models/Match');
+const PlayerStats = require('../models/PlayerStats');
+
 const COLORS = ['red', 'blue', 'green', 'yellow'];
 const ACTION_VALUES = ['skip', 'reverse', 'draw_two'];
+
+function calculateDeltas(totalPlayerCount, rank) {
+  let eloDelta = 0;
+  let coinsDelta = 0;
+  let expDelta = 0;
+  let isWin = false;
+  let isLoss = false;
+
+  if (totalPlayerCount === 2) {
+    if (rank === 1) {
+      eloDelta = +15;
+      coinsDelta = +70;
+      expDelta = +50;
+      isWin = true;
+    } else {
+      eloDelta = -15;
+      coinsDelta = +15;
+      expDelta = +10;
+      isLoss = true;
+    }
+  } else if (totalPlayerCount === 3) {
+    if (rank === 1) {
+      eloDelta = +20;
+      coinsDelta = +100;
+      expDelta = +70;
+      isWin = true;
+    } else if (rank === 2) {
+      eloDelta = +5;
+      coinsDelta = +50;
+      expDelta = +35;
+    } else {
+      eloDelta = -15;
+      coinsDelta = +20;
+      expDelta = +15;
+      isLoss = true;
+    }
+  } else {
+    // 4 người
+    if (rank === 1) {
+      eloDelta = +30;
+      coinsDelta = +150;
+      expDelta = +100;
+      isWin = true;
+    } else if (rank === 2) {
+      eloDelta = +10;
+      coinsDelta = +75;
+      expDelta = +50;
+    } else if (rank === 3) {
+      eloDelta = -5;
+      coinsDelta = +40;
+      expDelta = +25;
+      isLoss = true;
+    } else {
+      eloDelta = -20;
+      coinsDelta = +20;
+      expDelta = +10;
+      isLoss = true;
+    }
+  }
+
+  return { eloDelta, coinsDelta, expDelta, isWin, isLoss };
+}
 
 function createDeck() {
   const deck = [];
@@ -101,6 +167,8 @@ class OnlineGame {
     this.roomCode = room.code;
     this.io = io;
     this.isRanked = room.isRanked || false;
+    this.mode = room.mode || '4_PLAYERS';
+    this.startTime = Date.now();
 
     // Khởi tạo bộ bài
     this.drawPile = shuffleDeck(createDeck());
@@ -1091,45 +1159,192 @@ class OnlineGame {
     };
   }
 
-  finishGame(winnerPlayer) {
+  // XỬ LÝ VÀ LƯU KẾT QUẢ ĐẤU RANK XẾP HẠNG (ELO) VÀO CSDL MONGODB ATLAS
+  async processRankedMatchResults(winnerPlayer, sortedRankings, reason = 'out_of_cards') {
+    const totalPlayerCount = this.players.length;
+    const enrichedRankings = [];
+    const matchPlayers = [];
+
+    for (let idx = 0; idx < sortedRankings.length; idx++) {
+      const p = sortedRankings[idx];
+      const rank = idx + 1;
+      const { eloDelta, coinsDelta, expDelta, isWin, isLoss } = calculateDeltas(totalPlayerCount, rank);
+
+      let newElo = p.elo || 1000;
+      let effectiveEloDelta = eloDelta;
+
+      if (!p.isBot && p.userId) {
+        try {
+          const userDoc = await User.findByNicknameOrId(p.userId);
+          if (userDoc) {
+            const isGuest = userDoc.role === 'guest';
+            effectiveEloDelta = isGuest ? 0 : eloDelta;
+
+            userDoc.elo = Math.max(100, (userDoc.elo || 1000) + effectiveEloDelta);
+            userDoc.coins = (userDoc.coins || 0) + coinsDelta;
+            userDoc.exp = (userDoc.exp || 0) + expDelta;
+
+            if (isWin) {
+              userDoc.matchesWon = (userDoc.matchesWon || 0) + 1;
+            } else if (isLoss) {
+              userDoc.matchesLost = (userDoc.matchesLost || 0) + 1;
+            }
+
+            const oldLevel = userDoc.level || 1;
+            const nextLevel = Math.floor(userDoc.exp / 150) + 1;
+            if (nextLevel > oldLevel) {
+              userDoc.level = nextLevel;
+              userDoc.coins += 250;
+            }
+
+            await userDoc.save();
+            newElo = userDoc.elo;
+
+            let stats = await PlayerStats.findOne({ user: userDoc._id });
+            if (!stats) {
+              stats = await PlayerStats.create({ user: userDoc._id });
+            }
+            stats.totalMatches += 1;
+            if (isWin) {
+              stats.wins += 1;
+              stats.winStreak += 1;
+              if (stats.winStreak > stats.highestWinStreak) {
+                stats.highestWinStreak = stats.winStreak;
+              }
+            } else if (isLoss) {
+              stats.losses += 1;
+              stats.winStreak = 0;
+            }
+            stats.winRate = Math.round((stats.wins / stats.totalMatches) * 100);
+            await stats.save();
+
+            console.log(
+              `[Rank Engine] 🏆 Đã cập nhật ELO cho ${userDoc.nickname}: ${effectiveEloDelta > 0 ? '+' : ''}${effectiveEloDelta} ELO -> Mới: ${newElo}`
+            );
+          }
+        } catch (dbErr) {
+          console.error(`[Rank Engine] Lỗi cập nhật CSDL cho người chơi ${p.name}:`, dbErr);
+        }
+      } else {
+        newElo = Math.max(100, (p.elo || 1000) + eloDelta);
+      }
+
+      enrichedRankings.push({
+        rank,
+        userId: p.userId,
+        name: p.name,
+        avatar: p.avatar || 'avatar_1',
+        cardsRemaining: p.hand.length,
+        isBot: p.isBot,
+        eloDelta: effectiveEloDelta,
+        newElo,
+        coinsDelta,
+        expDelta,
+      });
+
+      matchPlayers.push({
+        id: String(p.userId || p.name),
+        name: p.name,
+        isHuman: !p.isBot,
+        avatar: p.avatar || '👤',
+        rank,
+        cardsRemaining: p.hand.length,
+        eloDelta: effectiveEloDelta,
+        coinsDelta,
+        expDelta,
+        newElo,
+      });
+    }
+
+    try {
+      const modeKey =
+        totalPlayerCount === 2
+          ? '1v1'
+          : totalPlayerCount === 3
+          ? '3p'
+          : '4p';
+
+      await Match.create({
+        roomCode: this.roomCode,
+        mode: modeKey,
+        winner: {
+          id: String(winnerPlayer.userId || winnerPlayer.name),
+          name: winnerPlayer.name,
+          isHuman: !winnerPlayer.isBot,
+        },
+        reason,
+        durationSeconds: Math.floor((Date.now() - (this.startTime || Date.now())) / 1000),
+        players: matchPlayers,
+      });
+      console.log(`[Rank Engine] 📝 Đã lưu lịch sử trận đấu xếp hạng phòng ${this.roomCode} vào MongoDB Atlas!`);
+    } catch (matchErr) {
+      console.error('[Rank Engine] Lỗi lưu Match record:', matchErr);
+    }
+
+    return enrichedRankings;
+  }
+
+  async finishGame(winnerPlayer) {
     this.status = 'finished';
     this.winner = winnerPlayer;
     this.stopTimers();
 
-    // Sắp xếp thứ hạng theo số lượng bài còn lại trên tay
-    const rankings = [...this.players].sort((a, b) => a.hand.length - b.hand.length);
+    // Sắp xếp thứ hạng: Đảm bảo winnerPlayer luôn ở vị trí số 1 (rank 1)
+    const otherPlayers = this.players.filter((p) => p.seatIndex !== winnerPlayer.seatIndex);
+    otherPlayers.sort((a, b) => a.hand.length - b.hand.length);
+    const sortedRankings = [winnerPlayer, ...otherPlayers];
+
+    let finalRankings = [];
+    if (this.isRanked) {
+      finalRankings = await this.processRankedMatchResults(winnerPlayer, sortedRankings, 'out_of_cards');
+    } else {
+      finalRankings = sortedRankings.map((p, idx) => ({
+        rank: idx + 1,
+        userId: p.userId,
+        name: p.name,
+        avatar: p.avatar,
+        cardsRemaining: p.hand.length,
+        isBot: p.isBot,
+      }));
+    }
 
     this.io.to(this.roomCode).emit('game:finished', {
       winner: winnerPlayer.name,
-      rankings: rankings.map((p, idx) => ({
-        rank: idx + 1,
-        name: p.name,
-        cardsRemaining: p.hand.length,
-        isBot: p.isBot,
-      })),
+      rankings: finalRankings,
       isRanked: this.isRanked,
+      mode: this.mode,
     });
 
     this.broadcastState();
   }
 
-  endMatchDueToTimeout() {
+  async endMatchDueToTimeout() {
     this.status = 'finished';
     this.stopTimers();
 
-    // Sắp xếp người ít bài nhất về nhất
-    const rankings = [...this.players].sort((a, b) => a.hand.length - b.hand.length);
-    const winner = rankings[0];
+    const sortedRankings = [...this.players].sort((a, b) => a.hand.length - b.hand.length);
+    const winner = sortedRankings[0];
+    this.winner = winner;
+
+    let finalRankings = [];
+    if (this.isRanked) {
+      finalRankings = await this.processRankedMatchResults(winner, sortedRankings, 'timeout');
+    } else {
+      finalRankings = sortedRankings.map((p, idx) => ({
+        rank: idx + 1,
+        userId: p.userId,
+        name: p.name,
+        avatar: p.avatar,
+        cardsRemaining: p.hand.length,
+        isBot: p.isBot,
+      }));
+    }
 
     this.io.to(this.roomCode).emit('game:finished', {
       winner: `${winner.name} (Hết giờ)`,
-      rankings: rankings.map((p, idx) => ({
-        rank: idx + 1,
-        name: p.name,
-        cardsRemaining: p.hand.length,
-        isBot: p.isBot,
-      })),
+      rankings: finalRankings,
       isRanked: this.isRanked,
+      mode: this.mode,
     });
 
     this.broadcastState();
@@ -1140,6 +1355,7 @@ class OnlineGame {
     return {
       roomCode: this.roomCode,
       status: this.status,
+      isRanked: this.isRanked,
       isDealing: this.isDealing,
       dealingCountdown: this.dealingCountdown,
       drawPileCount: this.drawPile.length,
