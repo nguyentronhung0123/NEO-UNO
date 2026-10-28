@@ -147,6 +147,7 @@ function setupSocketIO(io) {
     // LẤY TRẠNG THÁI VÁN ĐẤU HIỆN TẠI (HỖ TRỢ RECONNECT F5)
     socket.on('game:get_state', ({ code, userId, playerName }) => {
       try {
+        console.log(`[Socket] 🔄 game:get_state nhận từ ${playerName} (socket: ${socket.id}, room: ${code})`);
         const game = gameEngine.getActiveGame(code);
         if (game) {
           socket.join(game.roomCode);
@@ -154,9 +155,19 @@ function setupSocketIO(io) {
           if (!p) {
             p = game.players.find((pl) => pl.socketId === socket.id);
           }
-          if (p) {
-            socket.emit('game:state_sync', game.getClientStateForPlayer(p));
+          if (!p) {
+            // Fallback an toàn: Tìm ghế người thật đầu tiên trùng tên hoặc chưa gán socketId
+            p = game.players.find((pl) => !pl.isBot && (!pl.socketId || pl.name === playerName));
+            if (p) p.socketId = socket.id;
           }
+          if (p) {
+            console.log(`[Socket] 📤 Gửi game:state_sync cho ${p.name} (ghế P${p.seatIndex + 1})`);
+            socket.emit('game:state_sync', game.getClientStateForPlayer(p));
+          } else {
+            console.warn(`[Socket] ⚠️ Không tìm thấy ghế cho ${playerName} trong phòng ${code}!`);
+          }
+        } else {
+          console.warn(`[Socket] ⚠️ Trận đấu phòng ${code} chưa bắt đầu trên gameEngine!`);
         }
       } catch (err) {
         console.error('[Socket] Lỗi lấy trạng thái ván đấu:', err);

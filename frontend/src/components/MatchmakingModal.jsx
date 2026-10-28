@@ -20,8 +20,15 @@ export default function MatchmakingModal({
   const [errorMsg, setErrorMsg] = useState('');
 
   const timerRef = useRef(null);
+  const countdownIntervalRef = useRef(null);
   const radarPingIntervalRef = useRef(null);
   const socket = getSocket();
+
+  const onStartOnlineMatchRef = useRef(onStartOnlineMatch);
+  onStartOnlineMatchRef.current = onStartOnlineMatch;
+
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   const MODE_CONFIGS = {
     '4_PLAYERS': { label: 'Bàn 4 Người', capacity: 4, icon: 'groups', desc: 'Đấu trường chuẩn quốc tế' },
@@ -117,18 +124,28 @@ export default function MatchmakingModal({
       console.log('[Matchmaking] 🎉 Đã tìm thấy trận!', room);
       setMatchedRoom(room);
       setIsSearching(false);
-      setCountdown(3);
-      soundEngine.playMatchFound();
+      setCountdown(2);
+      try {
+        soundEngine.playMatchFound();
+      } catch {}
 
-      // Đếm ngược 3.. 2.. 1.. chuyển vào game
-      let count = 3;
-      const countTimer = setInterval(() => {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
+      // Đếm ngược 2s để người chơi thấy đối thủ, sau đó chuyển thẳng vào ván đấu
+      let count = 2;
+      countdownIntervalRef.current = setInterval(() => {
         count -= 1;
         setCountdown(count);
         if (count <= 0) {
-          clearInterval(countTimer);
-          onStartOnlineMatch && onStartOnlineMatch(room);
-          onClose();
+          clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+          console.log('[Matchmaking] 🚀 Chuyển vào bàn đấu phòng:', room?.code);
+          if (onStartOnlineMatchRef.current) {
+            onStartOnlineMatchRef.current(room);
+          }
+          if (onCloseRef.current) {
+            onCloseRef.current();
+          }
         }
       }, 1000);
     };
@@ -139,8 +156,9 @@ export default function MatchmakingModal({
     return () => {
       socket.off('matchmaking:status', handleStatus);
       socket.off('matchmaking:matched', handleMatched);
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };
-  }, [socket, onStartOnlineMatch, onClose]);
+  }, [socket]);
 
   if (!isOpen) return null;
 
