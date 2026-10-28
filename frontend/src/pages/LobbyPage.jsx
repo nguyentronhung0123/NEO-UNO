@@ -6,6 +6,7 @@ import MatchSetupModal from '../components/MatchSetupModal';
 import LeaderboardModal, { getRankTier } from '../components/LeaderboardModal';
 import MatchHistoryModal from '../components/MatchHistoryModal';
 import OnlineRoomModal from '../components/OnlineRoomModal';
+import MatchmakingModal from '../components/MatchmakingModal';
 import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
@@ -15,6 +16,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isOnlineRoomOpen, setIsOnlineRoomOpen] = useState(false);
+  const [isMatchmakingOpen, setIsMatchmakingOpen] = useState(false);
+  const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
@@ -442,30 +445,85 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             <span>Thẻ Wild Đổi Màu</span>
           </div>
 
-          {/* NÚT CHÍNH: ĐẤU VỚI BOT AI & ĐẤU ONLINE */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full mt-1">
-            {/* Nút 1: Đấu với Bot (Luôn mở cho cả Khách & Đấu thủ) */}
+          {/* NÚT CHÍNH: GHÉP TRẬN NHANH, ĐẤU VỚI BOT AI & ĐẤU ONLINE */}
+          <div className="flex flex-col gap-3 w-full mt-1">
+            {/* 1. NÚT HERO: GHÉP TRẬN NHANH TỰ ĐỘNG (QUICK MATCH) */}
             <button
-              onClick={() => setIsSetupOpen(true)}
-              className="flex-1 py-4 px-5 rounded-2xl bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline text-base font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(0,210,255,0.4)] hover:shadow-[0_0_40px_rgba(0,210,255,0.6)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+              onClick={() => {
+                setMatchmakingMode('4_PLAYERS');
+                setIsMatchmakingOpen(true);
+              }}
+              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-300 hover:to-rose-400 text-slate-950 font-headline text-base sm:text-lg font-black uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-[0_0_35px_rgba(245,158,11,0.5)] hover:shadow-[0_0_50px_rgba(245,158,11,0.7)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer relative overflow-hidden group"
             >
-              <span className="material-symbols-outlined text-2xl">smart_toy</span>
-              <span>ĐẤU VỚI BOT AI</span>
+              <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none"></div>
+              <span className="material-symbols-outlined text-2xl font-black animate-pulse">
+                bolt
+              </span>
+              <span>GHÉP TRẬN NHANH</span>
+              <span className="px-2 py-0.5 rounded-full bg-black/40 text-amber-200 border border-amber-300/40 text-[10px] font-black uppercase tracking-wider shadow-sm">
+                TỰ ĐỘNG ELO
+              </span>
             </button>
 
-            {/* Nút 2: Đấu Online Bạn Bè */}
-            <button
-              onClick={handleOnlineMultiplayerClick}
-              className="flex-1 py-4 px-5 rounded-2xl border border-purple-500/50 bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 hover:text-white font-headline text-base font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:shadow-[0_0_35px_rgba(168,85,247,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer relative overflow-hidden"
-            >
-              <span className="material-symbols-outlined text-2xl text-purple-300">
-                groups
-              </span>
-              <span>ĐẤU PHÒNG BẠN BÈ</span>
-              <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[9px] font-black uppercase tracking-wider shadow-sm animate-pulse">
-                ONLINE
-              </span>
-            </button>
+            {/* Quick Mode Chips: 4P, 3P, Solo 1v1 */}
+            <div className="flex items-center justify-center gap-2 w-full text-[11px] font-bold">
+              <button
+                onClick={() => {
+                  setMatchmakingMode('4_PLAYERS');
+                  setIsMatchmakingOpen(true);
+                }}
+                className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
+              >
+                <span>👥</span>
+                <span>4 Người (Chuẩn)</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMatchmakingMode('3_PLAYERS');
+                  setIsMatchmakingOpen(true);
+                }}
+                className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
+              >
+                <span>⚔️</span>
+                <span>Đấu Tay Ba</span>
+              </button>
+              <button
+                onClick={() => {
+                  setMatchmakingMode('SOLO_1V1');
+                  setIsMatchmakingOpen(true);
+                }}
+                className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
+              >
+                <span>🥊</span>
+                <span>Solo 1v1</span>
+              </button>
+            </div>
+
+            {/* 2 Nút phụ: Đấu Bot & Phòng Bạn Bè */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
+              {/* Nút 1: Đấu với Bot (Luôn mở cho cả Khách & Đấu thủ) */}
+              <button
+                onClick={() => setIsSetupOpen(true)}
+                className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,210,255,0.35)] hover:shadow-[0_0_35px_rgba(0,210,255,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-xl">smart_toy</span>
+                <span>ĐẤU VỚI BOT AI</span>
+              </button>
+
+              {/* Nút 2: Đấu Online Bạn Bè */}
+              <button
+                onClick={handleOnlineMultiplayerClick}
+                className="flex-1 py-3.5 px-4 rounded-2xl border border-purple-500/50 bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 hover:text-white font-headline text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:shadow-[0_0_35px_rgba(168,85,247,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer relative overflow-hidden"
+              >
+                <span className="material-symbols-outlined text-xl text-purple-300">
+                  groups
+                </span>
+                <span>PHÒNG BẠN BÈ</span>
+                <span className="px-1.5 py-0.2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 text-white text-[8px] font-black uppercase tracking-wider shadow-sm">
+                  CODE
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -768,6 +826,20 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             onJoinOnlineMatch(room);
           } else {
             alert(`🎮 Phòng ${room.code}: Tất cả đã sẵn sàng! Đang chuẩn bị chuyển vào bàn đấu thời gian thực...`);
+          }
+        }}
+      />
+
+      {/* MODAL GHÉP TRẬN NHANH TỰ ĐỘNG (RADAR MATCHMAKING) */}
+      <MatchmakingModal
+        isOpen={isMatchmakingOpen}
+        onClose={() => setIsMatchmakingOpen(false)}
+        user={user}
+        initialMode={matchmakingMode}
+        onStartOnlineMatch={(room) => {
+          setIsMatchmakingOpen(false);
+          if (onJoinOnlineMatch) {
+            onJoinOnlineMatch(room);
           }
         }}
       />

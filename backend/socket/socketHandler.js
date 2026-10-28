@@ -3,10 +3,33 @@
  */
 const roomManager = require('./roomManager');
 const gameEngine = require('./gameEngine');
+const matchmakingQueue = require('./matchmakingQueue');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
     console.log(`[Socket] ⚡ Người chơi kết nối: ${socket.id}`);
+
+    // 0. GHÉP TRẬN NHANH TỰ ĐỘNG (MATCHMAKING)
+    socket.on('matchmaking:join', ({ user, mode }, callback) => {
+      try {
+        const result = matchmakingQueue.joinQueue({ user, mode, socket, io });
+        if (typeof callback === 'function') callback(result);
+      } catch (err) {
+        console.error('[Socket] Lỗi tham gia ghép trận:', err);
+        if (typeof callback === 'function') {
+          callback({ success: false, message: 'Lỗi máy chủ khi ghép trận!' });
+        }
+      }
+    });
+
+    socket.on('matchmaking:cancel', (callback) => {
+      try {
+        const result = matchmakingQueue.leaveQueue(socket.id, io);
+        if (typeof callback === 'function') callback(result);
+      } catch (err) {
+        console.error('[Socket] Lỗi hủy ghép trận:', err);
+      }
+    });
 
     // 1. TẠO PHÒNG MỚI
     socket.on('room:create', ({ user }, callback) => {
@@ -221,6 +244,9 @@ function setupSocketIO(io) {
     socket.on('disconnect', () => {
       console.log(`[Socket] ❌ Người chơi ngắt kết nối: ${socket.id}`);
       try {
+        // Hủy ghép trận nếu đang trong hàng chờ
+        matchmakingQueue.leaveQueue(socket.id, io);
+
         // Kiểm tra xem phòng có đang trong ván không
         const currentRoom = roomManager.getRoomBySocket(socket.id);
         if (currentRoom && currentRoom.status === 'in_game') {
