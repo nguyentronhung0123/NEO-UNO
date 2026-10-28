@@ -28,10 +28,10 @@ const autoFillTimers = new Map();
 
 // Tên và Avatar Bot mặc định khi auto-fill
 const BOT_TEMPLATES = [
-  { name: 'Bot Titan 🤖', avatar: 'bot_alpha', baseElo: 1100 },
-  { name: 'Bot Neon ⚡', avatar: 'bot_delta', baseElo: 1050 },
-  { name: 'Bot Cyber 🛡️', avatar: 'bot_prime', baseElo: 1020 },
-  { name: 'Bot Vortex 🌀', avatar: 'bot_vortex', baseElo: 1080 },
+  { name: 'Bot Titan 🤖', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=BotTitan', baseElo: 1100 },
+  { name: 'Bot Neon ⚡', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=BotNeon', baseElo: 1050 },
+  { name: 'Bot Cyber 🛡️', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=BotCyber', baseElo: 1020 },
+  { name: 'Bot Vortex 🌀', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=BotVortex', baseElo: 1080 },
 ];
 
 /**

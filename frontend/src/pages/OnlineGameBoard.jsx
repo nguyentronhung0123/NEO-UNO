@@ -18,26 +18,33 @@ const COLOR_NAME_MAP = {
   yellow: 'VÀNG',
 };
 
-// Helper render Avatar an toàn: Render ảnh khi là URL, render emoji khi là icon, TUYỆT ĐỐI KHÔNG in chuỗi URL ra màn hình
+// Helper render Avatar an toàn: Render ảnh khi là URL, render emoji khi là icon, TUYỆT ĐỐI KHÔNG in chuỗi URL hoặc ID text ra màn hình
 function renderPlayerAvatar(avatar, isBot = false, isActive = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
   const activeRing = isActive
     ? 'ring-2 ring-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.6)]'
     : 'border border-white/20';
 
+  let avatarUrl = avatar;
+  // Nếu là bot và avatar không phải là URL -> Tự động sinh avatar Bot Dicebear Robot cực đẹp
+  if (isBot && (!avatar || !avatar.startsWith('http'))) {
+    const seed = (typeof avatar === 'string' && avatar) ? avatar : 'bot';
+    avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
+  }
+
   if (
-    avatar &&
-    typeof avatar === 'string' &&
-    (avatar.startsWith('http://') ||
-      avatar.startsWith('https://') ||
-      avatar.startsWith('/') ||
-      avatar.startsWith('data:'))
+    avatarUrl &&
+    typeof avatarUrl === 'string' &&
+    (avatarUrl.startsWith('http://') ||
+      avatarUrl.startsWith('https://') ||
+      avatarUrl.startsWith('/') ||
+      avatarUrl.startsWith('data:'))
   ) {
     return (
       <div
         className={`${size} rounded-full overflow-hidden bg-slate-800 p-0.5 ${activeRing} shrink-0 flex items-center justify-center`}
       >
         <img
-          src={avatar}
+          src={avatarUrl}
           alt="Avatar"
           className="w-full h-full object-cover rounded-full"
           onError={(e) => {
@@ -48,11 +55,15 @@ function renderPlayerAvatar(avatar, isBot = false, isActive = false, size = 'w-9
     );
   }
 
+  // Nếu là chuỗi dài hơn 4 ký tự (ví dụ text ID, bot_id) -> Fallback sang robot emoji hoặc user emoji
+  const isEmoji = typeof avatar === 'string' && avatar.length <= 4;
+  const displayIcon = isEmoji ? avatar : (isBot ? '🤖' : '👤');
+
   return (
     <div
       className={`${size} rounded-full bg-slate-800/80 p-1 ${activeRing} shrink-0 flex items-center justify-center text-xl sm:text-2xl select-none shadow-md`}
     >
-      {avatar || (isBot ? '🤖' : '👤')}
+      {displayIcon}
     </div>
   );
 }

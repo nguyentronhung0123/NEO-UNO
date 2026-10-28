@@ -140,6 +140,7 @@ class OnlineGame {
     // Giai đoạn phát bài đầu trận (3 giây)
     this.isDealing = true;
     this.dealingCountdown = 3;
+    this.isTransitioning = false; // Cờ khóa trạng thái chuyển lượt (chống race condition AFK timeout)
 
     this.timerInterval = null;
     this.botTimeout = null;
@@ -153,12 +154,17 @@ class OnlineGame {
 
   // Chuyển lượt sau khi hiệu ứng hoạt ảnh kết thúc trơn tru (chống giật và cắt hiệu ứng)
   scheduleTurnTransition(delayMs, nextSeatStep = 1) {
+    this.isTransitioning = true;
     if (this.actionTransitionTimeout) clearTimeout(this.actionTransitionTimeout);
     this.actionTransitionTimeout = setTimeout(() => {
-      if (this.status !== 'in_game') return;
+      if (this.status !== 'in_game') {
+        this.isTransitioning = false;
+        return;
+      }
       this.currentTurnIndex = this.getNextTurnIndex(nextSeatStep);
       this.turnTimeRemaining = 15;
       this.drawnCountInTurn = 0;
+      this.isTransitioning = false;
       this.broadcastState();
       this.checkBotTurn();
     }, delayMs);
@@ -191,18 +197,20 @@ class OnlineGame {
         return;
       }
 
-      // Đang trong giai đoạn phát bài khởi đầu
-      if (this.isDealing) {
-        this.dealingCountdown -= 1;
-        this.io.to(this.roomCode).emit('game:dealing_tick', {
-          countdown: this.dealingCountdown,
-        });
+      // Đang trong giai đoạn phát bài khởi đầu hoặc đang trong độ trễ chuyển lượt
+      if (this.isDealing || this.isTransitioning) {
+        if (this.isDealing) {
+          this.dealingCountdown -= 1;
+          this.io.to(this.roomCode).emit('game:dealing_tick', {
+            countdown: this.dealingCountdown,
+          });
 
-        if (this.dealingCountdown <= 0) {
-          this.isDealing = false;
-          this.turnTimeRemaining = 15;
-          this.broadcastState();
-          this.checkBotTurn();
+          if (this.dealingCountdown <= 0) {
+            this.isDealing = false;
+            this.turnTimeRemaining = 15;
+            this.broadcastState();
+            this.checkBotTurn();
+          }
         }
         return;
       }
@@ -211,7 +219,7 @@ class OnlineGame {
       this.turnTimeRemaining -= 1;
 
       if (this.turnTimeRemaining <= 0) {
-        // HẾT 15 GIÂY LƯỢT ĐÁNH
+        // HẾT 15 GIÂY LƯỢT ĐÁNH -> Xử lý AFK Timeout
         this.handleTurnTimeout();
       } else {
         // Chỉ gửi tick nhẹ đếm giây, KHÔNG gửi lại toàn bộ state tránh lag/giật màn hình
@@ -232,17 +240,25 @@ class OnlineGame {
     if (this.botTimeout) clearTimeout(this.botTimeout);
     if (this.unoPenaltyTimer) clearTimeout(this.unoPenaltyTimer);
     if (this.actionTransitionTimeout) clearTimeout(this.actionTransitionTimeout);
+    this.isTransitioning = false;
   }
 
   handleTurnTimeout() {
+    // Nếu đang trong quá trình chuyển lượt -> BỎ QUA NGAY LẬP TỨC (chống lặp vô tận)
+    if (this.isTransitioning) return;
+    this.isTransitioning = true;
+    this.turnTimeRemaining = 15; // Reset ngay lập tức để tick kế tiếp không bị trigger lại!
+
     const curPlayer = this.players[this.currentTurnIndex];
-    if (!curPlayer) return;
+    if (!curPlayer) {
+      this.isTransitioning = false;
+      return;
+    }
 
     // NẾU NGƯỜI CHƠI ĐÃ BỐC BÀI TRONG LƯỢT (drawnCountInTurn > 0) -> Họ đã tham gia lượt, KHÔNG PHẢI AFK!
     // Tuyệt đối không phạt thêm 2 lá nữa! Chỉ chuyển lượt sang người kế tiếp.
     if (this.drawnCountInTurn > 0) {
       this.drawnCountInTurn = 0;
-      this.turnTimeRemaining = 15;
 
       this.io.to(this.roomCode).emit('game:action_event', {
         type: 'pass_turn',
@@ -287,7 +303,8 @@ class OnlineGame {
       playerName: curPlayer.name,
     });
 
-    this.scheduleTurnTransition(1600, 1);
+    // Chuyển lượt dứt khoát sang người kế tiếp sau 1.2s hiệu ứng
+    this.scheduleTurnTransition(1200, 1);
   }
 
   checkBotTurn() {

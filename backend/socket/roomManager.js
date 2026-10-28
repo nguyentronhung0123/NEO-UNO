@@ -122,8 +122,13 @@ function addBot(code, hostSocketId) {
   }
 
   const botCount = room.players.filter((p) => p.isBot).length + 1;
-  const botNames = ['CyberBot Alpha', 'Neon AI Delta', 'ShadowBot Prime', 'Vortex AI'];
-  const botAvatars = ['bot_alpha', 'bot_delta', 'bot_prime', 'bot_vortex'];
+  const botNames = ['Bot Titan 🤖', 'Bot Neon ⚡', 'Bot Cyber 🛡️', 'Bot Vortex 🌀'];
+  const botAvatars = [
+    'https://api.dicebear.com/7.x/bottts/svg?seed=BotTitan',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=BotNeon',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=BotCyber',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=BotVortex',
+  ];
 
   const botPlayer = {
     socketId: null,
