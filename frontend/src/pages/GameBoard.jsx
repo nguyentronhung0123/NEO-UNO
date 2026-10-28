@@ -116,6 +116,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   const [endGameRankings, setEndGameRankings] = useState(null);
   const [endGameReason, setEndGameReason] = useState('out_of_cards');
   const [matchResultRewards, setMatchResultRewards] = useState(null);
+  const [autoReturnCountdown, setAutoReturnCountdown] = useState(120);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -673,6 +674,28 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     }
     setIsExitModalOpen(true);
   };
+
+  // TỰ ĐỘNG QUAY VỀ SẢNH SAU 120 GIÂY NẾU KẾT THÚC TRẬN ĐẤU MÀ KHÔNG THAO TÁC
+  useEffect(() => {
+    if (!winner || !endGameRankings) {
+      setAutoReturnCountdown(120);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setAutoReturnCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          clearActiveMatch();
+          onBack();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [winner, endGameRankings, onBack, clearActiveMatch]);
 
   // XÁC NHẬN BỎ CUỘC & XỬ THUA
   const handleConfirmForfeitAndExit = async () => {
@@ -2599,6 +2622,25 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
               </div>
             )}
 
+            {/* Thanh đếm ngược 120s tự động quay về sảnh */}
+            <div className="w-full mb-3 px-3.5 py-2 rounded-2xl bg-black/40 border border-white/10 flex flex-col gap-1.5 shadow-inner">
+              <div className="flex items-center justify-between text-[11px] text-slate-300">
+                <span className="flex items-center gap-1.5 text-slate-400 font-medium">
+                  <span className="material-symbols-outlined text-sm text-cyan-400">timer</span>
+                  Tự động quay về sảnh sau:
+                </span>
+                <span className="font-mono font-black text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                  {autoReturnCountdown}s
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-1000 ease-linear rounded-full"
+                  style={{ width: `${Math.max(0, Math.min(100, (autoReturnCountdown / 120) * 100))}%` }}
+                />
+              </div>
+            </div>
+
             <div className="flex flex-wrap items-center gap-2 w-full">
               <button
                 onClick={startShuffleAndDeal}
@@ -2619,10 +2661,14 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                 <span>📜</span> Lịch Sử
               </button>
               <button
-                onClick={onBack}
-                className="py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                onClick={() => {
+                  clearActiveMatch();
+                  onBack();
+                }}
+                className="py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
               >
-                Thoát
+                <span>Thoát</span>
+                <span className="font-mono text-cyan-300 text-[11px]">({autoReturnCountdown}s)</span>
               </button>
             </div>
           </div>

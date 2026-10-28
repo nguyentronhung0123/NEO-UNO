@@ -1320,14 +1320,26 @@ class OnlineGame {
       }));
     }
 
-    this.io.to(this.roomCode).emit('game:finished', {
+    this.gameResult = {
       winner: winnerPlayer.name,
       rankings: finalRankings,
       isRanked: this.isRanked,
       mode: this.mode,
-    });
+    };
+
+    this.io.to(this.roomCode).emit('game:finished', this.gameResult);
 
     this.broadcastState();
+
+    // Tự động dọn dẹp phòng sau 120 giây
+    setTimeout(() => {
+      const activeGame = activeGames.get(this.roomCode);
+      if (activeGame && activeGame.status === 'finished') {
+        activeGame.stopTimers();
+        activeGames.delete(this.roomCode);
+        console.log(`[GameEngine] 🧹 Đã dọn dẹp phòng ${this.roomCode} sau 120 giây kết thúc trận.`);
+      }
+    }, 120000);
   }
 
   async endMatchDueToTimeout() {
@@ -1352,14 +1364,26 @@ class OnlineGame {
       }));
     }
 
-    this.io.to(this.roomCode).emit('game:finished', {
+    this.gameResult = {
       winner: `${winner.name} (Hết giờ)`,
       rankings: finalRankings,
       isRanked: this.isRanked,
       mode: this.mode,
-    });
+    };
+
+    this.io.to(this.roomCode).emit('game:finished', this.gameResult);
 
     this.broadcastState();
+
+    // Tự động dọn dẹp phòng sau 120 giây
+    setTimeout(() => {
+      const activeGame = activeGames.get(this.roomCode);
+      if (activeGame && activeGame.status === 'finished') {
+        activeGame.stopTimers();
+        activeGames.delete(this.roomCode);
+        console.log(`[GameEngine] 🧹 Đã dọn dẹp phòng ${this.roomCode} sau 120 giây kết thúc trận.`);
+      }
+    }, 120000);
   }
 
   getClientStateForPlayer(player) {
@@ -1367,6 +1391,7 @@ class OnlineGame {
     return {
       roomCode: this.roomCode,
       status: this.status,
+      gameResult: this.gameResult || null,
       isRanked: this.isRanked,
       isDealing: this.isDealing,
       dealingCountdown: this.dealingCountdown,

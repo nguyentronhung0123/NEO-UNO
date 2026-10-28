@@ -108,6 +108,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const lastTurnIndexRef = useRef(-1);
 
   const [gameResult, setGameResult] = useState(null);
+  const [autoReturnCountdown, setAutoReturnCountdown] = useState(120);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
@@ -297,6 +298,11 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       }
 
       setGameState(state);
+
+      // Đồng bộ kết quả trận đấu nếu có (giữ modal kết quả luôn hiển thị ngay cả khi reconnect/re-sync)
+      if (state.gameResult) {
+        setGameResult(state.gameResult);
+      }
 
       // Nếu là ván mới và chưa chạy intro phát bài -> kích hoạt intro chuẩn bàn bot
       if (state.isDealing && !hasIntroPlayedRef.current) {
@@ -560,6 +566,37 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       if (unoCountdown !== null) setUnoCountdown(null);
     }
   }, [gameState, unoCountdown, isDealing, isShuffling]);
+
+  // Bộ đếm ngược 120 giây tự động quay về sảnh sau khi kết thúc trận
+  useEffect(() => {
+    if (!gameResult) {
+      setAutoReturnCountdown(120);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setAutoReturnCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          try {
+            sessionStorage.removeItem('neo_online_room');
+          } catch {}
+          onBack();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [gameResult, onBack]);
+
+  const handleReturnToLobby = useCallback(() => {
+    try {
+      sessionStorage.removeItem('neo_online_room');
+    } catch {}
+    onBack();
+  }, [onBack]);
 
   // Thống kê màu sắc các lá bài trên tay phục vụ Wild Color Picker
   const myHandColorStats = useMemo(() => {
@@ -1852,12 +1889,32 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               ))}
             </div>
 
+            {/* Thanh đếm ngược 120s tự động quay về sảnh */}
+            <div className="w-full mb-3 px-3.5 py-2 rounded-2xl bg-black/40 border border-white/10 flex flex-col gap-1.5 shadow-inner">
+              <div className="flex items-center justify-between text-[11px] text-slate-300">
+                <span className="flex items-center gap-1.5 text-slate-400 font-medium">
+                  <span className="material-symbols-outlined text-sm text-cyan-400">timer</span>
+                  Tự động quay về sảnh sau:
+                </span>
+                <span className="font-mono font-black text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-lg border border-amber-500/30">
+                  {autoReturnCountdown}s
+                </span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-1000 ease-linear rounded-full"
+                  style={{ width: `${Math.max(0, Math.min(100, (autoReturnCountdown / 120) * 100))}%` }}
+                />
+              </div>
+            </div>
+
             <button
               type="button"
-              onClick={onBack}
-              className="w-full py-3.5 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+              onClick={handleReturnToLobby}
+              className="w-full py-3.5 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.4)] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
             >
-              QUAY VỀ SẢNH CHÍNH
+              <span className="material-symbols-outlined text-base">logout</span>
+              <span>QUAY VỀ SẢNH CHÍNH ({autoReturnCountdown}s)</span>
             </button>
           </div>
         </div>
