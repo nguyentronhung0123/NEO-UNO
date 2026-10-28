@@ -288,10 +288,8 @@ class OnlineGame {
       return;
     }
 
-    // Nếu đang có chồng phạt +2: nhận toàn bộ chồng phạt đó
-    // Nếu hoàn toàn AFK: phạt đúng 2 lá
-    const penaltyCount = this.drawTwoStack > 0 ? this.drawTwoStack : 2;
-    const isStackedPenalty = this.drawTwoStack > 0;
+    // HÌNH PHẠT HẾT GIỜ (AFK): TUYỆT ĐỐI CHỈ PHẠT TỐI ĐA 2 LÁ BÀI
+    const penaltyCount = 2;
     this.drawTwoStack = 0;
     this.drawnCountInTurn = 0;
 
@@ -307,9 +305,7 @@ class OnlineGame {
       curPlayer.unoCalled = false;
     }
 
-    const msg = isStackedPenalty
-      ? `💥 ${curPlayer.name} hết giờ: Nhận dồn ${penaltyCount} lá phạt từ lá +2 và mất lượt!`
-      : `⏰ ${curPlayer.name} hết 15s (AFK)! Tự động phạt bốc 2 lá và mất lượt!`;
+    const msg = `⏰ ${curPlayer.name} hết 15s (AFK)! Tự động phạt bốc 2 lá và mất lượt!`;
 
     this.io.to(this.roomCode).emit('game:action_event', {
       type: 'timeout_penalty',
@@ -405,8 +401,8 @@ class OnlineGame {
         this.scheduleTurnTransition(900, 1);
         return;
       } else {
-        // Bot không có lá +2: Nhận toàn bộ bài phạt và mất lượt
-        const count = this.drawTwoStack;
+        // Bot không có lá +2: Nhận tối đa 2 lá bài phạt và mất lượt
+        const count = Math.min(2, this.drawTwoStack);
         this.drawTwoStack = 0;
         this.drawnCountInTurn = 0;
 
@@ -439,12 +435,36 @@ class OnlineGame {
 
     // 2. Đánh bài thông thường
     const topCard = this.discardPile[this.discardPile.length - 1];
-    const playableIdx = bot.hand.findIndex((c) =>
-      isValidCardPlay(c, topCard, this.activeColor, 0)
-    );
 
-    if (playableIdx !== -1) {
-      const [card] = bot.hand.splice(playableIdx, 1);
+    // CHIẾN THUẬT BOT CÔNG BẰNG & THÔNG MINH:
+    // Ưu tiên 1: Đánh bài số thông thường cùng màu hoặc cùng số (0-9)
+    // Ưu tiên 2: Đánh bài chức năng cùng màu (Skip, Reverse, Draw Two)
+    // Ưu tiên 3: Đánh lá Wild đổi màu
+    // Ưu tiên 4: CUỐI CÙNG mới dùng Wild Draw Four (+4) khi không còn lá nào khác!
+    const validEntries = bot.hand
+      .map((card, index) => ({ card, index }))
+      .filter(({ card }) => isValidCardPlay(card, topCard, this.activeColor, 0));
+
+    let chosenEntry = null;
+    if (validEntries.length > 0) {
+      chosenEntry = validEntries.find(
+        ({ card }) => card.color !== 'wild' && !['skip', 'reverse', 'draw_two'].includes(card.value)
+      );
+      if (!chosenEntry) {
+        chosenEntry = validEntries.find(
+          ({ card }) => card.color !== 'wild' && ['skip', 'reverse', 'draw_two'].includes(card.value)
+        );
+      }
+      if (!chosenEntry) {
+        chosenEntry = validEntries.find(({ card }) => card.value === 'wild');
+      }
+      if (!chosenEntry) {
+        chosenEntry = validEntries.find(({ card }) => card.value === 'wild_draw_four');
+      }
+    }
+
+    if (chosenEntry) {
+      const [card] = bot.hand.splice(chosenEntry.index, 1);
       this.discardPile.push(card);
 
       let chosenColor = card.color;
@@ -477,7 +497,9 @@ class OnlineGame {
       // Xử lý hiệu ứng lá bài
       if (card.value === 'wild_draw_four') {
         const victim = this.players[this.getNextTurnIndex(1)];
-        for (let i = 0; i < 4; i++) {
+        // Trong chế độ Solo 1v1 phạt tối đa 2 lá để không bị knockout dồn dập
+        const penaltyCount = this.players.length === 2 ? 2 : 4;
+        for (let i = 0; i < penaltyCount; i++) {
           const c = this.drawOneCard();
           if (c) victim.hand.push(c);
         }
@@ -490,18 +512,19 @@ class OnlineGame {
           victimSeatIndex: victim.seatIndex,
           victimName: victim.name,
           chosenColor: this.activeColor,
-          count: 4,
-          message: `⚡ ${bot.name} đánh WILD +4! ${victim.name} bị phạt bốc 4 lá và mất lượt!`,
+          count: penaltyCount,
+          message: `⚡ ${bot.name} đánh WILD +4! ${victim.name} bị phạt bốc ${penaltyCount} lá và chuyển lượt!`,
         });
 
         this.io.to(this.roomCode).emit('game:card_drawn', {
           seatIndex: victim.seatIndex,
-          count: 4,
+          count: penaltyCount,
           isPenalty: true,
           playerName: victim.name,
         });
 
-        this.scheduleTurnTransition(2400, 2);
+        const step = this.players.length === 2 ? 1 : 2;
+        this.scheduleTurnTransition(2000, step);
         return;
       } else if (card.value === 'draw_two') {
         this.drawTwoStack += 2;
@@ -761,8 +784,9 @@ class OnlineGame {
     // Xử lý hiệu ứng lá bài
     if (card.value === 'wild_draw_four') {
       const victim = this.players[this.getNextTurnIndex(1)];
+      const penaltyCount = this.players.length === 2 ? 2 : 4;
       const penaltyCards = [];
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < penaltyCount; i++) {
         const c = this.drawOneCard();
         if (c) {
           victim.hand.push(c);
@@ -778,18 +802,19 @@ class OnlineGame {
         victimSeatIndex: victim.seatIndex,
         victimName: victim.name,
         chosenColor: this.activeColor,
-        count: 4,
-        message: `⚡ ${curPlayer.name} đánh WILD +4! ${victim.name} bị phạt bốc 4 lá và mất lượt!`,
+        count: penaltyCount,
+        message: `⚡ ${curPlayer.name} đánh WILD +4! ${victim.name} bị phạt bốc ${penaltyCount} lá và chuyển lượt!`,
       });
 
       this.io.to(this.roomCode).emit('game:card_drawn', {
         seatIndex: victim.seatIndex,
-        count: 4,
+        count: penaltyCount,
         isPenalty: true,
         playerName: victim.name,
       });
 
-      this.scheduleTurnTransition(2400, 2);
+      const step = this.players.length === 2 ? 1 : 2;
+      this.scheduleTurnTransition(2000, step);
       return { success: true };
     } else if (card.value === 'draw_two') {
       this.drawTwoStack += 2;
@@ -850,10 +875,10 @@ class OnlineGame {
 
     const curPlayer = player;
 
-    // 1. Nếu đang có chồng phạt +2: Nhận toàn bộ bài phạt và mất lượt
+    // 1. Nếu đang có chồng phạt +2: Nhận tối đa 2 lá bài phạt và mất lượt
     if (this.drawTwoStack > 0) {
       this.isTransitioning = true; // KHÓA NGAY LẬP TỨC chống click đúp bốc thêm bài thường
-      const count = this.drawTwoStack;
+      const count = Math.min(2, this.drawTwoStack);
       this.drawTwoStack = 0;
       this.drawnCountInTurn = 0;
 
