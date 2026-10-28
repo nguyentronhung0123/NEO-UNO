@@ -7,6 +7,9 @@ export default function OnlineRoomModal({
   onClose,
   user,
   onStartOnlineMatch,
+  targetRoomCode = null,
+  onClearTargetRoomCode = null,
+  onOpenFriends = null,
 }) {
   const [currentRoom, setCurrentRoom] = useState(null);
   const [inputCode, setInputCode] = useState('');
@@ -111,9 +114,15 @@ export default function OnlineRoomModal({
   };
 
   // 2. VÀO PHÒNG BẰNG MÃ
-  const handleJoinRoom = (e) => {
-    if (e) e.preventDefault();
-    const cleanCode = inputCode.trim().toUpperCase();
+  const handleJoinRoom = (codeOrEvent) => {
+    let cleanCode = '';
+    if (typeof codeOrEvent === 'string') {
+      cleanCode = codeOrEvent.trim().toUpperCase();
+    } else {
+      if (codeOrEvent && codeOrEvent.preventDefault) codeOrEvent.preventDefault();
+      cleanCode = inputCode.trim().toUpperCase();
+    }
+
     if (!cleanCode || cleanCode.length < 4) {
       setErrorMsg('Vui lòng nhập đúng mã phòng (ít nhất 4-6 ký tự)!');
       return;
@@ -131,6 +140,14 @@ export default function OnlineRoomModal({
       }
     });
   };
+
+  // Tự động vào phòng khi có targetRoomCode từ lời mời bạn bè
+  useEffect(() => {
+    if (isOpen && targetRoomCode) {
+      handleJoinRoom(targetRoomCode);
+      if (onClearTargetRoomCode) onClearTargetRoomCode();
+    }
+  }, [isOpen, targetRoomCode]);
 
   // Đổi tên trực tiếp khi đã ở trong phòng
   const handleUpdateMyName = (newName) => {
@@ -382,7 +399,19 @@ export default function OnlineRoomModal({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                {onOpenFriends && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenFriends(currentRoom.code)}
+                    className="px-3.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/40 text-purple-300 text-xs font-bold tracking-wider uppercase transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+                    title="Mời bạn bè trong danh sách vào phòng này"
+                  >
+                    <span className="material-symbols-outlined text-base">group</span>
+                    <span>MỜI BẠN BÈ</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleCopyLink}

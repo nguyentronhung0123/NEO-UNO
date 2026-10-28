@@ -7,6 +7,10 @@ import LeaderboardModal, { getRankTier } from '../components/LeaderboardModal';
 import MatchHistoryModal from '../components/MatchHistoryModal';
 import OnlineRoomModal from '../components/OnlineRoomModal';
 import MatchmakingModal from '../components/MatchmakingModal';
+import FriendsModal from '../components/FriendsModal';
+import MatchInviteNotification from '../components/MatchInviteNotification';
+import { getSocket } from '../services/socket';
+import { friendApi } from '../apis/friendApi';
 import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
@@ -21,12 +25,87 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
+  // HỆ THỐNG BẠN BÈ & LỜI MỜI ĐẤU (TASK 2)
+  const [isFriendsOpen, setIsFriendsOpen] = useState(false);
+  const [friendsRoomCode, setFriendsRoomCode] = useState(null);
+  const [incomingInvite, setIncomingInvite] = useState(null);
+  const [targetRoomCode, setTargetRoomCode] = useState(null);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
   // PHÁT HIỆN TRẬN ĐẤU DỞ DANG ĐỂ TIẾP TỤC CHƠI (RECONNECT / AFK)
   const [rejoinMatch, setRejoinMatch] = useState(null);
   const [isForfeiting, setIsForfeiting] = useState(false);
   const [forfeitToast, setForfeitToast] = useState(null);
 
   const profileMenuRef = useRef(null);
+
+  // ĐĂNG KÝ PRESENCE VÀ LẮNG NGHE LỜI MỜI ĐẤU REALTIME (TASK 2)
+  useEffect(() => {
+    const socket = getSocket();
+    if (user && user.role !== 'guest') {
+      socket.emit('user:register', {
+        userId: user.id || user._id,
+        user: {
+          id: user.id || user._id,
+          nickname: user.nickname || user.name,
+          avatar: user.avatar,
+          elo: user.elo,
+          level: user.level,
+        },
+      });
+
+      friendApi.getFriendRequests().then((res) => {
+        if (res && res.success) {
+          setPendingRequestsCount(res.received?.length || 0);
+        }
+      });
+    }
+
+    const handleInviteReceived = (invite) => {
+      console.log('[Lobby] 📨 Nhận lời mời thi đấu trực tiếp:', invite);
+      setIncomingInvite(invite);
+    };
+
+    const handleFriendRequestReceived = () => {
+      setPendingRequestsCount((prev) => prev + 1);
+    };
+
+    socket.on('invite:received', handleInviteReceived);
+    socket.on('friend:request_received', handleFriendRequestReceived);
+
+    return () => {
+      socket.off('invite:received', handleInviteReceived);
+      socket.off('friend:request_received', handleFriendRequestReceived);
+    };
+  }, [user]);
+
+  const handleAcceptInvite = (invite) => {
+    setIncomingInvite(null);
+    setTargetRoomCode(invite.roomCode);
+    setIsOnlineRoomOpen(true);
+  };
+
+  const handleDeclineInvite = (invite) => {
+    setIncomingInvite(null);
+    const socket = getSocket();
+    socket.emit('invite:decline', {
+      senderUserId: invite.fromUser?.id,
+      user: {
+        id: user?.id || user?._id,
+        nickname: user?.nickname || user?.name,
+      },
+      roomCode: invite.roomCode,
+    });
+  };
+
+  const handleOpenFriends = (roomCode = null) => {
+    if (isGuest) {
+      setShowGuestOnlineModal(true);
+      return;
+    }
+    setFriendsRoomCode(roomCode);
+    setIsFriendsOpen(true);
+  };
 
   // Tự động kiểm tra và đồng bộ trực tiếp trận đấu dở dang theo thời gian thực (1s/lần)
   useEffect(() => {
@@ -129,6 +208,23 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
         <div className="flex items-center gap-2.5 relative" ref={profileMenuRef}>
           
+          {/* NÚT BẠN BÈ & LỜI MỜI (TASK 2) */}
+          <button
+            onClick={() => handleOpenFriends()}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
+            title="Hệ thống bạn bè & lời mời đấu trực tuyến (Task 2)"
+          >
+            <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform">
+              group
+            </span>
+            <span className="hidden md:inline">Bạn Bè</span>
+            {pendingRequestsCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]">
+                {pendingRequestsCount}
+              </span>
+            )}
+          </button>
+
           {/* Nút Đăng Nhập Duy Nhất Góc Trên Phải (chỉ hiện khi là Khách) */}
           {isGuest && (
             <button
@@ -245,6 +341,37 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                 </span>
 
                 <div className="space-y-1.5">
+                  {/* Tab 0: Hệ Thống Bạn Bè & Lời Mời Đấu (Task 2) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      handleOpenFriends();
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-cyan-500/15 border border-white/5 hover:border-cyan-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        👥
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+                          <span>Bạn Bè & Lời Mời</span>
+                          {pendingRequestsCount > 0 && (
+                            <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-mono font-bold animate-pulse">
+                              +{pendingRequestsCount}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Quản lý bạn bè, theo dõi online & mời đấu
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
                   {/* Tab 1: Bảng Vinh Danh & Bậc Rank */}
                   <button
                     onClick={() => {
@@ -818,8 +945,14 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       {/* MODAL PHÒNG CHƠI ONLINE MULTIPLAYER VỚI BẠN BÈ */}
       <OnlineRoomModal
         isOpen={isOnlineRoomOpen}
-        onClose={() => setIsOnlineRoomOpen(false)}
+        onClose={() => {
+          setIsOnlineRoomOpen(false);
+          setTargetRoomCode(null);
+        }}
         user={user}
+        targetRoomCode={targetRoomCode}
+        onClearTargetRoomCode={() => setTargetRoomCode(null)}
+        onOpenFriends={(code) => handleOpenFriends(code)}
         onStartOnlineMatch={(room) => {
           setIsOnlineRoomOpen(false);
           if (onJoinOnlineMatch) {
@@ -842,6 +975,30 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             onJoinOnlineMatch(room);
           }
         }}
+      />
+
+      {/* MODAL HỆ THỐNG BẠN BÈ & LỜI MỜI ĐẤU (TASK 2) */}
+      <FriendsModal
+        isOpen={isFriendsOpen}
+        onClose={() => {
+          setIsFriendsOpen(false);
+          setFriendsRoomCode(null);
+        }}
+        user={user}
+        socket={getSocket()}
+        currentRoomCode={friendsRoomCode}
+        onOpenAuth={onOpenAuth}
+        onCreateAndInvite={() => {
+          setIsFriendsOpen(false);
+          setIsOnlineRoomOpen(true);
+        }}
+      />
+
+      {/* POPUP THÔNG BÁO LỜI MỜI ĐẤU REALTIME (TASK 2) */}
+      <MatchInviteNotification
+        invite={incomingInvite}
+        onAccept={handleAcceptInvite}
+        onDecline={handleDeclineInvite}
       />
     </div>
   );

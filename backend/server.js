@@ -47,6 +47,10 @@ app.use('/api/matches', matchRoutes);
 const leaderboardRoutes = require('./routes/leaderboardRoutes');
 app.use('/api/leaderboard', leaderboardRoutes);
 
+// 4. API Bạn Bè & Lời Mời Đấu (Friendship & Invites - Task 2)
+const friendRoutes = require('./routes/friendRoutes');
+app.use('/api/friends', friendRoutes);
+
 // Bắt lỗi toàn cục chống crash server ngoài ý muốn
 process.on('uncaughtException', (err) => {
   console.error('[BE] ⚠️ Uncaught Exception:', err.message);

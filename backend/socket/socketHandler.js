@@ -4,10 +4,115 @@
 const roomManager = require('./roomManager');
 const gameEngine = require('./gameEngine');
 const matchmakingQueue = require('./matchmakingQueue');
+const userPresence = require('./userPresence');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
     console.log(`[Socket] ⚡ Người chơi kết nối: ${socket.id}`);
+
+    // -1. ĐĂNG KÝ DANH TÍNH NGƯỜI CHƠI (USER PRESENCE & STATUS)
+    socket.on('user:register', ({ userId, user }) => {
+      try {
+        if (userId) {
+          userPresence.registerUser(userId, socket.id, user, io);
+          console.log(`[Presence] 👤 Đăng ký người chơi: ${user?.nickname || user?.name || userId} (${socket.id})`);
+        }
+      } catch (err) {
+        console.error('[Presence] Lỗi đăng ký socket user:', err);
+      }
+    });
+
+    socket.on('user:set_status', ({ userId, status }) => {
+      try {
+        if (userId) {
+          userPresence.setUserStatus(userId, status, io);
+        }
+      } catch (err) {
+        console.error('[Presence] Lỗi cập nhật trạng thái user:', err);
+      }
+    });
+
+    // -2. THÔNG BÁO LỜI MỜI KẾT BẠN REALTIME
+    socket.on('friend:notify_request', ({ targetUserId, sender }) => {
+      try {
+        const targetSockets = userPresence.getUserSockets(targetUserId);
+        targetSockets.forEach((sockId) => {
+          io.to(sockId).emit('friend:request_received', { sender });
+        });
+      } catch (err) {
+        console.error('[Friend Socket] Lỗi gửi thông báo kết bạn:', err);
+      }
+    });
+
+    socket.on('friend:notify_accept', ({ targetUserId, accepter }) => {
+      try {
+        const targetSockets = userPresence.getUserSockets(targetUserId);
+        targetSockets.forEach((sockId) => {
+          io.to(sockId).emit('friend:request_accepted', { accepter });
+        });
+      } catch (err) {
+        console.error('[Friend Socket] Lỗi gửi thông báo chấp nhận kết bạn:', err);
+      }
+    });
+
+    // -3. LỜI MỜI ĐẤU PHÒNG REALTIME (MATCH INVITE)
+    socket.on('invite:send', ({ toUserId, roomCode, roomMode, sender }, callback) => {
+      try {
+        const room = roomManager.getRoom(roomCode);
+        if (!room) {
+          if (typeof callback === 'function') {
+            return callback({ success: false, message: 'Phòng chơi không tồn tại hoặc đã giải tán!' });
+          }
+          return;
+        }
+
+        const isOnline = userPresence.isUserOnline(toUserId);
+        if (!isOnline) {
+          if (typeof callback === 'function') {
+            return callback({ success: false, message: 'Người bạn này hiện đang Offline!' });
+          }
+          return;
+        }
+
+        const targetSockets = userPresence.getUserSockets(toUserId);
+        const invitePayload = {
+          inviteId: `inv_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          fromUser: sender,
+          roomCode,
+          roomMode: roomMode || room.mode || '4_PLAYERS',
+          expiresAt: Date.now() + 20000, // 20 giây hết hạn
+        };
+
+        targetSockets.forEach((sockId) => {
+          io.to(sockId).emit('invite:received', invitePayload);
+        });
+
+        console.log(`[Invite] 📨 ${sender?.nickname || 'Ai đó'} mời user ${toUserId} vào phòng ${roomCode}`);
+        if (typeof callback === 'function') {
+          callback({ success: true, message: 'Đã gửi lời mời tham gia phòng tới bạn bè!' });
+        }
+      } catch (err) {
+        console.error('[Invite Socket] Lỗi gửi lời mời đấu:', err);
+        if (typeof callback === 'function') {
+          callback({ success: false, message: 'Lỗi khi gửi lời mời đấu!' });
+        }
+      }
+    });
+
+    socket.on('invite:decline', ({ senderUserId, user, roomCode }) => {
+      try {
+        const senderSockets = userPresence.getUserSockets(senderUserId);
+        senderSockets.forEach((sockId) => {
+          io.to(sockId).emit('invite:declined', {
+            user,
+            roomCode,
+            message: `${user?.nickname || user?.name || 'Bạn bè'} đã từ chối lời mời vào phòng.`,
+          });
+        });
+      } catch (err) {
+        console.error('[Invite Socket] Lỗi gửi từ chối lời mời:', err);
+      }
+    });
 
     // 0. GHÉP TRẬN NHANH TỰ ĐỘNG (MATCHMAKING)
     socket.on('matchmaking:join', ({ user, mode }, callback) => {
@@ -255,6 +360,9 @@ function setupSocketIO(io) {
     socket.on('disconnect', () => {
       console.log(`[Socket] ❌ Người chơi ngắt kết nối: ${socket.id}`);
       try {
+        // Hủy theo dõi danh tính Online Presence
+        userPresence.unregisterSocket(socket.id, io);
+
         // Hủy ghép trận nếu đang trong hàng chờ
         matchmakingQueue.leaveQueue(socket.id, io);
 
