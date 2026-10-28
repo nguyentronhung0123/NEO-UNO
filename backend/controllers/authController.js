@@ -19,8 +19,11 @@ function generateToken(user) {
 }
 
 function sanitizeUser(user, stats = null) {
+  const idStr = user._id ? user._id.toString() : user.id;
+  const accId = user.accountId || (idStr && idStr.length >= 14 ? idStr.substring(14).toUpperCase() : idStr);
   return {
-    id: user._id ? user._id.toString() : user.id,
+    id: idStr,
+    accountId: accId,
     nickname: user.nickname,
     email: user.email,
     avatar: user.avatar,

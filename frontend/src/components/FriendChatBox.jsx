@@ -168,8 +168,8 @@ export default function FriendChatBox({
                 {friend.elo || 1000} ELO
               </span>
             </h4>
-            <span className="text-[10px] text-slate-400 font-mono block truncate">
-              ID: {friend._id}
+            <span className="text-[10px] text-cyan-400/80 font-mono block truncate tracking-wider">
+              ID: {friend.accountId || (friend._id ? String(friend._id).slice(-10).toUpperCase() : '')}
             </span>
           </div>
         </div>

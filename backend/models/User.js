@@ -9,6 +9,15 @@ const userSchema = new mongoose.Schema(
       minlength: [3, 'Tên người dùng phải từ 3 ký tự trở lên'],
       maxlength: [30, 'Tên người dùng không được quá 30 ký tự'],
     },
+    accountId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      uppercase: true,
+      trim: true,
+      minlength: [10, 'Mã tài khoản phải gồm 10 ký tự'],
+      maxlength: [10, 'Mã tài khoản không được quá 10 ký tự'],
+    },
     email: {
       type: String,
       required: [true, 'Vui lòng nhập email'],
@@ -76,6 +85,26 @@ userSchema.index(
 
 // PRE-SAVE HOOK (DBMS CONSTRAINT): Thẩm định nghiêm ngặt trước khi ghi dữ liệu
 userSchema.pre('save', async function () {
+  // Tự động sinh ID tài khoản 10 ký tự nếu chưa có
+  if (!this.accountId) {
+    if (this._id) {
+      this.accountId = this._id.toString().substring(14).toUpperCase();
+    } else {
+      const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let candidate = '';
+      let isUnique = false;
+      while (!isUnique) {
+        candidate = '';
+        for (let i = 0; i < 10; i++) {
+          candidate += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const exists = await this.constructor.findOne({ accountId: candidate });
+        if (!exists) isUnique = true;
+      }
+      this.accountId = candidate;
+    }
+  }
+
   if (this.isModified('nickname')) {
     const cleanNick = this.nickname.trim();
     this.nickname = cleanNick;
@@ -95,18 +124,26 @@ userSchema.pre('save', async function () {
   }
 });
 
-// CẤU TRÚC FUNCTION THỦ TỤC 1: Tìm kiếm tài khoản tối ưu theo ID hoặc Nickname
+// CẤU TRÚC FUNCTION THỦ TỤC 1: Tìm kiếm tài khoản tối ưu theo ID (10 ký tự hoặc ObjectId) hoặc Nickname
 userSchema.statics.findByNicknameOrId = async function (identifier) {
   if (!identifier) return null;
   const clean = String(identifier).trim();
 
-  // 1. Nếu là MongoDB ObjectId hợp lệ (24 ký tự hex)
+  // 1. Tra cứu theo ID tài khoản 10 ký tự (Account ID)
+  if (clean.length === 10) {
+    const userByAccountId = await this.findOne({
+      accountId: clean.toUpperCase(),
+    });
+    if (userByAccountId) return userByAccountId;
+  }
+
+  // 2. Nếu là MongoDB ObjectId hợp lệ (24 ký tự hex)
   if (mongoose.Types.ObjectId.isValid(clean) && clean.length === 24) {
     const userById = await this.findById(clean);
     if (userById) return userById;
   }
 
-  // 2. Tra cứu theo Nickname không phân biệt chữ hoa/thường
+  // 3. Tra cứu theo Nickname không phân biệt chữ hoa/thường
   return await this.findOne({
     nickname: { $regex: new RegExp(`^${clean}$`, 'i') },
   });
@@ -129,6 +166,7 @@ userSchema.statics.isNicknameTaken = async function (nickname, excludeUserId = n
 userSchema.methods.toJSON = function () {
   const userObject = this.toObject();
   userObject.id = userObject._id.toString();
+  userObject.accountId = userObject.accountId || userObject._id.toString().substring(14).toUpperCase();
   delete userObject.password;
   delete userObject.__v;
   return userObject;

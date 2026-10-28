@@ -26,8 +26,11 @@ async function runTests() {
       password: 'hashed_password_123',
       avatar: 'avatar_1',
     });
-    console.log(`[DBMS] ✅ Đã tạo tài khoản Alpha: [${userAlpha.nickname}] (ID: ${userAlpha._id})`);
-    console.log('  ✔ PASS: 1. Tạo tài khoản hợp lệ thành công');
+    console.log(`[DBMS] ✅ Đã tạo tài khoản Alpha: [${userAlpha.nickname}] (ID 10 ký tự: ${userAlpha.accountId})`);
+    if (!userAlpha.accountId || userAlpha.accountId.length !== 10) {
+      throw new Error(`Test 1 Thất bại: accountId không đúng 10 ký tự: ${userAlpha.accountId}`);
+    }
+    console.log('  ✔ PASS: 1. Tạo tài khoản thành công với ID đúng 10 ký tự duy nhất');
 
     // TEST 2: Ràng buộc CSDL - Chống 2 tài khoản trùng Nickname (Kể cả khác chữ hoa/thường)
     let duplicateErrorCaught = false;
@@ -57,15 +60,19 @@ async function runTests() {
     });
 
     const foundById = await User.findByNicknameOrId(userBeta._id.toString());
+    const foundByAccId = await User.findByNicknameOrId(userBeta.accountId);
     const foundByNick = await User.findByNicknameOrId('betaviper');
 
     if (!foundById || String(foundById._id) !== String(userBeta._id)) {
       throw new Error('Test 3 Thất bại: Không tìm được tài khoản theo ID ObjectId');
     }
+    if (!foundByAccId || String(foundByAccId._id) !== String(userBeta._id)) {
+      throw new Error('Test 3 Thất bại: Không tìm được tài khoản theo ID 10 ký tự');
+    }
     if (!foundByNick || String(foundByNick._id) !== String(userBeta._id)) {
       throw new Error('Test 3 Thất bại: Không tìm được tài khoản theo Nickname');
     }
-    console.log(`[DBMS Procedure] 🔍 Tra cứu thành công tài khoản bằng cả ID [${foundById._id}] và Nickname [${foundByNick.nickname}]`);
+    console.log(`[DBMS Procedure] 🔍 Tra cứu thành công tài khoản bằng cả ID 10 ký tự [${foundByAccId.accountId}], ObjectId [${foundById._id}], và Nickname [${foundByNick.nickname}]`);
     console.log('  ✔ PASS: 3. Hàm thủ tục tra cứu User.findByNicknameOrId chính xác 100%');
 
     // TEST 4: Thiết lập quan hệ bạn bè giữa Alpha và Beta
@@ -107,9 +114,12 @@ async function runTests() {
       throw new Error(`Test 7 Thất bại: Kết quả pipeline bạn bè mong đợi 1, nhận được ${pipelineResult.length}`);
     }
     const friendData = pipelineResult[0];
-    console.log(`[DBMS Pipeline] ⚡ Kết quả Aggregation: Bạn bè [${friendData.nickname}], Tin nhắn gần nhất: "${friendData.lastMessage}", Chưa đọc: ${friendData.unreadCount}`);
+    console.log(`[DBMS Pipeline] ⚡ Kết quả Aggregation: Bạn bè [${friendData.nickname}], ID: [${friendData.accountId}], Tin nhắn gần nhất: "${friendData.lastMessage}", Chưa đọc: ${friendData.unreadCount}`);
     if (friendData.lastMessage !== 'Sẵn sàng luôn Alpha ơi, vào phòng đi!') {
       throw new Error('Test 7 Thất bại: Last message trong pipeline không khớp');
+    }
+    if (!friendData.accountId || friendData.accountId.length !== 10) {
+      throw new Error(`Test 7 Thất bại: accountId trong pipeline không đúng 10 ký tự: ${friendData.accountId}`);
     }
     console.log('  ✔ PASS: 7. Database Aggregation Pipeline $lookup $facet hoạt động tối ưu');
 

@@ -485,8 +485,8 @@ export default function FriendsModal({
                                       : '⚪ Offline'}
                                   </span>
                                 </div>
-                                <span className="text-[9px] text-slate-500 font-mono block mt-0.5">
-                                  ID: {f._id}
+                                <span className="text-[9px] text-cyan-400/80 font-mono block mt-0.5 tracking-wider">
+                                  ID: {f.accountId || (f._id ? String(f._id).slice(-10).toUpperCase() : '')}
                                 </span>
                               </div>
                             </div>
@@ -656,7 +656,7 @@ export default function FriendsModal({
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Nhập Nickname hoặc ID tài khoản (VD: Alice hoặc 671d...)"
+                      placeholder="Nhập Nickname hoặc ID tài khoản 10 ký tự (VD: Alice hoặc 9DBC27F2DD)..."
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-cyan-500/30 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 shadow-inner"
                       autoFocus
                     />
@@ -704,8 +704,8 @@ export default function FriendsModal({
                                   {u.elo || 1000} ELO
                                 </span>
                                 <span>•</span>
-                                <span className="text-[10px] text-slate-500 font-mono">
-                                  ID: {u._id}
+                                <span className="text-[10px] text-cyan-400/80 font-mono tracking-wider">
+                                  ID: {u.accountId || (u._id ? String(u._id).slice(-10).toUpperCase() : '')}
                                 </span>
                               </div>
                             </div>

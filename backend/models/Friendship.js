@@ -130,6 +130,16 @@ friendshipSchema.statics.getFriendsDetailedPipeline = async function (userId) {
     {
       $project: {
         _id: '$friendUser._id',
+        accountId: {
+          $ifNull: [
+            '$friendUser.accountId',
+            {
+              $toUpper: {
+                $substrCP: [{ $toString: '$friendUser._id' }, 14, 10],
+              },
+            },
+          ],
+        },
         friendshipId: '$_id',
         nickname: '$friendUser.nickname',
         email: '$friendUser.email',

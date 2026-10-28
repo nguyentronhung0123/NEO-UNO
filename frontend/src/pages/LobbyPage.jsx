@@ -384,31 +384,34 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                     <span>⭐ <strong>Lv.{user?.level || 1}</strong></span>
                   </div>
 
-                  {/* ID TÀI KHOẢN (TASK 2) */}
-                  {user && !isGuest && (
-                    <div className="flex items-center gap-1.5 mt-2 bg-black/50 px-2.5 py-1 rounded-lg border border-white/10 w-fit">
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        ID: <strong className="text-cyan-300 font-bold select-all">{user.id || user._id}</strong>
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard.writeText(user.id || user._id);
-                          setCopyIdToast(true);
-                          setTimeout(() => setCopyIdToast(false), 2200);
-                        }}
-                        className="text-slate-400 hover:text-cyan-300 p-0.5 rounded transition-colors cursor-pointer flex items-center"
-                        title="Sao chép ID tài khoản"
-                      >
-                        <span className="material-symbols-outlined text-xs">
-                          {copyIdToast ? 'check' : 'content_copy'}
+                  {/* ID TÀI KHOẢN (10 KÝ TỰ - TASK 2) */}
+                  {user && !isGuest && (() => {
+                    const displayId = user.accountId || (user.id || user._id ? String(user.id || user._id).slice(-10).toUpperCase() : '');
+                    return (
+                      <div className="flex items-center gap-1.5 mt-2 bg-black/50 px-2.5 py-1 rounded-lg border border-cyan-500/20 w-fit">
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          ID: <strong className="text-cyan-300 font-bold select-all tracking-wider">{displayId}</strong>
                         </span>
-                      </button>
-                      {copyIdToast && (
-                        <span className="text-[9px] text-emerald-400 font-bold animate-fade-in">Đã copy!</span>
-                      )}
-                    </div>
-                  )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(displayId);
+                            setCopyIdToast(true);
+                            setTimeout(() => setCopyIdToast(false), 2200);
+                          }}
+                          className="text-slate-400 hover:text-cyan-300 p-0.5 rounded transition-colors cursor-pointer flex items-center"
+                          title="Sao chép ID tài khoản (10 ký tự)"
+                        >
+                          <span className="material-symbols-outlined text-xs">
+                            {copyIdToast ? 'check' : 'content_copy'}
+                          </span>
+                        </button>
+                        {copyIdToast && (
+                          <span className="text-[9px] text-emerald-400 font-bold animate-fade-in">Đã copy!</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 

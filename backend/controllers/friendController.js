@@ -52,10 +52,10 @@ exports.getFriendRequests = async (req, res) => {
 
     const [received, sent] = await Promise.all([
       Friendship.find({ recipient: myId, status: 'pending' })
-        .populate('requester', 'nickname email avatar elo coins level')
+        .populate('requester', 'nickname email avatar elo coins level accountId')
         .sort({ createdAt: -1 }),
       Friendship.find({ requester: myId, status: 'pending' })
-        .populate('recipient', 'nickname email avatar elo coins level')
+        .populate('recipient', 'nickname email avatar elo coins level accountId')
         .sort({ createdAt: -1 }),
     ]);
 
@@ -280,6 +280,11 @@ exports.searchUsers = async (req, res) => {
 
     const searchConditions = [];
 
+    // Nếu người dùng nhập ID tài khoản 10 ký tự
+    if (query.length === 10) {
+      searchConditions.push({ accountId: query.toUpperCase() });
+    }
+
     // Nếu người dùng nhập ID tài khoản ObjectId (24 hex)
     if (mongoose.Types.ObjectId.isValid(query) && query.length === 24) {
       searchConditions.push({ _id: new mongoose.Types.ObjectId(query) });
@@ -296,7 +301,7 @@ exports.searchUsers = async (req, res) => {
       role: { $ne: 'bot' },
       $or: searchConditions,
     })
-      .select('nickname email avatar elo coins level')
+      .select('nickname email avatar elo coins level accountId')
       .limit(10);
 
     const userIds = users.map((u) => u._id);
@@ -329,6 +334,7 @@ exports.searchUsers = async (req, res) => {
       const uid = String(u._id);
       return {
         _id: u._id,
+        accountId: u.accountId || u._id.toString().substring(14).toUpperCase(),
         nickname: u.nickname,
         avatar: u.avatar || 'avatar_1',
         elo: u.elo ?? 1000,
