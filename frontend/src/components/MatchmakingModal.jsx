@@ -271,7 +271,7 @@ export default function MatchmakingModal({
             <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[11px] text-slate-400 max-w-sm mb-5 flex items-center justify-center gap-2">
               <span className="material-symbols-outlined text-sm text-primary-container">info</span>
               <span>
-                Ghép theo trình độ ELO. Sau <strong>8 giây</strong> sẽ tự điền Bot AI để vào trận ngay!
+                Ghép theo trình độ ELO. Sau <strong>1 phút (60s)</strong> sẽ tự điền Bot AI để vào trận ngay!
               </span>
             </div>
 

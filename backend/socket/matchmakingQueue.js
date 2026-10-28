@@ -1,13 +1,13 @@
 /**
  * Matchmaking Queue - Hệ thống Ghép Trận Nhanh Tự Động cho NEO-UNO
  * Hỗ trợ các chế độ: 4 Người (4_PLAYERS), 3 Người (3_PLAYERS), Solo 1v1 (SOLO_1V1)
- * Tự động ghép theo ELO và tự động điền Bot AI sau 8s nếu không đủ người thật
+ * Tự động ghép theo ELO và tự động điền Bot AI sau 1 phút (60s) nếu không đủ người thật
  */
 const roomManager = require('./roomManager');
 const gameEngine = require('./gameEngine');
 
-// Thời gian chờ tối đa trước khi tự động điền Bot AI (8 giây)
-const MATCHMAKING_TIMEOUT_MS = 8000;
+// Thời gian chờ tối đa trước khi tự động điền Bot AI (60 giây = 1 phút)
+const MATCHMAKING_TIMEOUT_MS = 60000;
 
 // Các chế độ và số người yêu cầu
 const MODE_CAPACITY = {
@@ -87,7 +87,7 @@ function joinQueue({ user, mode = '4_PLAYERS', socket, io }) {
   // Nếu chưa đủ người: Thông báo trạng thái hàng chờ cho người chơi
   broadcastQueueStatus(targetMode, io);
 
-  // Thiết lập bộ đếm thời gian tự động điền Bot AI sau MATCHMAKING_TIMEOUT_MS (8s)
+  // Thiết lập bộ đếm thời gian tự động điền Bot AI sau MATCHMAKING_TIMEOUT_MS (60s = 1 phút)
   const timer = setTimeout(() => {
     handleQueueTimeout(socket.id, targetMode, io);
   }, MATCHMAKING_TIMEOUT_MS);
@@ -115,7 +115,7 @@ function handleQueueTimeout(socketId, mode, io) {
 
   const missingBotsCount = capacity - availableHumans.length;
   console.log(
-    `[Matchmaking] ⏳ Hết 8s chờ! Tự động điền ${missingBotsCount} Bot AI vào trận [${mode}] cho ${availableHumans.map((h) => h.name).join(', ')}`
+    `[Matchmaking] ⏳ Hết 1 phút (60s) chờ! Tự động điền ${missingBotsCount} Bot AI vào trận [${mode}] cho ${availableHumans.map((h) => h.name).join(', ')}`
   );
 
   createMatchedRoom(availableHumans, mode, io, missingBotsCount);
