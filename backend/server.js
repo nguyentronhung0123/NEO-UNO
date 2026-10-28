@@ -69,6 +69,6 @@ connectDB().then(async () => {
   });
 
   server.listen(PORT, () => {
-    console.log(`[BE] 🚀 Server & Socket.io đã khởi chạy thành công tại: http://localhost:${PORT}`);
+    console.log(`[BE] 🚀 Server & Socket.io đã khởi chạy thành công tại: http://localhost:${PORT} (Chế độ ghép trận: 60s auto-fill)`);
   });
 });
