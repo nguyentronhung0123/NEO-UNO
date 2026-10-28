@@ -8,6 +8,7 @@ import MatchHistoryModal from '../components/MatchHistoryModal';
 import OnlineRoomModal from '../components/OnlineRoomModal';
 import MatchmakingModal from '../components/MatchmakingModal';
 import FriendsModal from '../components/FriendsModal';
+import FriendChatBox from '../components/FriendChatBox';
 import MatchInviteNotification from '../components/MatchInviteNotification';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
@@ -31,6 +32,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [incomingInvite, setIncomingInvite] = useState(null);
   const [targetRoomCode, setTargetRoomCode] = useState(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [activeChatFriend, setActiveChatFriend] = useState(null);
+  const [copyIdToast, setCopyIdToast] = useState(false);
 
   // PHÁT HIỆN TRẬN ĐẤU DỞ DANG ĐỂ TIẾP TỤC CHƠI (RECONNECT / AFK)
   const [rejoinMatch, setRejoinMatch] = useState(null);
@@ -331,6 +334,32 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                     <span>🪙 <strong>{user?.coins || 1000}</strong> Vàng</span>
                     <span>⭐ <strong>Lv.{user?.level || 1}</strong></span>
                   </div>
+
+                  {/* ID TÀI KHOẢN (TASK 2) */}
+                  {user && !isGuest && (
+                    <div className="flex items-center gap-1.5 mt-2 bg-black/50 px-2.5 py-1 rounded-lg border border-white/10 w-fit">
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        ID: <strong className="text-cyan-300 font-bold select-all">{user.id || user._id}</strong>
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(user.id || user._id);
+                          setCopyIdToast(true);
+                          setTimeout(() => setCopyIdToast(false), 2200);
+                        }}
+                        className="text-slate-400 hover:text-cyan-300 p-0.5 rounded transition-colors cursor-pointer flex items-center"
+                        title="Sao chép ID tài khoản"
+                      >
+                        <span className="material-symbols-outlined text-xs">
+                          {copyIdToast ? 'check' : 'content_copy'}
+                        </span>
+                      </button>
+                      {copyIdToast && (
+                        <span className="text-[9px] text-emerald-400 font-bold animate-fade-in">Đã copy!</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -988,11 +1017,38 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         socket={getSocket()}
         currentRoomCode={friendsRoomCode}
         onOpenAuth={onOpenAuth}
+        onOpenChat={(friend) => setActiveChatFriend(friend)}
         onCreateAndInvite={() => {
           setIsFriendsOpen(false);
           setIsOnlineRoomOpen(true);
         }}
       />
+
+      {/* KHUNG CHAT TRỰC TIẾP BẠN BÈ 1-1 (TASK 2) */}
+      {activeChatFriend && (
+        <FriendChatBox
+          friend={activeChatFriend}
+          currentUser={user}
+          socket={getSocket()}
+          onClose={() => setActiveChatFriend(null)}
+          onInviteToMatch={(friend) => {
+            if (friendsRoomCode) {
+              const s = getSocket();
+              s.emit('invite:send', {
+                toUserId: friend._id,
+                roomCode: friendsRoomCode,
+                sender: {
+                  id: user?.id || user?._id,
+                  nickname: user?.nickname || user?.name,
+                  avatar: user?.avatar,
+                },
+              });
+            } else {
+              setIsOnlineRoomOpen(true);
+            }
+          }}
+        />
+      )}
 
       {/* POPUP THÔNG BÁO LỜI MỜI ĐẤU REALTIME (TASK 2) */}
       <MatchInviteNotification

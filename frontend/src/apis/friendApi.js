@@ -23,7 +23,7 @@ const authHeaders = () => {
 };
 
 export const friendApi = {
-  // 1. Lấy danh sách bạn bè đã kết bạn
+  // 1. Lấy danh sách bạn bè đã kết bạn (sử dụng Aggregation Pipeline từ server)
   getFriends: async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/friends`, {
@@ -49,13 +49,13 @@ export const friendApi = {
     }
   },
 
-  // 3. Gửi lời mời kết bạn (theo userId hoặc nickname)
-  sendFriendRequest: async ({ targetUserId, nickname }) => {
+  // 3. Gửi lời mời kết bạn (hỗ trợ cả Tên Nickname và ID tài khoản)
+  sendFriendRequest: async ({ targetUserId, nickname, identifier }) => {
     try {
       const res = await fetch(`${API_BASE_URL}/friends/request`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ targetUserId, nickname }),
+        body: JSON.stringify({ targetUserId, nickname, identifier }),
       });
       return await res.json();
     } catch (err) {
@@ -79,7 +79,7 @@ export const friendApi = {
     }
   },
 
-  // 5. Hủy kết bạn
+  // 5. Hủy kết bạn (Unfriend)
   removeFriend: async (friendId) => {
     try {
       const res = await fetch(`${API_BASE_URL}/friends/${friendId}`, {
@@ -93,7 +93,7 @@ export const friendApi = {
     }
   },
 
-  // 6. Tìm kiếm người chơi theo tên để kết bạn
+  // 6. Tìm kiếm người chơi theo Nickname hoặc ID tài khoản
   searchUsers: async (query) => {
     try {
       const res = await fetch(
@@ -106,6 +106,35 @@ export const friendApi = {
     } catch (err) {
       console.warn('[Friend API Error - searchUsers]:', err.message);
       return { success: false, users: [] };
+    }
+  },
+
+  // 7. Lấy lịch sử tin nhắn trực tiếp giữa 2 bạn bè (Direct Chat - Task 2)
+  getDirectMessages: async (friendId, options = {}) => {
+    try {
+      const params = new URLSearchParams(options);
+      const res = await fetch(`${API_BASE_URL}/friends/messages/${friendId}?${params.toString()}`, {
+        headers: authHeaders(),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('[Friend API Error - getDirectMessages]:', err.message);
+      return { success: false, messages: [] };
+    }
+  },
+
+  // 8. Gửi tin nhắn trực tiếp cho bạn bè (Direct Chat - Task 2)
+  sendDirectMessage: async (friendId, content) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/friends/messages/${friendId}`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ content }),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('[Friend API Error - sendDirectMessage]:', err.message);
+      return { success: false, message: 'Lỗi mạng khi gửi tin nhắn!' };
     }
   },
 };

@@ -11,6 +11,7 @@ export default function FriendsModal({
   onInviteToRoom = null,
   onCreateAndInvite = null,
   onOpenAuth = null,
+  onOpenChat = null,
 }) {
   const [activeTab, setActiveTab] = useState('friends'); // 'friends' | 'requests' | 'search'
   const [friends, setFriends] = useState([]);
@@ -484,25 +485,43 @@ export default function FriendsModal({
                                       : '⚪ Offline'}
                                   </span>
                                 </div>
+                                <span className="text-[9px] text-slate-500 font-mono block mt-0.5">
+                                  ID: {f._id}
+                                </span>
                               </div>
                             </div>
 
                             {/* Actions */}
                             <div className="flex items-center gap-1.5">
+                              {/* NÚT CHAT TRỰC TIẾP (TASK 2) */}
+                              <button
+                                onClick={() => onOpenChat && onOpenChat(f)}
+                                className="px-2.5 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/40 text-purple-300 font-headline font-bold text-xs flex items-center gap-1 transition-all cursor-pointer relative shadow-sm"
+                                title={`Nhắn tin trò chuyện với ${f.nickname}`}
+                              >
+                                <span className="material-symbols-outlined text-sm">chat</span>
+                                <span className="hidden sm:inline">Chat</span>
+                                {(f.unreadCount || 0) > 0 && (
+                                  <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-mono font-bold animate-pulse shadow-sm">
+                                    +{f.unreadCount}
+                                  </span>
+                                )}
+                              </button>
+
                               {f.isOnline ? (
                                 <button
                                   onClick={() => handleInviteFriend(f)}
-                                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-white font-headline font-bold text-xs flex items-center gap-1 shadow-[0_0_15px_rgba(0,210,255,0.3)] transition-all cursor-pointer"
+                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-white font-headline font-bold text-xs flex items-center gap-1 shadow-[0_0_15px_rgba(0,210,255,0.3)] transition-all cursor-pointer"
                                   title="Mời bạn bè vào phòng đấu"
                                 >
                                   <span className="material-symbols-outlined text-sm">
                                     sports_esports
                                   </span>
-                                  <span>Mời Đấu</span>
+                                  <span className="hidden sm:inline">Mời Đấu</span>
                                 </button>
                               ) : (
-                                <span className="text-[11px] text-slate-500 font-medium px-2 py-1">
-                                  Chờ online
+                                <span className="text-[11px] text-slate-500 font-medium px-1.5 py-1">
+                                  Offline
                                 </span>
                               )}
 
@@ -637,7 +656,7 @@ export default function FriendsModal({
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Nhập Nickname hoặc Email người chơi để tìm..."
+                      placeholder="Nhập Nickname hoặc ID tài khoản (VD: Alice hoặc 671d...)"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-cyan-500/30 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-cyan-400 shadow-inner"
                       autoFocus
                     />
@@ -680,9 +699,15 @@ export default function FriendsModal({
                                   Lv.{u.level || 1}
                                 </span>
                               </div>
-                              <span className="text-[11px] text-cyan-300 font-mono">
-                                {u.elo || 1000} ELO
-                              </span>
+                              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                                <span className="text-cyan-300 font-mono font-bold">
+                                  {u.elo || 1000} ELO
+                                </span>
+                                <span>•</span>
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  ID: {u._id}
+                                </span>
+                              </div>
                             </div>
                           </div>
 

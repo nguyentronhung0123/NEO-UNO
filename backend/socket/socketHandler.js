@@ -5,6 +5,7 @@ const roomManager = require('./roomManager');
 const gameEngine = require('./gameEngine');
 const matchmakingQueue = require('./matchmakingQueue');
 const userPresence = require('./userPresence');
+const DirectMessage = require('../models/DirectMessage');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
@@ -111,6 +112,62 @@ function setupSocketIO(io) {
         });
       } catch (err) {
         console.error('[Invite Socket] Lỗi gửi từ chối lời mời:', err);
+      }
+    });
+
+    // -4. TRÒ CHUYỆN BẠN BÈ TRỰC TIẾP (DIRECT CHAT DM - TASK 2)
+    socket.on('dm:send', async ({ toUserId, content, sender }, callback) => {
+      try {
+        if (!toUserId || !content || !content.trim()) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Thiếu thông tin người nhận hoặc nội dung!' });
+          return;
+        }
+
+        const senderId = sender?.id || sender?._id;
+        if (!senderId) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Thiếu thông tin người gửi!' });
+          return;
+        }
+
+        // Lưu tin nhắn vào MongoDB
+        const newMsg = await DirectMessage.create({
+          sender: senderId,
+          recipient: toUserId,
+          content: content.trim(),
+        });
+
+        const populatedMsg = await newMsg.populate('sender', 'nickname avatar');
+
+        // Gửi realtime tới socket người nhận
+        const targetSockets = userPresence.getUserSockets(toUserId);
+        targetSockets.forEach((sockId) => {
+          io.to(sockId).emit('dm:receive', {
+            message: populatedMsg,
+            fromUserId: senderId,
+          });
+        });
+
+        console.log(`[DM] 💬 ${sender?.nickname || senderId} -> ${toUserId}: "${content.substring(0, 30)}..."`);
+        if (typeof callback === 'function') {
+          callback({ success: true, message: populatedMsg });
+        }
+      } catch (err) {
+        console.error('[DM Socket Error]:', err);
+        if (typeof callback === 'function') callback({ success: false, message: 'Lỗi gửi tin nhắn socket!' });
+      }
+    });
+
+    socket.on('dm:read', async ({ fromUserId, myUserId }) => {
+      try {
+        if (fromUserId && myUserId) {
+          await DirectMessage.markConversationAsRead(myUserId, fromUserId);
+          const senderSockets = userPresence.getUserSockets(fromUserId);
+          senderSockets.forEach((sockId) => {
+            io.to(sockId).emit('dm:read_receipt', { readerId: myUserId });
+          });
+        }
+      } catch (err) {
+        console.error('[DM Socket Read Error]:', err);
       }
     });
 

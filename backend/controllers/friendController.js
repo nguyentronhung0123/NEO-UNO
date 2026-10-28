@@ -1,52 +1,43 @@
+const mongoose = require('mongoose');
 const Friendship = require('../models/Friendship');
 const User = require('../models/User');
+const DirectMessage = require('../models/DirectMessage');
 const userPresence = require('../socket/userPresence');
 
-// 1. LẤY DANH SÁCH BẠN BÈ ĐÃ KẾT BẠN
+// 1. LẤY DANH SÁCH BẠN BÈ (SỬ DỤNG DATABASE AGGREGATION PIPELINE NÂNG CAO)
 exports.getFriends = async (req, res) => {
   try {
     const myId = req.user._id;
 
-    const friendships = await Friendship.find({
-      $or: [{ requester: myId }, { recipient: myId }],
-      status: 'accepted',
-    })
-      .populate('requester', 'nickname email avatar elo coins level exp matchesWon')
-      .populate('recipient', 'nickname email avatar elo coins level exp matchesWon')
-      .sort({ updatedAt: -1 });
+    // Khai thác hàm thủ tục cơ sở dữ liệu (Database Aggregation Pipeline)
+    const pipelineFriends = await Friendship.getFriendsDetailedPipeline(myId);
 
-    const friends = friendships.map((f) => {
-      const isRequester = f.requester._id.equals(myId);
-      const friendUser = isRequester ? f.recipient : f.requester;
-      const uid = String(friendUser._id);
+    // Bổ sung trạng thái Online Presence từ Socket Memory
+    const enrichedFriends = pipelineFriends.map((f) => {
+      const uid = String(f._id);
+      const isOnline = userPresence.isUserOnline(uid);
+      const status = userPresence.getUserStatus(uid);
 
       return {
-        friendshipId: f._id,
-        _id: friendUser._id,
-        nickname: friendUser.nickname,
-        email: friendUser.email,
-        avatar: friendUser.avatar || 'avatar_1',
-        elo: friendUser.elo ?? 1000,
-        coins: friendUser.coins ?? 1000,
-        level: friendUser.level ?? 1,
-        exp: friendUser.exp ?? 0,
-        matchesWon: friendUser.matchesWon ?? 0,
-        isOnline: userPresence.isUserOnline(uid),
-        status: userPresence.getUserStatus(uid),
-        friendSince: f.updatedAt,
+        ...f,
+        isOnline,
+        status,
       };
     });
 
-    // Sắp xếp ưu tiên: Bạn đang Online / In-game lên đầu
-    friends.sort((a, b) => {
+    // Sắp xếp ưu tiên: Người đang Online / In-game hoặc có tin nhắn mới lên đầu
+    enrichedFriends.sort((a, b) => {
+      if ((b.unreadCount || 0) !== (a.unreadCount || 0)) {
+        return (b.unreadCount || 0) - (a.unreadCount || 0);
+      }
       if (a.isOnline === b.isOnline) return 0;
       return a.isOnline ? -1 : 1;
     });
 
     res.status(200).json({
       success: true,
-      friends,
-      total: friends.length,
+      friends: enrichedFriends,
+      total: enrichedFriends.length,
     });
   } catch (err) {
     console.error('[Friend Controller Error - getFriends]:', err);
@@ -54,26 +45,19 @@ exports.getFriends = async (req, res) => {
   }
 };
 
-// 2. LẤY DANH SÁCH LỜI MỜI KẾT BẠN (CẢ NHẬN ĐƯỢC VÀ ĐÃ GỬI)
+// 2. LẤY DANH SÁCH LỜI MỜI KẾT BẠN
 exports.getFriendRequests = async (req, res) => {
   try {
     const myId = req.user._id;
 
-    // Lời mời người khác gửi cho mình (cần duyệt)
-    const received = await Friendship.find({
-      recipient: myId,
-      status: 'pending',
-    })
-      .populate('requester', 'nickname email avatar elo coins level')
-      .sort({ createdAt: -1 });
-
-    // Lời mời chính mình đã gửi đi
-    const sent = await Friendship.find({
-      requester: myId,
-      status: 'pending',
-    })
-      .populate('recipient', 'nickname email avatar elo coins level')
-      .sort({ createdAt: -1 });
+    const [received, sent] = await Promise.all([
+      Friendship.find({ recipient: myId, status: 'pending' })
+        .populate('requester', 'nickname email avatar elo coins level')
+        .sort({ createdAt: -1 }),
+      Friendship.find({ requester: myId, status: 'pending' })
+        .populate('recipient', 'nickname email avatar elo coins level')
+        .sort({ createdAt: -1 }),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -94,25 +78,27 @@ exports.getFriendRequests = async (req, res) => {
   }
 };
 
-// 3. GỬI LỜI MỜI KẾT BẠN
+// 3. GỬI LỜI MỜI KẾT BẠN (HỖ TRỢ CẢ NICKNAME VÀ ID TÀI KHOẢN)
 exports.sendFriendRequest = async (req, res) => {
   try {
     const myId = req.user._id;
-    const { targetUserId, nickname } = req.body;
+    const { targetUserId, nickname, identifier } = req.body;
 
-    let targetUser = null;
-    if (targetUserId) {
-      targetUser = await User.findById(targetUserId);
-    } else if (nickname) {
-      targetUser = await User.findOne({
-        nickname: { $regex: new RegExp(`^${nickname.trim()}$`, 'i') },
+    const searchTarget = identifier || targetUserId || nickname;
+    if (!searchTarget) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp Tên người chơi hoặc ID tài khoản để kết bạn!',
       });
     }
+
+    // Khai thác static function tìm kiếm thông minh theo Nickname hoặc ID
+    const targetUser = await User.findByNicknameOrId(searchTarget);
 
     if (!targetUser) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy người chơi cần kết bạn!',
+        message: `Không tìm thấy tài khoản người chơi với thông tin "${searchTarget}"!`,
       });
     }
 
@@ -126,7 +112,7 @@ exports.sendFriendRequest = async (req, res) => {
     if (targetUser.role === 'bot') {
       return res.status(400).json({
         success: false,
-        message: 'Không thể gửi lời mời kết bạn cho Bot AI!',
+        message: 'Không thể kết bạn với Bot AI!',
       });
     }
 
@@ -142,7 +128,7 @@ exports.sendFriendRequest = async (req, res) => {
       if (existing.status === 'accepted') {
         return res.status(400).json({
           success: false,
-          message: 'Hai bạn đã là bạn bè của nhau rồi!',
+          message: `Bạn và ${targetUser.nickname} đã là bạn bè của nhau rồi!`,
         });
       }
 
@@ -150,10 +136,10 @@ exports.sendFriendRequest = async (req, res) => {
         if (existing.requester.equals(myId)) {
           return res.status(400).json({
             success: false,
-            message: 'Bạn đã gửi lời mời rồi, hãy chờ đối phương chấp nhận nhé!',
+            message: 'Bạn đã gửi lời mời trước đó, vui lòng chờ đối phương phản hồi nhé!',
           });
         } else {
-          // Đối phương đã từng gửi cho mình trước đó -> Tự động chấp nhận luôn!
+          // Đối phương đã từng gửi cho mình trước đó -> Tự động chấp nhận luôn
           existing.status = 'accepted';
           await existing.save();
 
@@ -167,7 +153,6 @@ exports.sendFriendRequest = async (req, res) => {
       }
 
       if (existing.status === 'declined') {
-        // Cho phép gửi lại nếu từng bị từ chối
         existing.requester = myId;
         existing.recipient = targetUser._id;
         existing.status = 'pending';
@@ -181,7 +166,7 @@ exports.sendFriendRequest = async (req, res) => {
       }
     }
 
-    // Tạo lời mời mới
+    // Tạo mới lời mời
     const newFriendship = await Friendship.create({
       requester: myId,
       recipient: targetUser._id,
@@ -190,7 +175,7 @@ exports.sendFriendRequest = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Đã gửi lời mời kết bạn đến ${targetUser.nickname}!`,
+      message: `Đã gửi lời mời kết bạn đến ${targetUser.nickname} (ID: ${targetUser._id})!`,
       friendship: newFriendship,
     });
   } catch (err) {
@@ -199,12 +184,12 @@ exports.sendFriendRequest = async (req, res) => {
   }
 };
 
-// 4. PHẢN HỒI LỜI MỜI KẾT BẠN (CHẤP NHẬN HOẶC TỪ CHỐI)
+// 4. PHẢN HỒI LỜI MỜI KẾT BẠN
 exports.respondFriendRequest = async (req, res) => {
   try {
     const myId = req.user._id;
     const { requestId } = req.params;
-    const { action } = req.body; // 'accept' hoặc 'decline'
+    const { action } = req.body;
 
     if (!['accept', 'decline'].includes(action)) {
       return res.status(400).json({
@@ -283,7 +268,7 @@ exports.removeFriend = async (req, res) => {
   }
 };
 
-// 6. TÌM KIẾM NGƯỜI CHƠI ĐỂ KẾT BẠN
+// 6. TÌM KIẾM NGƯỜI CHƠI (TÌM BẰNG CẢ NICKNAME VÀ ID TÀI KHOẢN)
 exports.searchUsers = async (req, res) => {
   try {
     const myId = req.user._id;
@@ -293,19 +278,27 @@ exports.searchUsers = async (req, res) => {
       return res.status(200).json({ success: true, users: [] });
     }
 
-    // Tìm theo nickname hoặc email (không phân biệt hoa thường, trừ chính mình và bot)
+    const searchConditions = [];
+
+    // Nếu người dùng nhập ID tài khoản ObjectId (24 hex)
+    if (mongoose.Types.ObjectId.isValid(query) && query.length === 24) {
+      searchConditions.push({ _id: new mongoose.Types.ObjectId(query) });
+    }
+
+    // Tìm theo Nickname hoặc Email
+    searchConditions.push(
+      { nickname: { $regex: query, $options: 'i' } },
+      { email: { $regex: query, $options: 'i' } }
+    );
+
     const users = await User.find({
       _id: { $ne: myId },
       role: { $ne: 'bot' },
-      $or: [
-        { nickname: { $regex: query, $options: 'i' } },
-        { email: { $regex: query, $options: 'i' } },
-      ],
+      $or: searchConditions,
     })
       .select('nickname email avatar elo coins level')
       .limit(10);
 
-    // Xác định quan hệ bạn bè với từng user tìm được
     const userIds = users.map((u) => u._id);
     const existingFriendships = await Friendship.find({
       $or: [
@@ -354,5 +347,99 @@ exports.searchUsers = async (req, res) => {
   } catch (err) {
     console.error('[Friend Controller Error - searchUsers]:', err);
     res.status(500).json({ success: false, message: 'Lỗi khi tìm kiếm người chơi!' });
+  }
+};
+
+// 7. LẤY HỘI THOẠI TIN NHẮN TRỰC TIẾP (DIRECT CHAT - TASK 2)
+exports.getDirectMessages = async (req, res) => {
+  try {
+    const myId = req.user._id;
+    const { friendId } = req.params;
+    const { limit = 50, before } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(friendId)) {
+      return res.status(400).json({ success: false, message: 'ID bạn bè không hợp lệ!' });
+    }
+
+    // Xác thực người này có phải là bạn bè không
+    const isFriend = await Friendship.findOne({
+      $or: [
+        { requester: myId, recipient: friendId },
+        { requester: friendId, recipient: myId },
+      ],
+      status: 'accepted',
+    });
+
+    if (!isFriend) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn chỉ có thể trò chuyện với người đã kết bạn!',
+      });
+    }
+
+    // Khai thác Stored Procedure lấy tin nhắn
+    const messages = await DirectMessage.getConversation(myId, friendId, { limit, before });
+
+    // Đánh dấu đã đọc các tin nhắn gửi đến mình (Bulk Update)
+    await DirectMessage.markConversationAsRead(myId, friendId);
+
+    res.status(200).json({
+      success: true,
+      messages,
+      total: messages.length,
+    });
+  } catch (err) {
+    console.error('[Friend Controller Error - getDirectMessages]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi tải lịch sử tin nhắn!' });
+  }
+};
+
+// 8. GỬI TIN NHẮN TRỰC TIẾP CHO BẠN BÈ (DIRECT CHAT - TASK 2)
+exports.sendDirectMessage = async (req, res) => {
+  try {
+    const myId = req.user._id;
+    const { friendId } = req.params;
+    const { content } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: 'Nội dung tin nhắn không được để trống!' });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(friendId)) {
+      return res.status(400).json({ success: false, message: 'ID người nhận không hợp lệ!' });
+    }
+
+    // Xác thực quan hệ bạn bè
+    const isFriend = await Friendship.findOne({
+      $or: [
+        { requester: myId, recipient: friendId },
+        { requester: friendId, recipient: myId },
+      ],
+      status: 'accepted',
+    });
+
+    if (!isFriend) {
+      return res.status(403).json({
+        success: false,
+        message: 'Hai người chưa là bạn bè, không thể nhắn tin trực tiếp!',
+      });
+    }
+
+    // Tạo bản ghi tin nhắn mới
+    const messageDoc = await DirectMessage.create({
+      sender: myId,
+      recipient: friendId,
+      content: content.trim(),
+    });
+
+    const populatedMsg = await messageDoc.populate('sender', 'nickname avatar');
+
+    res.status(201).json({
+      success: true,
+      message: populatedMsg,
+    });
+  } catch (err) {
+    console.error('[Friend Controller Error - sendDirectMessage]:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi gửi tin nhắn!' });
   }
 };
