@@ -222,11 +222,11 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     if (seatIndex === 0) return { x: 50, y: 84 };
     const botIdx = seatIndex - 1;
     const bot = gameStateRef.current?.bots?.[botIdx];
-    if (!bot) return { x: 50, y: 50 };
-    if (bot.position === 'left') return { x: 12, y: 48 };
+    if (!bot) return { x: 50, y: 16 };
+    if (bot.position === 'left') return { x: 14, y: 48 };
     if (bot.position === 'top') return { x: 50, y: 16 };
-    if (bot.position === 'right') return { x: 88, y: 48 };
-    return { x: 50, y: 50 };
+    if (bot.position === 'right') return { x: 86, y: 48 };
+    return { x: 50, y: 16 };
   }, []);
 
   // Danh sách người chơi để gửi biểu cảm / ném đạo cụ
@@ -241,18 +241,26 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   // Gửi biểu cảm và phản hồi tương tác Bot AI (Task 3)
   const handleSendEmote = useCallback(
     ({ emote, targetSeatIndex }) => {
+      let resolvedTarget = targetSeatIndex;
+      // Nếu là đạo cụ ném mà chưa có mục tiêu, tự động nhắm vào Bot ở đỉnh bàn cờ
+      if (emote?.type === 'projectile') {
+        if (resolvedTarget === null || resolvedTarget === undefined) {
+          resolvedTarget = 1;
+        }
+      }
+
       const id = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       const newEmote = {
         id,
         senderSeatIndex: 0,
         senderName: 'Bạn',
         emote,
-        targetSeatIndex,
+        targetSeatIndex: resolvedTarget,
         timestamp: Date.now(),
       };
       setActiveEmotes((prev) => [...prev, newEmote]);
 
-      const isProjectile = emote?.type === 'projectile' && targetSeatIndex !== null && targetSeatIndex !== undefined;
+      const isProjectile = emote?.type === 'projectile';
       if (soundEnabled && emote?.sound) {
         soundEngine.playEmoteEffect(emote.sound, isProjectile);
       }
@@ -262,8 +270,8 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       }, 3400);
 
       // Bot phản hồi nếu bị ném đạo cụ
-      if (isProjectile && targetSeatIndex !== null) {
-        const targetBotIdx = targetSeatIndex - 1;
+      if (isProjectile && resolvedTarget !== null && resolvedTarget !== undefined) {
+        const targetBotIdx = resolvedTarget - 1;
         const targetBot = gameStateRef.current?.bots?.[targetBotIdx];
         if (targetBot) {
           setTimeout(() => {
@@ -279,7 +287,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
               ...prev,
               {
                 id: botEmoteId,
-                senderSeatIndex: targetSeatIndex,
+                senderSeatIndex: resolvedTarget,
                 senderName: targetBot.name,
                 emote: chosen,
                 targetSeatIndex: chosen.type === 'projectile' ? 0 : null,
@@ -297,6 +305,21 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       }
     },
     [soundEnabled]
+  );
+
+  // Ném trực tiếp vào 1 Bot khi bấm vào thanh avatar
+  const handleDirectThrow = useCallback(
+    (itemKey, targetSeat) => {
+      const propMap = {
+        tomato: { id: 'tomato', category: 'prop', icon: '🍅', label: 'Ném Cà Chua', type: 'projectile', sound: 'splat' },
+        zap: { id: 'zap', category: 'prop', icon: '⚡', label: 'Giật Sấm Sét', type: 'projectile', sound: 'zap' },
+        poop: { id: 'poop', category: 'prop', icon: '💩', label: 'Cục Phân Troll', type: 'projectile', sound: 'splat' },
+        firework: { id: 'firework', category: 'prop', icon: '🎉', label: 'Bắn Pháo Hoa', type: 'projectile', sound: 'firework' },
+      };
+      const chosen = propMap[itemKey] || propMap.tomato;
+      handleSendEmote({ emote: chosen, targetSeatIndex: targetSeat });
+    },
+    [handleSendEmote]
   );
 
   // Tính toán vị trí người tiếp theo theo chiều xoay (1: Ngược chiều kim đồng hồ ↺, -1: Thuận chiều ↻)
@@ -1818,7 +1841,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
     return (
       <div
-        className={`relative flex flex-col items-center p-2.5 sm:p-3 rounded-2xl transition-all duration-300 w-32 sm:w-40 backdrop-blur-md shadow-lg ${
+        className={`relative group flex flex-col items-center p-2.5 sm:p-3 rounded-2xl transition-all duration-300 w-32 sm:w-40 backdrop-blur-md shadow-lg cursor-pointer ${
           isBotActive
             ? 'bg-gradient-to-b from-amber-500/25 via-slate-900/95 to-amber-950/40 border-2 border-amber-300 ring-4 ring-amber-400/80 shadow-[0_0_40px_rgba(251,191,36,0.85)] scale-110 z-30 animate-bot-spotlight'
             : 'bg-surface-container-high/40 border border-white/5 opacity-75'
@@ -1861,6 +1884,54 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
               <span className="text-[6px] sm:text-[7px] font-black text-white/90">UNO</span>
             </div>
           ))}
+        </div>
+
+        {/* NÚT NÉM ĐẠO CỤ TRỰC TIẾP VÀO ĐỐI THỦ KHI HOVER */}
+        <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#0a0f1d]/95 border border-white/20 shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200 z-40 scale-90 group-hover:scale-100">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDirectThrow('tomato', botSeatIndex);
+            }}
+            className="p-1 rounded-full hover:bg-rose-500/25 hover:scale-125 transition-all text-xs cursor-pointer"
+            title="Ném Cà Chua"
+          >
+            🍅
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDirectThrow('zap', botSeatIndex);
+            }}
+            className="p-1 rounded-full hover:bg-sky-500/25 hover:scale-125 transition-all text-xs cursor-pointer"
+            title="Giật Sét"
+          >
+            ⚡
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDirectThrow('poop', botSeatIndex);
+            }}
+            className="p-1 rounded-full hover:bg-amber-500/25 hover:scale-125 transition-all text-xs cursor-pointer"
+            title="Ném Phân Troll"
+          >
+            💩
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDirectThrow('firework', botSeatIndex);
+            }}
+            className="p-1 rounded-full hover:bg-yellow-500/25 hover:scale-125 transition-all text-xs cursor-pointer"
+            title="Bắn Pháo Hoa"
+          >
+            🎉
+          </button>
         </div>
       </div>
     );
@@ -1956,12 +2027,59 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
               const isTopActive = currentTurnIndex === topBotSeatIndex;
               return (
                 <div
-                  className={`relative flex flex-col items-center px-6 py-2 rounded-2xl backdrop-blur-md border shadow-md transition-all ${
+                  className={`relative group flex flex-col items-center px-6 py-2 rounded-2xl backdrop-blur-md border shadow-md transition-all cursor-pointer ${
                     isTopActive
                       ? 'bg-gradient-to-b from-amber-500/25 via-slate-900/95 to-amber-950/40 border-2 border-amber-300 ring-4 ring-amber-400/80 text-white shadow-[0_0_40px_rgba(251,191,36,0.85)] scale-110 z-30 animate-bot-spotlight'
                       : 'bg-surface-container-low/90 border-white/10 text-slate-300 opacity-75'
                   }`}
                 >
+                  {/* NÚT NÉM ĐẠO CỤ TRỰC TIẾP LÊN BOT NEON */}
+                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#0a0f1d]/95 border border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.3)] opacity-0 group-hover:opacity-100 transition-all duration-200 z-40 scale-90 group-hover:scale-100">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDirectThrow('tomato', topBotSeatIndex);
+                      }}
+                      className="p-1 rounded-full hover:bg-rose-500/25 hover:scale-125 transition-all text-sm cursor-pointer"
+                      title="Ném Cà Chua"
+                    >
+                      🍅
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDirectThrow('zap', topBotSeatIndex);
+                      }}
+                      className="p-1 rounded-full hover:bg-sky-500/25 hover:scale-125 transition-all text-sm cursor-pointer"
+                      title="Giật Sét"
+                    >
+                      ⚡
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDirectThrow('poop', topBotSeatIndex);
+                      }}
+                      className="p-1 rounded-full hover:bg-amber-500/25 hover:scale-125 transition-all text-sm cursor-pointer"
+                      title="Ném Phân Troll"
+                    >
+                      💩
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDirectThrow('firework', topBotSeatIndex);
+                      }}
+                      className="p-1 rounded-full hover:bg-yellow-500/25 hover:scale-125 transition-all text-sm cursor-pointer"
+                      title="Bắn Pháo Hoa"
+                    >
+                      🎉
+                    </button>
+                  </div>
                   {isTopActive ? (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 text-black font-headline font-black text-[9px] uppercase tracking-wider shadow-lg whitespace-nowrap animate-pulse">
                       <span>👑 ĐẾN LƯỢT (P{topBot.playerNumber || topBotSeatIndex + 1} - {topBot.name})</span>

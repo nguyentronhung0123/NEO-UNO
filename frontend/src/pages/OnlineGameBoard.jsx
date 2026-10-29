@@ -236,13 +236,37 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     ({ emote, targetSeatIndex }) => {
       const code = room?.code || gameState?.roomCode;
       if (!code || !socket) return;
+
+      let resolvedTarget = targetSeatIndex;
+      if (emote?.type === 'projectile' && (resolvedTarget === null || resolvedTarget === undefined)) {
+        const otherPlayer = (gameState?.players || []).find((p) => p.seatIndex !== gameState?.mySeatIndex);
+        if (otherPlayer) {
+          resolvedTarget = otherPlayer.seatIndex;
+        }
+      }
+
       socket.emit('game:send_emote', {
         code,
         emote,
-        targetSeatIndex,
+        targetSeatIndex: resolvedTarget,
       });
     },
-    [room?.code, gameState?.roomCode, socket]
+    [room?.code, gameState?.roomCode, gameState?.players, gameState?.mySeatIndex, socket]
+  );
+
+  // Ném trực tiếp vào 1 người chơi khi bấm thanh trên avatar
+  const handleDirectThrow = useCallback(
+    (itemKey, targetSeat) => {
+      const propMap = {
+        tomato: { id: 'tomato', category: 'prop', icon: '🍅', label: 'Ném Cà Chua', type: 'projectile', sound: 'splat' },
+        zap: { id: 'zap', category: 'prop', icon: '⚡', label: 'Giật Sấm Sét', type: 'projectile', sound: 'zap' },
+        poop: { id: 'poop', category: 'prop', icon: '💩', label: 'Cục Phân Troll', type: 'projectile', sound: 'splat' },
+        firework: { id: 'firework', category: 'prop', icon: '🎉', label: 'Bắn Pháo Hoa', type: 'projectile', sound: 'firework' },
+      };
+      const chosen = propMap[itemKey] || propMap.tomato;
+      handleSendEmote({ emote: chosen, targetSeatIndex: targetSeat });
+    },
+    [handleSendEmote]
   );
 
   // HIỆU ỨNG BỐC BÀI TỪNG LÁ MỘT CHO +2 / +4 (TUYỆT ĐỐI KHÔNG BỐC NGUYÊN 1 NẮM BÀI)
@@ -939,7 +963,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
     return (
       <div
-        className={`relative flex flex-col items-center p-2.5 sm:p-3 rounded-2xl transition-all duration-300 w-32 sm:w-40 backdrop-blur-md shadow-lg transform-gpu ${
+        className={`relative group flex flex-col items-center p-2.5 sm:p-3 rounded-2xl transition-all duration-300 w-32 sm:w-40 backdrop-blur-md shadow-lg transform-gpu cursor-pointer ${
           isCurrent
             ? 'bg-gradient-to-b from-amber-500/25 via-slate-900/95 to-amber-950/40 border-2 border-amber-300 ring-4 ring-amber-400/80 shadow-[0_0_40px_rgba(251,191,36,0.85)] scale-110 z-30 animate-bot-spotlight'
             : 'bg-surface-container-high/40 border border-white/5 opacity-75'
@@ -992,6 +1016,54 @@ export default function OnlineGameBoard({ room, user, onBack }) {
           {cardCount > 7 && (
             <span className="text-[9px] text-amber-300 font-bold ml-1">+{cardCount - 7}</span>
           )}
+        </div>
+
+        {/* NÚT NÉM ĐẠO CỤ TRỰC TIẾP */}
+        <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#0a0f1d]/95 border border-white/20 shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-200 z-40 scale-90 group-hover:scale-100">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDirectThrow('tomato', player.seatIndex);
+            }}
+            className="p-1 rounded-full hover:bg-rose-500/25 hover:scale-125 transition-all text-xs cursor-pointer"
+            title="Ném Cà Chua"
+          >
+            🍅
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDirectThrow('zap', player.seatIndex);
+            }}
+            className="p-1 rounded-full hover:bg-sky-500/25 hover:scale-125 transition-all text-xs cursor-pointer"
+            title="Giật Sét"
+          >
+            ⚡
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDirectThrow('poop', player.seatIndex);
+            }}
+            className="p-1 rounded-full hover:bg-amber-500/25 hover:scale-125 transition-all text-xs cursor-pointer"
+            title="Ném Phân Troll"
+          >
+            💩
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDirectThrow('firework', player.seatIndex);
+            }}
+            className="p-1 rounded-full hover:bg-yellow-500/25 hover:scale-125 transition-all text-xs cursor-pointer"
+            title="Bắn Pháo Hoa"
+          >
+            🎉
+          </button>
         </div>
       </div>
     );
@@ -1114,12 +1186,59 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
               return (
                 <div
-                  className={`relative flex flex-col items-center px-6 py-2 rounded-2xl backdrop-blur-md border shadow-md transition-all transform-gpu ${
+                  className={`relative group flex flex-col items-center px-6 py-2 rounded-2xl backdrop-blur-md border shadow-md transition-all transform-gpu cursor-pointer ${
                     isTopActive
                       ? 'bg-gradient-to-b from-amber-500/25 via-slate-900/95 to-amber-950/40 border-2 border-amber-300 ring-4 ring-amber-400/80 text-white shadow-[0_0_40px_rgba(251,191,36,0.85)] scale-110 z-30 animate-bot-spotlight'
                       : 'bg-surface-container-low/90 border-white/10 text-slate-300 opacity-75'
                   }`}
                 >
+                  {/* NÚT NÉM ĐẠO CỤ TRỰC TIẾP LÊN ĐỐI THỦ PHÍA TRÊN */}
+                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#0a0f1d]/95 border border-amber-400/50 shadow-[0_0_15px_rgba(251,191,36,0.3)] opacity-0 group-hover:opacity-100 transition-all duration-200 z-40 scale-90 group-hover:scale-100">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDirectThrow('tomato', topOpponent.seatIndex);
+                      }}
+                      className="p-1 rounded-full hover:bg-rose-500/25 hover:scale-125 transition-all text-sm cursor-pointer"
+                      title="Ném Cà Chua"
+                    >
+                      🍅
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDirectThrow('zap', topOpponent.seatIndex);
+                      }}
+                      className="p-1 rounded-full hover:bg-sky-500/25 hover:scale-125 transition-all text-sm cursor-pointer"
+                      title="Giật Sét"
+                    >
+                      ⚡
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDirectThrow('poop', topOpponent.seatIndex);
+                      }}
+                      className="p-1 rounded-full hover:bg-amber-500/25 hover:scale-125 transition-all text-sm cursor-pointer"
+                      title="Ném Phân Troll"
+                    >
+                      💩
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDirectThrow('firework', topOpponent.seatIndex);
+                      }}
+                      className="p-1 rounded-full hover:bg-yellow-500/25 hover:scale-125 transition-all text-sm cursor-pointer"
+                      title="Bắn Pháo Hoa"
+                    >
+                      🎉
+                    </button>
+                  </div>
                   {isTopActive ? (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 px-3 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 text-black font-headline font-black text-[9px] uppercase tracking-wider shadow-lg whitespace-nowrap animate-pulse">
                       <span>👑 ĐẾN LƯỢT (P{topOpponent.seatIndex + 1} - {topOpponent.name})</span>
