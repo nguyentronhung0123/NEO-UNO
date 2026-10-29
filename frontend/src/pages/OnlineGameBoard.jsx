@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import UnoCard from '../components/UnoCard';
 import { getSocket } from '../services/socket';
 import { soundEngine } from '../utils/audioFx';
+import EmoteWheel from '../components/EmoteWheel';
+import EmoteOverlay from '../components/EmoteOverlay';
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -112,6 +114,9 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
+  // Danh sách các biểu cảm đang hiển thị trên bàn đấu (Task 3)
+  const [activeEmotes, setActiveEmotes] = useState([]);
+
   const gameStateRef = useRef(gameState);
   gameStateRef.current = gameState;
 
@@ -214,6 +219,31 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     if (diff === 2) return 'top';
     return 'left';
   }, []);
+
+  // Lấy tọa độ % (x, y) trên bàn cờ cho bóng thoại và đạo cụ ném (Task 3)
+  const getSeatPosition = useCallback((seatIndex) => {
+    if (seatIndex === null || seatIndex === undefined) return { x: 50, y: 50 };
+    const dir = getDirectionForSeat(seatIndex);
+    if (dir === 'bottom') return { x: 50, y: 84 };
+    if (dir === 'top') return { x: 50, y: 16 };
+    if (dir === 'left') return { x: 12, y: 48 };
+    if (dir === 'right') return { x: 88, y: 48 };
+    return { x: 50, y: 50 };
+  }, [getDirectionForSeat]);
+
+  // Gửi biểu cảm hoặc ném đạo cụ qua Socket (Task 3)
+  const handleSendEmote = useCallback(
+    ({ emote, targetSeatIndex }) => {
+      const code = room?.code || gameState?.roomCode;
+      if (!code || !socket) return;
+      socket.emit('game:send_emote', {
+        code,
+        emote,
+        targetSeatIndex,
+      });
+    },
+    [room?.code, gameState?.roomCode, socket]
+  );
 
   // HIỆU ỨNG BỐC BÀI TỪNG LÁ MỘT CHO +2 / +4 (TUYỆT ĐỐI KHÔNG BỐC NGUYÊN 1 NẮM BÀI)
   const triggerSequentialDraw = useCallback(
@@ -510,6 +540,22 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       } catch {}
     };
 
+    // Nhận biểu cảm & chat nhanh từ bàn chơi (Task 3)
+    const handleReceiveEmote = (payload) => {
+      const id = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newEmote = { id, ...payload };
+      setActiveEmotes((prev) => [...prev, newEmote]);
+
+      const isProjectile = payload.emote?.type === 'projectile' && payload.targetSeatIndex !== null && payload.targetSeatIndex !== undefined;
+      if (soundEnabledRef.current && payload.emote?.sound) {
+        soundEngine.playEmoteEffect(payload.emote.sound, isProjectile);
+      }
+
+      setTimeout(() => {
+        setActiveEmotes((prev) => prev.filter((item) => item.id !== id));
+      }, 3400);
+    };
+
     socket.on('game:state_sync', handleStateSync);
     socket.on('game:timer_tick', handleTimerTick);
     socket.on('game:dealing_tick', handleDealingTick);
@@ -518,6 +564,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     socket.on('game:action_event', handleActionEvent);
     socket.on('game:uno_warning', handleUnoWarning);
     socket.on('game:finished', handleGameFinished);
+    socket.on('game:receive_emote', handleReceiveEmote);
 
     const activeCode = room?.code;
     if (activeCode) {
@@ -535,6 +582,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       socket.off('game:action_event', handleActionEvent);
       socket.off('game:uno_warning', handleUnoWarning);
       socket.off('game:finished', handleGameFinished);
+      socket.off('game:receive_emote', handleReceiveEmote);
       if (avatarFxTimerRef.current) clearTimeout(avatarFxTimerRef.current);
     };
   }, [socket, room?.code, getMyUserId, runDealingIntroSequence, user?.nickname, user?.name]);
@@ -966,6 +1014,9 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         unoCountdown !== null ? 'animate-emergency-border' : ''
       }`}
     >
+      {/* LỚP PHỦ BIỂU CẢM & CHAT NHANH (TASK 3) */}
+      <EmoteOverlay activeEmotes={activeEmotes} getSeatPosition={getSeatPosition} />
+
       <div className="relative z-10 w-full min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto">
         
         {/* ================= 1. TOP HEADER HUD (GIỐNG 100% GAMEBOARD.JSX) ================= */}
@@ -1581,8 +1632,16 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
       </div>
 
-      {/* ================= NÚT BÁO UNO TO NỔI BẬT Ở GÓC DƯỚI PHẢI (HỖ TRỢ CẢ HÔ UNO & BẮT PHẠT ĐỐI THỦ) ================= */}
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-40 flex flex-col items-center">
+      {/* ================= KHU VỰC THAO TÁC GÓC DƯỚI PHẢI: BÁNH XE BIỂU CẢM (TASK 3) & NÚT BÁO/BẮT UNO ================= */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-40 flex flex-col items-center gap-2">
+        {/* NÚT BÁNH XE BIỂU CẢM & CHAT NHANH */}
+        <EmoteWheel
+          onSendEmote={handleSendEmote}
+          players={gameState?.players || []}
+          mySeatIndex={gameState?.mySeatIndex ?? 0}
+          disabled={gameState?.isDealing || isDealing || isShuffling}
+        />
+
         {(() => {
           const handCount = displayedPlayerHand.length;
           const hasCalledUno = myPlayer?.unoCalled || false;

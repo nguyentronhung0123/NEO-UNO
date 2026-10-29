@@ -415,6 +415,38 @@ function setupSocketIO(io) {
       }
     });
 
+    // 6.5. BÁNH XE BIỂU CẢM & CHAT NHANH TRONG TRẬN ĐẤU (TASK 3)
+    socket.on('game:send_emote', ({ code, emote, targetSeatIndex }) => {
+      try {
+        if (!code || !emote) return;
+        const cleanCode = code.toUpperCase();
+        const game = gameEngine.getActiveGame(cleanCode);
+
+        let senderSeatIndex = null;
+        let senderName = 'Người chơi';
+
+        if (game) {
+          const senderPlayer = game.players.find((p) => p.socketId === socket.id);
+          if (senderPlayer) {
+            senderSeatIndex = senderPlayer.seatIndex;
+            senderName = senderPlayer.name;
+          }
+        }
+
+        io.to(cleanCode).emit('game:receive_emote', {
+          senderSeatIndex,
+          senderName,
+          emote, // { id, label, icon, type: 'text' | 'emoji' | 'projectile', sound }
+          targetSeatIndex: targetSeatIndex !== undefined ? targetSeatIndex : null,
+          timestamp: Date.now(),
+        });
+
+        console.log(`[Emote] 🎭 [${cleanCode}] ${senderName} (P${(senderSeatIndex ?? 0) + 1}) -> ${emote.icon || ''} "${emote.label || emote.id}" (Target: ${targetSeatIndex !== null && targetSeatIndex !== undefined ? 'P' + (targetSeatIndex + 1) : 'Cả bàn'})`);
+      } catch (err) {
+        console.error('[Socket] Lỗi phát biểu cảm:', err);
+      }
+    });
+
     // 7. RỜI PHÒNG THỦ CÔNG
     socket.on('room:leave', (callback) => {
       try {

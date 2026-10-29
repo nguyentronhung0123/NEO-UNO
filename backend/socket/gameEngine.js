@@ -395,6 +395,25 @@ class OnlineGame {
       playerName: curPlayer.name,
     });
 
+    // Bot AI phản xạ biểu cảm khi bị phạt bài (Task 3)
+    if (curPlayer.isBot && Math.random() < 0.7) {
+      setTimeout(() => {
+        const angryEmotes = [
+          { id: 'cry', icon: '😭', label: 'Hu hu phạt nhiều thế!', type: 'emoji', sound: 'splat' },
+          { id: 'angry', icon: '😡', label: 'Tức thật đấy!', type: 'emoji', sound: 'splat' },
+          { id: 'tomato', icon: '🍅', label: 'Ném cà chua!', type: 'projectile', sound: 'splat' }
+        ];
+        const chosen = angryEmotes[Math.floor(Math.random() * angryEmotes.length)];
+        this.io.to(this.roomCode).emit('game:receive_emote', {
+          senderSeatIndex: curPlayer.seatIndex,
+          senderName: curPlayer.name,
+          emote: chosen,
+          targetSeatIndex: null,
+          timestamp: Date.now(),
+        });
+      }, 400);
+    }
+
     // Chuyển lượt dứt khoát sang người kế tiếp sau 1.2s hiệu ứng
     this.scheduleTurnTransition(1200, 1);
   }
@@ -431,6 +450,24 @@ class OnlineGame {
           playerName: bot.name,
           message: `🎉 ${bot.name} đã hô UNO!`,
         });
+
+        // Bot AI phản xạ thả Emote khi hô UNO (Task 3)
+        if (Math.random() < 0.75) {
+          const coolEmotes = [
+            { id: 'cool', icon: '😎', label: 'UNO đây coi chừng!', type: 'text', sound: 'firework' },
+            { id: 'firework', icon: '🎉', label: 'Bắn pháo hoa!', type: 'projectile', sound: 'firework' },
+            { id: 'laugh', icon: '😂', label: 'Haha sắp thắng rồi!', type: 'emoji', sound: 'emote_pop' }
+          ];
+          const chosen = coolEmotes[Math.floor(Math.random() * coolEmotes.length)];
+          this.io.to(this.roomCode).emit('game:receive_emote', {
+            senderSeatIndex: bot.seatIndex,
+            senderName: bot.name,
+            emote: chosen,
+            targetSeatIndex: null,
+            timestamp: Date.now(),
+          });
+        }
+
         this.broadcastState();
       }
     }, 2200 + Math.random() * 1300);

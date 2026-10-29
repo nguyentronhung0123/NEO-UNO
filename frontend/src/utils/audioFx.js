@@ -352,6 +352,169 @@ class SoundEngine {
       console.warn('Audio playMatchFound error:', e);
     }
   }
+
+  // 9. Âm thanh Cà chua đập bẹp (Tomato Splat)
+  playSplat() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(60, now + 0.18);
+
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch (e) {
+      console.warn('Audio playSplat error:', e);
+    }
+  }
+
+  // 10. Âm thanh Pháo hoa chúc mừng (Firework / Party)
+  playFirework() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      // Tiếng rít bay lên
+      const oscWhistle = this.ctx.createOscillator();
+      const gainWhistle = this.ctx.createGain();
+      oscWhistle.type = 'sine';
+      oscWhistle.frequency.setValueAtTime(300, now);
+      oscWhistle.frequency.exponentialRampToValueAtTime(1200, now + 0.25);
+      gainWhistle.gain.setValueAtTime(0.08, now);
+      gainWhistle.gain.linearRampToValueAtTime(0.01, now + 0.25);
+      oscWhistle.connect(gainWhistle);
+      gainWhistle.connect(this.ctx.destination);
+      oscWhistle.start(now);
+      oscWhistle.stop(now + 0.25);
+
+      // Tiếng nổ bung hoa
+      const chords = [587.33, 739.99, 880.0, 1174.66]; // D5, F#5, A5, D6
+      chords.forEach((freq) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + 0.25);
+        gain.gain.setValueAtTime(0.18, now + 0.25);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + 0.25);
+        osc.stop(now + 0.65);
+      });
+    } catch (e) {
+      console.warn('Audio playFirework error:', e);
+    }
+  }
+
+  // 11. Âm thanh Thả tim ngọt ngào (Heart Pop)
+  playHeartPop() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      [440, 554.37, 659.25].forEach((freq, i) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const t = now + i * 0.06;
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.15, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.25);
+      });
+    } catch (e) {
+      console.warn('Audio playHeartPop error:', e);
+    }
+  }
+
+  // 12. Âm thanh Tia sét nảy lửa (Zap / Lightning)
+  playZap() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(900, now);
+      osc.frequency.linearRampToValueAtTime(100, now + 0.15);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } catch (e) {
+      console.warn('Audio playZap error:', e);
+    }
+  }
+
+  // 13. Âm thanh Chat nhanh popup (Quick Chat Pop)
+  playEmotePop() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(450, now);
+      osc.frequency.exponentialRampToValueAtTime(900, now + 0.1);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } catch (e) {
+      console.warn('Audio playEmotePop error:', e);
+    }
+  }
+
+  // 14. Phát âm thanh theo tên loại hiệu ứng biểu cảm
+  playEmoteEffect(soundType, isProjectile = false) {
+    if (!this.enabled || !soundType) return;
+    const play = () => {
+      try {
+        if (soundType === 'splat') this.playSplat();
+        else if (soundType === 'firework') this.playFirework();
+        else if (soundType === 'zap') this.playZap();
+        else if (soundType === 'heart_pop') this.playHeartPop();
+        else this.playEmotePop();
+      } catch (e) {
+        console.warn('Audio playEmoteEffect error:', e);
+      }
+    };
+
+    if (isProjectile) {
+      setTimeout(play, 380);
+    } else {
+      play();
+    }
+  }
 }
 
 export const soundEngine = new SoundEngine();

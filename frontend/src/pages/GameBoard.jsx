@@ -7,6 +7,8 @@ import { shuffleDeck } from '../utils/deck.js';
 import { soundEngine } from '../utils/audioFx.js';
 import { matchApi } from '../apis/matchApi.js';
 import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch } from '../utils/activeMatchStorage.js';
+import EmoteWheel from '../components/EmoteWheel';
+import EmoteOverlay from '../components/EmoteOverlay';
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -120,6 +122,9 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Danh sách các biểu cảm đang hiển thị trên bàn đấu (Task 3)
+  const [activeEmotes, setActiveEmotes] = useState([]);
+
   // Refs chống stale state
   const gameStateRef = useRef(gameState);
   gameStateRef.current = gameState;
@@ -211,6 +216,88 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       (typeof target === 'number' ? currentBots[target - 1] : null);
     return bot?.position || 'top';
   }, []);
+
+  // Lấy tọa độ % (x, y) trên bàn cờ cho bóng thoại và đạo cụ ném (Task 3)
+  const getSeatPosition = useCallback((seatIndex) => {
+    if (seatIndex === 0) return { x: 50, y: 84 };
+    const botIdx = seatIndex - 1;
+    const bot = gameStateRef.current?.bots?.[botIdx];
+    if (!bot) return { x: 50, y: 50 };
+    if (bot.position === 'left') return { x: 12, y: 48 };
+    if (bot.position === 'top') return { x: 50, y: 16 };
+    if (bot.position === 'right') return { x: 88, y: 48 };
+    return { x: 50, y: 50 };
+  }, []);
+
+  // Danh sách người chơi để gửi biểu cảm / ném đạo cụ
+  const allPlayersList = useMemo(() => {
+    const list = [{ seatIndex: 0, name: 'Bạn' }];
+    (gameState?.bots || []).forEach((b, idx) => {
+      list.push({ seatIndex: idx + 1, name: b.name });
+    });
+    return list;
+  }, [gameState?.bots]);
+
+  // Gửi biểu cảm và phản hồi tương tác Bot AI (Task 3)
+  const handleSendEmote = useCallback(
+    ({ emote, targetSeatIndex }) => {
+      const id = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const newEmote = {
+        id,
+        senderSeatIndex: 0,
+        senderName: 'Bạn',
+        emote,
+        targetSeatIndex,
+        timestamp: Date.now(),
+      };
+      setActiveEmotes((prev) => [...prev, newEmote]);
+
+      const isProjectile = emote?.type === 'projectile' && targetSeatIndex !== null && targetSeatIndex !== undefined;
+      if (soundEnabled && emote?.sound) {
+        soundEngine.playEmoteEffect(emote.sound, isProjectile);
+      }
+
+      setTimeout(() => {
+        setActiveEmotes((prev) => prev.filter((item) => item.id !== id));
+      }, 3400);
+
+      // Bot phản hồi nếu bị ném đạo cụ
+      if (isProjectile && targetSeatIndex !== null) {
+        const targetBotIdx = targetSeatIndex - 1;
+        const targetBot = gameStateRef.current?.bots?.[targetBotIdx];
+        if (targetBot) {
+          setTimeout(() => {
+            const botReactions = [
+              { id: 'rage', icon: '😡', label: 'Sao ném tui?!', type: 'emoji', sound: 'zap' },
+              { id: 'cry', icon: '😭', label: 'Đau quá bạn ơi!', type: 'emoji', sound: 'splat' },
+              { id: 'tomato', icon: '🍅', label: 'Ném trả nè!', type: 'projectile', sound: 'splat' },
+              { id: 'salty', icon: '😤', label: 'Chờ đấy nhé!', type: 'text', sound: 'splat' },
+            ];
+            const chosen = botReactions[Math.floor(Math.random() * botReactions.length)];
+            const botEmoteId = `${Date.now()}_bot_${Math.random().toString(36).substring(2, 7)}`;
+            setActiveEmotes((prev) => [
+              ...prev,
+              {
+                id: botEmoteId,
+                senderSeatIndex: targetSeatIndex,
+                senderName: targetBot.name,
+                emote: chosen,
+                targetSeatIndex: chosen.type === 'projectile' ? 0 : null,
+                timestamp: Date.now(),
+              },
+            ]);
+            if (soundEnabled && chosen.sound) {
+              soundEngine.playEmoteEffect(chosen.sound, chosen.type === 'projectile');
+            }
+            setTimeout(() => {
+              setActiveEmotes((prev) => prev.filter((item) => item.id !== botEmoteId));
+            }, 3400);
+          }, 1000);
+        }
+      }
+    },
+    [soundEnabled]
+  );
 
   // Tính toán vị trí người tiếp theo theo chiều xoay (1: Ngược chiều kim đồng hồ ↺, -1: Thuận chiều ↻)
   const getNextTurnIndex = useCallback(
@@ -1052,6 +1139,34 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         setShowUnoBurst(true);
         setTimeout(() => setShowUnoBurst(false), 1200);
         setTimeout(() => setStatusMessage(`🤖 ${botDisplayName} hô to: "UNO!" (chỉ còn đúng 1 lá trên tay)`), 200);
+
+        // Bot thể hiện cảm xúc khi báo UNO (Task 3)
+        if (Math.random() < 0.8) {
+          const unoEmotes = [
+            { id: 'uno_alert', icon: '🚨', label: 'UNO đây coi chừng!', type: 'text', sound: 'firework' },
+            { id: 'firework', icon: '🎉', label: 'Bắn pháo hoa!', type: 'projectile', sound: 'firework' },
+            { id: 'cool', icon: '😎', label: 'Đẳng cấp!', type: 'emoji', sound: 'firework' },
+          ];
+          const chosen = unoEmotes[Math.floor(Math.random() * unoEmotes.length)];
+          const emoteId = `${Date.now()}_bot_${Math.random().toString(36).substring(2, 7)}`;
+          setActiveEmotes((prev) => [
+            ...prev,
+            {
+              id: emoteId,
+              senderSeatIndex: botSeatIndex,
+              senderName: activeBot.name,
+              emote: chosen,
+              targetSeatIndex: null,
+              timestamp: Date.now(),
+            },
+          ]);
+          if (soundEnabled && chosen.sound) {
+            soundEngine.playEmoteEffect(chosen.sound, chosen.type === 'projectile');
+          }
+          setTimeout(() => {
+            setActiveEmotes((prev) => prev.filter((item) => item.id !== emoteId));
+          }, 3400);
+        }
       }
 
       if (remainingCount === 0) {
@@ -1757,6 +1872,9 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         unoCountdown !== null ? 'animate-emergency-border' : ''
       }`}
     >
+      {/* LỚP PHỦ BIỂU CẢM & CHAT NHANH (TASK 3) */}
+      <EmoteOverlay activeEmotes={activeEmotes} getSeatPosition={getSeatPosition} />
+
       <div className="relative z-10 w-full min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto">
         
         {/* 1. TOP HEADER HUD */}
@@ -2297,8 +2415,16 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
       </div>
 
-      {/* NÚT BÁO UNO TO NỔI BẬT Ở GÓC DƯỚI PHẢI */}
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-40 flex flex-col items-center">
+      {/* KHU VỰC THAO TÁC GÓC DƯỚI PHẢI: BÁNH XE BIỂU CẢM (TASK 3) & NÚT BÁO UNO */}
+      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-40 flex flex-col items-center gap-2">
+        {/* NÚT BÁNH XE BIỂU CẢM & CHAT NHANH */}
+        <EmoteWheel
+          onSendEmote={handleSendEmote}
+          players={allPlayersList}
+          mySeatIndex={0}
+          disabled={isDealing || isShuffling}
+        />
+
         {(() => {
           const handCount = gameState?.playerHand?.length || 0;
           const canCallUno = handCount <= 2 && handCount > 0 && !hasCalledUno && !isDealing && !isShuffling;
