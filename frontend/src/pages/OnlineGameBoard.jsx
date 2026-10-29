@@ -127,11 +127,11 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const getMyUserId = useCallback(() => {
     let localUserId = localStorage.getItem('neo_user_id');
     if (!localUserId) {
-      localUserId = user?.id || user?._id || `guest_${socket.id}`;
+      localUserId = user?.id || user?._id || `guest_${socket?.id || Math.random().toString(36).slice(2)}`;
       localStorage.setItem('neo_user_id', localUserId);
     }
     return user?.id || user?._id || localUserId;
-  }, [user, socket.id]);
+  }, [user, socket?.id]);
 
   // Hiệu ứng trực tiếp trên Avatar người chơi / bot (Cấm lượt, +2, +4)
   const triggerAvatarFx = useCallback(
@@ -580,6 +580,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       }, 3400);
     };
 
+    if (!socket) return;
+
     socket.on('game:state_sync', handleStateSync);
     socket.on('game:timer_tick', handleTimerTick);
     socket.on('game:dealing_tick', handleDealingTick);
@@ -598,6 +600,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     }
 
     return () => {
+      if (!socket) return;
       socket.off('game:state_sync', handleStateSync);
       socket.off('game:timer_tick', handleTimerTick);
       socket.off('game:dealing_tick', handleDealingTick);
@@ -875,7 +878,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
   // Sắp xếp các đối thủ theo các vị trí tương đối (Top, Left, Right)
   const { topOpponent, leftOpponent, rightOpponent } = useMemo(() => {
-    if (!gameState || !gameState.players) {
+    if (!gameState || !Array.isArray(gameState.players)) {
       return { topOpponent: null, leftOpponent: null, rightOpponent: null };
     }
 
@@ -885,7 +888,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
     for (let i = 1; i < total; i++) {
       const seat = (mySeat + i) % total;
-      opponents.push(gameState.players[seat]);
+      const opp = gameState.players.find((p) => p.seatIndex === seat) || gameState.players[seat];
+      if (opp) opponents.push(opp);
     }
 
     if (opponents.length === 1) {
@@ -894,9 +898,9 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       return { rightOpponent: opponents[0], leftOpponent: opponents[1], topOpponent: null };
     } else {
       return {
-        rightOpponent: opponents[0],
-        topOpponent: opponents[1],
-        leftOpponent: opponents[2],
+        rightOpponent: opponents[0] || null,
+        topOpponent: opponents[1] || null,
+        leftOpponent: opponents[2] || null,
       };
     }
   }, [gameState]);
@@ -1539,7 +1543,10 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                         cardPlaySlam ? 'animate-card-slam' : 'rotate-[-3deg]'
                       }`}
                     >
-                      <UnoCard color={gameState.topCard.color} value={gameState.topCard.value} />
+                      <UnoCard
+                        color={gameState.topCard?.color || 'red'}
+                        value={gameState.topCard?.value || '0'}
+                      />
                     </div>
 
                     {gameState?.activeColor && (

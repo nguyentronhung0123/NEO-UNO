@@ -35,22 +35,24 @@ export default function OnlineRoomModal({
 
   // Đăng ký các sự kiện Socket khi mở modal
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !socket) return;
 
     const handleRoomUpdated = (room) => {
-      setCurrentRoom(room);
-      setErrorMsg('');
+      if (room) {
+        setCurrentRoom(room);
+        setErrorMsg('');
+      }
     };
 
     const handleGameStarted = (room) => {
-      console.log('[Socket] Trận đấu phòng bắt đầu:', room.code);
-      if (onStartOnlineMatch) {
+      console.log('[Socket] Trận đấu phòng bắt đầu:', room?.code);
+      if (onStartOnlineMatch && room) {
         onStartOnlineMatch(room);
       }
     };
 
     const handlePlayerLeft = ({ playerName }) => {
-      setErrorMsg(`Người chơi "${playerName}" đã rời khỏi phòng.`);
+      setErrorMsg(`Người chơi "${playerName || 'Bạn bè'}" đã rời khỏi phòng.`);
       setTimeout(() => setErrorMsg(''), 4000);
     };
 
@@ -102,12 +104,16 @@ export default function OnlineRoomModal({
 
   // 1. TẠO PHÒNG
   const handleCreateRoom = () => {
+    if (!socket) {
+      setErrorMsg('Đang kết nối lại Socket Server, vui lòng thử lại...');
+      return;
+    }
     setIsLoading(true);
     setErrorMsg('');
     const preparedUser = getPreparedUser();
     socket.emit('room:create', { user: preparedUser }, (res) => {
       setIsLoading(false);
-      if (res?.success) {
+      if (res?.success && res.room) {
         setCurrentRoom(res.room);
       } else {
         setErrorMsg(res?.message || 'Không thể tạo phòng lúc này!');
@@ -130,12 +136,17 @@ export default function OnlineRoomModal({
       return;
     }
 
+    if (!socket) {
+      setErrorMsg('Đang kết nối lại Socket Server, vui lòng thử lại...');
+      return;
+    }
+
     setIsLoading(true);
     setErrorMsg('');
     const preparedUser = getPreparedUser();
     socket.emit('room:join', { code: cleanCode, user: preparedUser }, (res) => {
       setIsLoading(false);
-      if (res?.success) {
+      if (res?.success && res.room) {
         setCurrentRoom(res.room);
       } else {
         setErrorMsg(res?.message || 'Mã phòng không chính xác hoặc phòng đã đầy!');
@@ -162,7 +173,7 @@ export default function OnlineRoomModal({
   // Đổi tên trực tiếp khi đã ở trong phòng
   const handleUpdateMyName = (newName) => {
     const trimmed = (newName || '').trim();
-    if (!trimmed || !currentRoom) return;
+    if (!trimmed || !currentRoom || !socket) return;
     setPlayerName(trimmed);
     localStorage.setItem('neo_player_name', trimmed);
     socket.emit('room:update_name', { code: currentRoom.code, newName: trimmed });
@@ -171,7 +182,7 @@ export default function OnlineRoomModal({
 
   // 3. ĐỔI TRẠNG THÁI SẴN SÀNG
   const handleToggleReady = () => {
-    if (!currentRoom) return;
+    if (!currentRoom || !socket) return;
     socket.emit('room:toggle_ready', { code: currentRoom.code }, (res) => {
       if (!res?.success) {
         setErrorMsg(res?.message || 'Thao tác thất bại!');
@@ -181,7 +192,7 @@ export default function OnlineRoomModal({
 
   // 4. THÊM BOT
   const handleAddBot = () => {
-    if (!currentRoom) return;
+    if (!currentRoom || !socket) return;
     socket.emit('room:add_bot', { code: currentRoom.code }, (res) => {
       if (!res?.success) {
         setErrorMsg(res?.message || 'Không thể thêm bot!');
@@ -191,7 +202,7 @@ export default function OnlineRoomModal({
 
   // 5. XÓA BOT
   const handleRemoveBot = (botId) => {
-    if (!currentRoom) return;
+    if (!currentRoom || !socket) return;
     socket.emit('room:remove_bot', { code: currentRoom.code, botId }, (res) => {
       if (!res?.success) {
         setErrorMsg(res?.message || 'Không thể xóa bot!');
@@ -201,7 +212,7 @@ export default function OnlineRoomModal({
 
   // 6. BẮT ĐẦU TRẬN ĐẤU
   const handleStartGame = () => {
-    if (!currentRoom) return;
+    if (!currentRoom || !socket) return;
     socket.emit('room:start_game', { code: currentRoom.code }, (res) => {
       if (!res?.success) {
         setErrorMsg(res?.message || 'Chưa thể bắt đầu trận đấu!');
@@ -211,10 +222,15 @@ export default function OnlineRoomModal({
 
   // 7. RỜI PHÒNG
   const handleLeaveRoom = () => {
-    socket.emit('room:leave', () => {
+    if (socket) {
+      socket.emit('room:leave', () => {
+        setCurrentRoom(null);
+        setErrorMsg('');
+      });
+    } else {
       setCurrentRoom(null);
       setErrorMsg('');
-    });
+    }
   };
 
   // 8. SAO CHÉP MÃ PHÒNG / LINK
@@ -233,15 +249,20 @@ export default function OnlineRoomModal({
     setTimeout(() => setIsCopied(false), 2500);
   };
 
+  // Danh sách người chơi an toàn trong phòng
+  const playersList = Array.isArray(currentRoom?.players) ? currentRoom.players : [];
+
   // Xác định vai trò của người chơi hiện tại
-  const myPlayer = currentRoom?.players.find(
-    (p) => p.socketId === socket.id || p.userId === (user?.id || user?._id)
+  const myPlayer = playersList.find(
+    (p) =>
+      (p.socketId && socket?.id && p.socketId === socket.id) ||
+      (p.userId && (user?.id || user?._id) && String(p.userId) === String(user?.id || user?._id))
   );
-  const isHost = myPlayer?.isHost;
+  const isHost = Boolean(myPlayer?.isHost);
   const canStartGame =
     isHost &&
-    currentRoom?.players.length >= 2 &&
-    currentRoom?.players.every((p) => p.isReady);
+    playersList.length >= 2 &&
+    playersList.every((p) => p.isReady);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fade-in font-body selection:bg-primary-container selection:text-black">
@@ -453,9 +474,9 @@ export default function OnlineRoomModal({
             <div className="mb-6">
               <div className="flex justify-between items-center mb-2.5">
                 <span className="text-xs text-slate-400 font-bold uppercase tracking-wider">
-                  THÀNH VIÊN TRONG PHÒNG ({currentRoom.players.length}/4)
+                  THÀNH VIÊN TRONG PHÒNG ({playersList.length}/4)
                 </span>
-                {isHost && currentRoom.players.length < 4 && (
+                {isHost && playersList.length < 4 && (
                   <button
                     type="button"
                     onClick={handleAddBot}
@@ -469,12 +490,12 @@ export default function OnlineRoomModal({
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[0, 1, 2, 3].map((seatIndex) => {
-                  const player = currentRoom.players[seatIndex];
+                  const player = playersList[seatIndex];
 
                   if (player) {
                     const isMe =
-                      player.socketId === socket.id ||
-                      player.userId === (user?.id || user?._id);
+                      (player.socketId && socket?.id && player.socketId === socket.id) ||
+                      (player.userId && (user?.id || user?._id) && String(player.userId) === String(user?.id || user?._id));
                     const tier = getRankTier(player.elo || 1000);
 
                     return (
@@ -517,7 +538,7 @@ export default function OnlineRoomModal({
                           {player.isBot ? (
                             <span className="material-symbols-outlined text-2xl">smart_toy</span>
                           ) : (
-                            (player.name || 'P').substring(0, 2).toUpperCase()
+                            String(player.name || 'P').substring(0, 2).toUpperCase()
                           )}
                         </div>
 
@@ -631,7 +652,7 @@ export default function OnlineRoomModal({
                       <span className="material-symbols-outlined text-base">check_circle</span>
                       Tất cả thành viên đã sẵn sàng! Bạn có thể bắt đầu trận.
                     </span>
-                  ) : currentRoom.players.length < 2 ? (
+                  ) : playersList.length < 2 ? (
                     <span className="text-amber-400 font-medium">
                       ⚠️ Cần thêm ít nhất 1 người chơi hoặc 1 Bot để bắt đầu.
                     </span>

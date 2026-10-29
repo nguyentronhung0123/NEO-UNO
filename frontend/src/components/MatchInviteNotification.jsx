@@ -11,7 +11,6 @@ export default function MatchInviteNotification({ invite, onAccept, onDecline })
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          if (onDecline) onDecline(invite);
           return 0;
         }
         return prev - 1;
@@ -19,11 +18,21 @@ export default function MatchInviteNotification({ invite, onAccept, onDecline })
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [invite, onDecline]);
+  }, [invite]);
+
+  // Khi hết 15s tự động từ chối
+  useEffect(() => {
+    if (timeLeft === 0 && invite && onDecline) {
+      onDecline(invite);
+    }
+  }, [timeLeft, invite, onDecline]);
 
   if (!invite) return null;
 
   const { fromUser, roomCode, roomMode } = invite;
+  const fromNickname = fromUser?.nickname || fromUser?.name || 'Bạn bè';
+  const displayRoomCode = roomCode || '---';
+  const avatarLetter = String(fromNickname).charAt(0).toUpperCase() || 'U';
 
   const modeLabel =
     roomMode === 'SOLO_1V1'
@@ -33,7 +42,7 @@ export default function MatchInviteNotification({ invite, onAccept, onDecline })
       : 'Tứ Hùng (4P)';
 
   return (
-    <div className="fixed top-5 right-5 z-[100] max-w-sm w-full animate-bounce-in">
+    <div className="fixed top-5 right-5 z-[100] max-w-sm w-full animate-bounce-in font-body">
       <div className="relative bg-[#101524] border-2 border-cyan-400 rounded-2xl p-4 shadow-[0_0_40px_rgba(0,210,255,0.4)] backdrop-blur-xl overflow-hidden flex flex-col gap-3">
         {/* Progress Bar đếm ngược 15s */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-white/10">
@@ -47,7 +56,7 @@ export default function MatchInviteNotification({ invite, onAccept, onDecline })
         <div className="flex items-center gap-3 pt-1">
           <div className="relative">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-800 border border-white/20 flex items-center justify-center text-white font-headline font-black text-base shadow-md">
-              {(fromUser?.nickname || 'U').substring(0, 2).toUpperCase()}
+              {avatarLetter}
             </div>
             <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-emerald-400 border-2 border-[#101524] animate-pulse" />
           </div>
@@ -60,10 +69,10 @@ export default function MatchInviteNotification({ invite, onAccept, onDecline })
               <span className="text-[11px] font-mono text-slate-400">{timeLeft}s</span>
             </div>
             <p className="text-white text-xs font-headline font-bold truncate">
-              {fromUser?.nickname || 'Bạn bè'}
+              {fromNickname}
             </p>
             <p className="text-[11px] text-slate-400 truncate">
-              Phòng: <span className="font-mono text-cyan-300 font-bold">{roomCode}</span> • {modeLabel}
+              Phòng: <span className="font-mono text-cyan-300 font-bold">{displayRoomCode}</span> • {modeLabel}
             </p>
           </div>
         </div>
