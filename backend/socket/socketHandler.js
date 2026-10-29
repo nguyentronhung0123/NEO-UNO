@@ -469,9 +469,79 @@ function setupSocketIO(io) {
       }
     });
 
-    // 7. RỜI PHÒNG THỦ CÔNG
-    socket.on('room:leave', (callback) => {
+    // 6.6. LẤY LẠI QUYỀN ĐIỀU KHIỂN SAU KHI AFK (TASK 4)
+    socket.on('game:resume_control', ({ code, userId }, callback) => {
       try {
+        if (!code) return;
+        const game = gameEngine.getActiveGame(code);
+        if (!game) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Ván đấu không tồn tại!' });
+          return;
+        }
+        const res = game.resumePlayerControl(socket.id, userId);
+        if (typeof callback === 'function') callback(res);
+      } catch (err) {
+        console.error('[Socket] Lỗi lấy lại quyền điều khiển:', err);
+      }
+    });
+
+    // 6.7. XỬ THUA / BỎ CUỘC TRẬN ĐẤU (TASK 4)
+    socket.on('game:forfeit', async ({ code, userId }, callback) => {
+      try {
+        if (!code) return;
+        const game = gameEngine.getActiveGame(code);
+        if (!game) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Ván đấu không tồn tại!' });
+          return;
+        }
+        const player = game.players.find((p) => p.socketId === socket.id || (userId && p.userId === userId));
+        if (player) {
+          await game.forfeitPlayer(player, 'quit');
+          if (typeof callback === 'function') callback({ success: true });
+        }
+      } catch (err) {
+        console.error('[Socket] Lỗi xử thua:', err);
+      }
+    });
+
+    // 6.8. KIỂM TRA TRẬN ĐẤU ONLINE DỞ DANG ĐỂ REJOIN (TASK 4)
+    socket.on('game:check_active', ({ userId, playerName }, callback) => {
+      try {
+        let activeRoomCode = null;
+        for (const [code, game] of gameEngine.activeGames.entries()) {
+          if (game.status === 'in_game') {
+            const p = game.players.find(
+              (pl) => !pl.isBot && !pl.forfeited && ((userId && pl.userId === userId) || (playerName && pl.name === playerName))
+            );
+            if (p) {
+              activeRoomCode = code;
+              break;
+            }
+          }
+        }
+        if (typeof callback === 'function') {
+          callback({ hasActiveGame: !!activeRoomCode, roomCode: activeRoomCode });
+        }
+      } catch (err) {
+        console.error('[Socket] Lỗi kiểm tra trận đấu dở dang:', err);
+        if (typeof callback === 'function') callback({ hasActiveGame: false });
+      }
+    });
+
+    // 7. RỜI PHÒNG THỦ CÔNG
+    socket.on('room:leave', async (callback) => {
+      try {
+        const currentRoom = roomManager.getRoomBySocket(socket.id);
+        if (currentRoom && currentRoom.status === 'in_game') {
+          const game = gameEngine.getActiveGame(currentRoom.code);
+          if (game) {
+            const player = game.players.find((p) => p.socketId === socket.id);
+            if (player) {
+              await game.forfeitPlayer(player, 'quit');
+            }
+          }
+        }
+
         const { roomCode, room, removedPlayer } = roomManager.leaveRoom(socket.id, true);
         if (roomCode) {
           socket.leave(roomCode);
@@ -499,6 +569,10 @@ function setupSocketIO(io) {
         const currentRoom = roomManager.getRoomBySocket(socket.id);
         if (currentRoom && currentRoom.status === 'in_game') {
           console.log(`[Socket] Giữ nguyên ghế cho người chơi phòng ${currentRoom.code} để chờ reconnect!`);
+          const game = gameEngine.getActiveGame(currentRoom.code);
+          if (game) {
+            game.handlePlayerDisconnect(socket.id);
+          }
           return;
         }
 

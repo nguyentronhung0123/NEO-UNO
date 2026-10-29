@@ -181,13 +181,19 @@ class OnlineGame {
     this.drawPile = shuffleDeck(createDeck());
     this.discardPile = [];
 
-    // Người chơi và bài trên tay
+    // Người chơi và bài trên tay (Hỗ trợ Task 4: Chống AFK & Bot đánh hộ)
     this.players = room.players.map((p, idx) => ({
       ...p,
       seatIndex: idx,
       hand: this.drawPile.splice(0, 7),
       unoCalled: false,
       isAfk: false,
+      afkTurnsCount: 0,
+      isBotTakeover: false,
+      isDisconnected: false,
+      disconnectedAt: null,
+      disconnectTimer: null,
+      forfeited: false,
     }));
 
     // Chọn lá bài khởi đầu (không phải Wild hay lá phạt chức năng)
@@ -319,6 +325,9 @@ class OnlineGame {
     if (this.botUnoTimer) clearTimeout(this.botUnoTimer);
     if (this.unoPenaltyTimer) clearTimeout(this.unoPenaltyTimer);
     if (this.actionTransitionTimeout) clearTimeout(this.actionTransitionTimeout);
+    this.players.forEach((p) => {
+      if (p.disconnectTimer) clearTimeout(p.disconnectTimer);
+    });
     this.isTransitioning = false;
   }
 
@@ -402,6 +411,27 @@ class OnlineGame {
       playerName: curPlayer.name,
     });
 
+    // Theo dõi AFK người chơi (Task 4: Chống AFK & Bot đánh hộ)
+    if (!curPlayer.isBot) {
+      curPlayer.afkTurnsCount = (curPlayer.afkTurnsCount || 0) + 1;
+      curPlayer.isAfk = true;
+
+      // Nếu AFK 2 lượt liên tiếp -> Kích hoạt chế độ Bot AI đánh hộ
+      if (curPlayer.afkTurnsCount >= 2 && !curPlayer.isBotTakeover) {
+        curPlayer.isBotTakeover = true;
+        this.io.to(this.roomCode).emit('game:action_event', {
+          type: 'afk_takeover',
+          seatIndex: curPlayer.seatIndex,
+          playerName: curPlayer.name,
+          message: `🤖 ${curPlayer.name} đã vắng mặt 2 lượt liên tiếp! Bot AI tự động tiếp quản đánh hộ.`,
+        });
+        this.io.to(this.roomCode).emit('game:afk_takeover_started', {
+          seatIndex: curPlayer.seatIndex,
+          playerName: curPlayer.name,
+        });
+      }
+    }
+
     // Bot AI phản xạ biểu cảm khi bị phạt bài (Task 3)
     if (curPlayer.isBot && Math.random() < 0.7) {
       setTimeout(() => {
@@ -429,11 +459,11 @@ class OnlineGame {
     if (this.status !== 'in_game') return;
 
     const curPlayer = this.players[this.currentTurnIndex];
-    if (curPlayer && curPlayer.isBot) {
+    if (curPlayer && (curPlayer.isBot || curPlayer.isBotTakeover || curPlayer.isDisconnected)) {
       if (this.botTimeout) clearTimeout(this.botTimeout);
       this.botTimeout = setTimeout(() => {
         this.executeBotTurn(curPlayer);
-      }, 1600);
+      }, 1500);
     }
   }
 
@@ -845,16 +875,51 @@ class OnlineGame {
   findActionPlayer(socketId, userId) {
     let player = null;
     if (userId) {
-      player = this.players.find((p) => p.userId === userId);
+      player = this.players.find((p) => p.userId === userId && !p.forfeited);
     }
     if (!player) {
-      player = this.players.find((p) => p.socketId === socketId);
+      player = this.players.find((p) => p.socketId === socketId && !p.forfeited);
     }
     if (player) {
       player.socketId = socketId;
       player.isAfk = false;
+      player.afkTurnsCount = 0;
+      if (player.isBotTakeover) {
+        player.isBotTakeover = false;
+        this.io.to(this.roomCode).emit('game:action_event', {
+          type: 'afk_takeover_ended',
+          seatIndex: player.seatIndex,
+          playerName: player.name,
+          message: `🎮 ${player.name} đã chủ động đánh bài và lấy lại quyền điều khiển!`,
+        });
+        this.io.to(this.roomCode).emit('game:afk_takeover_ended', {
+          seatIndex: player.seatIndex,
+          playerName: player.name,
+        });
+        this.broadcastState();
+      }
     }
     return player;
+  }
+
+  resumePlayerControl(socketId, userId) {
+    const player = this.findActionPlayer(socketId, userId);
+    if (!player) return { success: false, message: 'Không tìm thấy người chơi!' };
+    player.afkTurnsCount = 0;
+    player.isBotTakeover = false;
+    player.isDisconnected = false;
+    this.io.to(this.roomCode).emit('game:action_event', {
+      type: 'resume_control',
+      seatIndex: player.seatIndex,
+      playerName: player.name,
+      message: `🎮 ${player.name} đã lấy lại quyền điều khiển ván đấu!`,
+    });
+    this.io.to(this.roomCode).emit('game:afk_takeover_ended', {
+      seatIndex: player.seatIndex,
+      playerName: player.name,
+    });
+    this.broadcastState();
+    return { success: true };
   }
 
   // Người chơi thật đánh bài
@@ -1505,6 +1570,7 @@ class OnlineGame {
       matchTimeRemaining: this.matchTimeRemaining,
       mySeatIndex: player.seatIndex,
       myHand: player.hand,
+      myIsBotTakeover: !!player.isBotTakeover,
       players: this.players.map((other) => ({
         seatIndex: other.seatIndex,
         userId: other.userId,
@@ -1516,28 +1582,170 @@ class OnlineGame {
         isTurn: other.seatIndex === this.currentTurnIndex,
         unoCalled: other.unoCalled,
         isAfk: other.isAfk,
+        afkTurnsCount: other.afkTurnsCount || 0,
+        isBotTakeover: !!other.isBotTakeover,
+        isDisconnected: !!other.isDisconnected,
+        disconnectRemaining: other.disconnectedAt ? Math.max(0, 60 - Math.floor((Date.now() - other.disconnectedAt) / 1000)) : null,
+        forfeited: !!other.forfeited,
       })),
     };
+  }
+
+  handlePlayerDisconnect(socketId) {
+    if (this.status !== 'in_game') return;
+    const player = this.players.find((p) => p.socketId === socketId && !p.isBot && !p.forfeited);
+    if (!player) return;
+
+    player.isDisconnected = true;
+    player.disconnectedAt = Date.now();
+    player.isAfk = true;
+
+    this.io.to(this.roomCode).emit('game:action_event', {
+      type: 'player_disconnected',
+      seatIndex: player.seatIndex,
+      playerName: player.name,
+      message: `🔌 ${player.name} bị mất kết nối! Bot AI tạm quyền đánh hộ trong thời gian ân hạn 60s.`,
+    });
+
+    this.io.to(this.roomCode).emit('game:player_disconnected', {
+      seatIndex: player.seatIndex,
+      playerName: player.name,
+      countdown: 60,
+    });
+
+    this.broadcastState();
+
+    // Nếu đang đúng lượt của người này -> Bot AI lập tức đánh hộ sau 1.2s!
+    if (this.currentTurnIndex === player.seatIndex) {
+      this.checkBotTurn();
+    }
+
+    // Thiết lập bộ đếm 60s đếm ngược: nếu không quay lại -> Xử thua (Forfeit)
+    if (player.disconnectTimer) clearTimeout(player.disconnectTimer);
+    player.disconnectTimer = setTimeout(() => {
+      if (this.status === 'in_game' && player.isDisconnected && !player.forfeited) {
+        console.log(`[GameEngine] ⏰ Hết 60s ân hạn: Xử thua người chơi ${player.name} (${this.roomCode})`);
+        this.forfeitPlayer(player, 'disconnect_timeout');
+      }
+    }, 60000);
   }
 
   reconnectPlayer(socketId, userId, playerName) {
     let player = null;
     if (userId) {
-      player = this.players.find((p) => p.userId === userId);
+      player = this.players.find((p) => p.userId === userId && !p.forfeited);
     }
     if (!player && playerName) {
-      player = this.players.find((p) => p.name === playerName);
+      player = this.players.find((p) => p.name === playerName && !p.forfeited);
     }
     if (!player) {
-      // Tìm ghế người chơi người thật chưa có kết nối hoặc trùng socketId
-      player = this.players.find((p) => !p.isBot && (!p.socketId || p.socketId === socketId));
+      player = this.players.find((p) => !p.isBot && !p.forfeited && (!p.socketId || p.socketId === socketId));
     }
+
     if (player) {
+      if (player.disconnectTimer) {
+        clearTimeout(player.disconnectTimer);
+        player.disconnectTimer = null;
+      }
       player.socketId = socketId;
+      player.isDisconnected = false;
+      player.disconnectedAt = null;
+      player.isBotTakeover = false;
+      player.afkTurnsCount = 0;
       player.isAfk = false;
+
+      this.io.to(this.roomCode).emit('game:action_event', {
+        type: 'player_reconnected',
+        seatIndex: player.seatIndex,
+        playerName: player.name,
+        message: `🎉 ${player.name} đã kết nối lại ván đấu thành công!`,
+      });
+
+      this.io.to(this.roomCode).emit('game:player_reconnected', {
+        seatIndex: player.seatIndex,
+        playerName: player.name,
+      });
+
+      this.broadcastState();
       return player;
     }
     return null;
+  }
+
+  async forfeitPlayer(player, reason = 'quit') {
+    if (!player || player.forfeited || this.status !== 'in_game') return;
+
+    player.forfeited = true;
+    player.isDisconnected = true;
+    if (player.disconnectTimer) {
+      clearTimeout(player.disconnectTimer);
+      player.disconnectTimer = null;
+    }
+
+    const reasonMsg = reason === 'disconnect_timeout'
+      ? `⏰ ${player.name} đã quá 60s không kết nối lại!`
+      : `🏳️ ${player.name} đã chủ động đầu hàng / bỏ cuộc!`;
+
+    this.io.to(this.roomCode).emit('game:action_event', {
+      type: 'forfeit',
+      seatIndex: player.seatIndex,
+      playerName: player.name,
+      message: `${reasonMsg} Bị xử thua và trừ 25 ELO. Bot AI đã thế chỗ vĩnh viễn!`,
+    });
+
+    this.io.to(this.roomCode).emit('game:player_forfeited', {
+      seatIndex: player.seatIndex,
+      playerName: player.name,
+      reason,
+      penaltyElo: -25,
+    });
+
+    // Trừ 25 ELO trong MongoDB cho người chơi bỏ cuộc nếu là tài khoản thật
+    if (player.userId && !String(player.userId).startsWith('guest_') && player.userId !== 'anonymous') {
+      try {
+        await User.findByIdAndUpdate(player.userId, {
+          $inc: { elo: -25, losses: 1 },
+        });
+        await PlayerStats.findOneAndUpdate(
+          { userId: player.userId },
+          { $inc: { matchesPlayed: 1, losses: 1, forfeitCount: 1 } },
+          { upsert: true }
+        );
+      } catch (err) {
+        console.error('[GameEngine] Lỗi trừ ELO forfeit:', err);
+      }
+    }
+
+    // Biến vị trí này thành Bot vĩnh viễn
+    player.isBot = true;
+    player.isBotTakeover = true;
+    player.name = `Bot (${player.name})`;
+
+    // Kiểm tra xem phòng còn người thật nào không
+    const remainingHumans = this.players.filter((p) => !p.isBot && !p.forfeited);
+    if (remainingHumans.length === 1 && this.players.length > 1) {
+      if (this.players.length === 2) {
+        const survivor = remainingHumans[0];
+        this.io.to(this.roomCode).emit('game:action_event', {
+          type: 'game_over_forfeit',
+          winnerName: survivor.name,
+          message: `🏆 Đối thủ đã bỏ cuộc! ${survivor.name} giành chiến thắng ván đấu!`,
+        });
+        this.finishGame(survivor);
+        return;
+      }
+    } else if (remainingHumans.length === 0) {
+      this.status = 'finished';
+      this.stopTimers();
+      activeGames.delete(this.roomCode);
+      return;
+    }
+
+    this.broadcastState();
+
+    if (this.currentTurnIndex === player.seatIndex) {
+      this.checkBotTurn();
+    }
   }
 
   // Gửi trạng thái bảo mật (chỉ gửi bài riêng của từng người)

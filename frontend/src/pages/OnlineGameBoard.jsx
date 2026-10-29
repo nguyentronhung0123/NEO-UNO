@@ -182,6 +182,36 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     );
   };
 
+  // Helper render huy hiệu trạng thái AFK / Rớt mạng / Bỏ cuộc (Task 4)
+  const renderPlayerStatusBadge = (p) => {
+    if (!p) return null;
+    if (p.forfeited) {
+      return (
+        <span className="px-1.5 py-0.5 rounded-full bg-slate-800 border border-slate-600 text-slate-400 font-bold text-[8px] sm:text-[9px] flex items-center gap-1 shadow-sm mt-0.5 whitespace-nowrap">
+          <span>🏳️</span>
+          <span>Đã bỏ cuộc</span>
+        </span>
+      );
+    }
+    if (p.isDisconnected) {
+      return (
+        <span className="px-1.5 py-0.5 rounded-full bg-rose-900/90 border border-rose-500 text-rose-200 font-bold text-[8px] sm:text-[9px] flex items-center gap-1 shadow-sm animate-pulse mt-0.5 whitespace-nowrap">
+          <span className="material-symbols-outlined text-[10px]">wifi_off</span>
+          <span>Rớt mạng {p.disconnectRemaining !== null && p.disconnectRemaining !== undefined ? `(${p.disconnectRemaining}s)` : ''}</span>
+        </span>
+      );
+    }
+    if (p.isBotTakeover) {
+      return (
+        <span className="px-1.5 py-0.5 rounded-full bg-amber-900/90 border border-amber-500 text-amber-200 font-bold text-[8px] sm:text-[9px] flex items-center gap-1 shadow-sm animate-pulse mt-0.5 whitespace-nowrap">
+          <span className="material-symbols-outlined text-[10px]">smart_toy</span>
+          <span>Bot đánh hộ</span>
+        </span>
+      );
+    }
+    return null;
+  };
+
   // Kích hoạt hiệu ứng lá bài chức năng thông báo giữa bàn
   const triggerActionFx = useCallback((type, text, subtext = '') => {
     setActiveActionFx({ type, text, subtext });
@@ -545,6 +575,31 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         try {
           if (soundEnabledRef.current) soundEngine.playCardSlide();
         } catch {}
+      } else if (event.type === 'afk_takeover') {
+        handlersRef.current.triggerActionFx('skip', `🤖 BOT ĐÁNH HỘ!`, event.message);
+      } else if (event.type === 'resume_control' || event.type === 'afk_takeover_ended') {
+        handlersRef.current.triggerActionFx('skip', `🎮 TRẢ LẠI QUYỀN!`, event.message);
+      } else if (event.type === 'player_disconnected') {
+        handlersRef.current.triggerActionFx('skip', `🔌 MẤT KẾT NỐI!`, event.message);
+      } else if (event.type === 'player_reconnected') {
+        handlersRef.current.triggerActionFx('skip', `🎉 KẾT NỐI LẠI!`, event.message);
+      } else if (event.type === 'forfeit') {
+        handlersRef.current.triggerActionFx('skip', `⚠️ BỎ CUỘC!`, event.message);
+      }
+    };
+
+    // Sự kiện AFK & Mất kết nối (Task 4)
+    const handleAfkTakeoverStarted = ({ seatIndex, playerName }) => {
+      const cur = gameStateRef.current;
+      if (cur && seatIndex === cur.mySeatIndex) {
+        setGameState((prev) => (prev ? { ...prev, myIsBotTakeover: true } : prev));
+      }
+    };
+
+    const handleAfkTakeoverEnded = ({ seatIndex, playerName }) => {
+      const cur = gameStateRef.current;
+      if (cur && seatIndex === cur.mySeatIndex) {
+        setGameState((prev) => (prev ? { ...prev, myIsBotTakeover: false } : prev));
       }
     };
 
@@ -591,6 +646,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     socket.on('game:uno_warning', handleUnoWarning);
     socket.on('game:finished', handleGameFinished);
     socket.on('game:receive_emote', handleReceiveEmote);
+    socket.on('game:afk_takeover_started', handleAfkTakeoverStarted);
+    socket.on('game:afk_takeover_ended', handleAfkTakeoverEnded);
 
     const activeCode = room?.code;
     if (activeCode) {
@@ -610,6 +667,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       socket.off('game:uno_warning', handleUnoWarning);
       socket.off('game:finished', handleGameFinished);
       socket.off('game:receive_emote', handleReceiveEmote);
+      socket.off('game:afk_takeover_started', handleAfkTakeoverStarted);
+      socket.off('game:afk_takeover_ended', handleAfkTakeoverEnded);
       if (avatarFxTimerRef.current) clearTimeout(avatarFxTimerRef.current);
     };
   }, [socket, room?.code, getMyUserId, runDealingIntroSequence, user?.nickname, user?.name]);
@@ -1004,6 +1063,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
             <span className="text-[9px] sm:text-[10px] text-amber-300 font-bold">
               {cardCount} lá bài
             </span>
+            {renderPlayerStatusBadge(player)}
           </div>
         </div>
 
@@ -1168,6 +1228,37 @@ export default function OnlineGameBoard({ room, user, onBack }) {
           </div>
         </div>
 
+        {/* BANNER THÔNG BÁO VÀ NÚT LẤY LẠI QUYỀN ĐIỀU KHIỂN KHI BOT ĐANG ĐÁNH HỘ (TASK 4) */}
+        {gameState?.myIsBotTakeover && (
+          <div className="w-full flex justify-center -mb-1 mt-1 z-40 animate-bounce">
+            <div className="flex items-center gap-2 sm:gap-3 px-4 py-1.5 rounded-2xl bg-gradient-to-r from-amber-950/95 via-yellow-950/95 to-amber-950/95 border-2 border-amber-400 shadow-[0_0_35px_rgba(251,191,36,0.6)] backdrop-blur-xl">
+              <span className="material-symbols-outlined text-amber-400 text-lg animate-spin">smart_toy</span>
+              <div className="flex flex-col text-left">
+                <span className="text-[11px] sm:text-xs font-headline font-black text-yellow-300 uppercase tracking-wide">
+                  Bot AI đang đánh hộ bạn do AFK!
+                </span>
+                <span className="text-[9px] text-slate-300 hidden sm:inline">
+                  Bấm nút để lấy lại lượt tự đánh bài
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (socket) {
+                    socket.emit('game:resume_control', {
+                      code: room?.code || gameState?.roomCode,
+                      userId: getMyUserId(),
+                    });
+                  }
+                }}
+                className="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-headline font-black text-xs hover:scale-105 active:scale-95 transition-all shadow-md cursor-pointer whitespace-nowrap"
+              >
+                LẤY LẠI QUYỀN
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* THÔNG BÁO KHẨN CẤP: ĐẾM NGƯỢC 5 GIÂY BÁO UNO */}
         {unoCountdown !== null && (
           <div className="w-full flex justify-center -mb-2 z-30 animate-bounce">
@@ -1278,6 +1369,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-amber-300 font-bold">
                         {cardCount} lá bài
                       </span>
+                      {renderPlayerStatusBadge(topOpponent)}
                     </div>
                   </div>
 
@@ -1721,6 +1813,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 <span className="text-[10px] text-slate-400">
                   {displayedPlayerHand.length} lá trên tay
                 </span>
+                {renderPlayerStatusBadge(myPlayer)}
               </div>
             </div>
 
@@ -2105,16 +2198,16 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         </div>
       )}
 
-      {/* ================= MODAL XÁC NHẬN RỜI PHÒNG (GIỐNG GAMEBOARD.JSX) ================= */}
+      {/* ================= MODAL CẢNH BÁO BỎ CUỘC & XỬ THUA FORFEIT (TASK 4) ================= */}
       {isExitModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in font-body">
-          <div className="p-6 rounded-3xl bg-[#121622] border border-white/20 shadow-2xl flex flex-col items-center text-center max-w-sm">
-            <span className="material-symbols-outlined text-4xl text-rose-400 mb-2">logout</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="p-6 rounded-3xl bg-[#121622] border-2 border-rose-500/50 shadow-[0_0_50px_rgba(244,63,94,0.4)] flex flex-col items-center text-center max-w-sm">
+            <span className="material-symbols-outlined text-5xl text-rose-500 mb-2 animate-bounce">warning</span>
             <h3 className="font-headline font-black text-base text-white uppercase tracking-wider mb-2">
-              BẠN MUỐN RỜI PHÒNG?
+              BẠN MUỐN RỜI TRẬN ĐẤU?
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed mb-5">
-              Đây là phòng giao hữu bạn bè (không tính điểm Rank ELO). Nếu bạn thoát, các người chơi còn lại vẫn có thể tiếp tục chơi.
+              ⚠️ <strong className="text-rose-400">CẢNH BÁO:</strong> Ván đấu Online đang diễn ra! Nếu bạn thoát bây giờ, bạn sẽ bị tính là <strong className="text-amber-300">BỎ CUỘC (XỬ THUA)</strong> và bị trừ <strong className="text-rose-400">25 ELO</strong>. Bot AI sẽ tiếp quản vị trí của bạn để ván đấu tiếp tục với những người chơi khác.
             </p>
 
             <div className="flex gap-2.5 w-full">
@@ -2123,18 +2216,25 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 onClick={() => setIsExitModalOpen(false)}
                 className="flex-1 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-slate-300 text-xs font-bold cursor-pointer transition-colors"
               >
-                Ở Lại
+                Tiếp Tục Đấu
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setIsExitModalOpen(false);
-                  socket.emit('room:leave');
+                  if (socket) {
+                    socket.emit('game:forfeit', {
+                      code: room?.code || gameState?.roomCode,
+                      userId: getMyUserId(),
+                    });
+                    socket.emit('room:leave');
+                  }
+                  sessionStorage.removeItem('neo_online_room');
                   onBack();
                 }}
                 className="flex-1 py-2.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold cursor-pointer transition-all shadow-md"
               >
-                Xác Nhận Rời
+                Xác Nhận Bỏ Cuộc
               </button>
             </div>
           </div>

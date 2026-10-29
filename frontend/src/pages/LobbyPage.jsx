@@ -43,10 +43,34 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
   // PHÁT HIỆN TRẬN ĐẤU DỞ DANG ĐỂ TIẾP TỤC CHƠI (RECONNECT / AFK)
   const [rejoinMatch, setRejoinMatch] = useState(null);
+  const [rejoinOnlineRoomCode, setRejoinOnlineRoomCode] = useState(null);
   const [isForfeiting, setIsForfeiting] = useState(false);
   const [forfeitToast, setForfeitToast] = useState(null);
 
   const profileMenuRef = useRef(null);
+
+  // PHÁT HIỆN TRẬN ĐẤU ONLINE DỞ DANG ĐỂ RECONNECT (TASK 4)
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const checkActiveOnline = () => {
+      const myId = user?.id || user?._id || localStorage.getItem('neo_user_id');
+      const myName = user?.nickname || user?.name || localStorage.getItem('neo_player_name');
+      if (!myId && !myName) return;
+      socket.emit('game:check_active', { userId: myId, playerName: myName }, (res) => {
+        if (res && res.hasActiveGame && res.roomCode) {
+          setRejoinOnlineRoomCode(res.roomCode);
+        } else {
+          setRejoinOnlineRoomCode(null);
+        }
+      });
+    };
+
+    checkActiveOnline();
+    const interval = setInterval(checkActiveOnline, 4000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // ĐĂNG KÝ PRESENCE VÀ LẮNG NGHE LỜI MỜI ĐẤU REALTIME (TASK 2)
   useEffect(() => {
@@ -1038,6 +1062,65 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PHÁT HIỆN TRẬN ĐẤU ONLINE DỞ DANG (TASK 4 - RECONNECT ONLINE) */}
+      {!rejoinMatch && rejoinOnlineRoomCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="relative max-w-lg w-full p-6 sm:p-8 rounded-[32px] bg-[#121622]/95 border-2 border-primary-container shadow-[0_0_80px_rgba(0,210,255,0.4)] flex flex-col gap-5 text-center">
+            <div className="w-16 h-16 rounded-3xl bg-primary-container/20 border border-primary-container/50 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(0,210,255,0.5)]">
+              <span className="material-symbols-outlined text-4xl text-primary-container animate-spin">
+                sync
+              </span>
+            </div>
+
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 font-headline font-black text-[10px] uppercase tracking-widest mb-2 border border-cyan-500/40">
+                PHÁT HIỆN TRẬN ĐẤU ONLINE DỞ DANG
+              </div>
+              <h3 className="font-headline font-black text-xl sm:text-2xl text-white uppercase tracking-wider mb-2">
+                BẠN ĐANG CÓ VÁN ĐẤU ONLINE!
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
+                Hệ thống phát hiện bạn đang có ván cờ trực tuyến tại phòng <strong className="text-yellow-300 font-mono">[{rejoinOnlineRoomCode}]</strong>. Bot AI đang tạm quyền đánh hộ trong thời gian ân hạn.
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const socket = getSocket();
+                  if (socket) {
+                    const myId = user?._id || user?.id || localStorage.getItem('neo_user_id');
+                    socket.emit('game:forfeit', { code: rejoinOnlineRoomCode, userId: myId });
+                  }
+                  setRejoinOnlineRoomCode(null);
+                  setForfeitToast('⚠️ Bạn đã từ chối vào lại ván đấu! Bị tính bỏ cuộc và trừ 25 ELO.');
+                  setTimeout(() => setForfeitToast(null), 5000);
+                }}
+                className="w-full sm:w-auto sm:flex-1 py-3.5 rounded-full bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/40 text-rose-300 hover:text-white font-headline text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
+              >
+                Bỏ Cuộc (-25 ELO)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const code = rejoinOnlineRoomCode;
+                  setRejoinOnlineRoomCode(null);
+                  if (onJoinOnlineMatch) {
+                    onJoinOnlineMatch({ code });
+                  }
+                }}
+                className="w-full sm:flex-2 py-3.5 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-300 hover:to-primary-container text-black font-headline text-xs sm:text-sm font-black uppercase tracking-wider shadow-[0_0_30px_rgba(0,210,255,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-xl">play_arrow</span>
+                <span>VÀO LẠI TRẬN ĐẤU (RECONNECT)</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
