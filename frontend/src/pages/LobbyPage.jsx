@@ -109,6 +109,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
   const handleAcceptInvite = (invite) => {
     setIncomingInvite(null);
+    setIsFriendsOpen(false);
+    setActiveChatFriend(null);
     setTargetRoomCode(invite.roomCode);
     setIsOnlineRoomOpen(true);
   };
@@ -162,6 +164,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         setOnlineInitialRoom(res.room);
         setFriendsRoomCode(res.room.code);
         setIsFriendsOpen(false);
+        setActiveChatFriend(null);
         setIsOnlineRoomOpen(true);
 
         socket.emit(

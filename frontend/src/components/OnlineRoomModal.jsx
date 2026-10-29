@@ -78,8 +78,6 @@ export default function OnlineRoomModal({
     }
   }, [isOpen, currentRoom]);
 
-  if (!isOpen) return null;
-
   // Lấy dữ liệu user kèm tên hiển thị chính xác
   const getPreparedUser = () => {
     let localUserId = localStorage.getItem('neo_user_id');
@@ -263,6 +261,8 @@ export default function OnlineRoomModal({
     isHost &&
     playersList.length >= 2 &&
     playersList.every((p) => p.isReady);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fade-in font-body selection:bg-primary-container selection:text-black">
