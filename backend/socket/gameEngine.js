@@ -223,6 +223,7 @@ class OnlineGame {
     this.dealingCountdown = 3;
     this.isTransitioning = false; // Cờ khóa trạng thái chuyển lượt (chống race condition AFK timeout)
     this.penalizedThisTurn = false; // Đánh dấu đã bị phạt trong lượt này (chống phạt kép 2 lá UNO + 2 lá AFK)
+    this.turnNumber = 1; // Số thứ tự lượt tăng dần, giúp frontend nhận diện lượt mới chính xác 100%
 
     this.timerInterval = null;
     this.botTimeout = null;
@@ -245,6 +246,7 @@ class OnlineGame {
         return;
       }
       this.currentTurnIndex = this.getNextTurnIndex(nextSeatStep);
+      this.turnNumber = (this.turnNumber || 1) + 1;
       this.turnTimeRemaining = 15;
       this.drawnCountInTurn = 0;
       this.penalizedThisTurn = false;
@@ -724,7 +726,8 @@ class OnlineGame {
           playerName: victim.name,
         });
 
-        const step = this.players.length === 2 ? 1 : 2;
+        // Nạn nhân bị phạt +4 lá và mất lượt (trong 1v1 người đánh đi tiếp, trong 3-4P chuyển sang người kế tiếp)
+        const step = 2;
         this.scheduleTurnTransition(2000, step);
         return;
       } else if (card.value === 'draw_two') {
@@ -1056,7 +1059,8 @@ class OnlineGame {
         playerName: victim.name,
       });
 
-      const step = this.players.length === 2 ? 1 : 2;
+      // Nạn nhân bị phạt +4 lá và mất lượt (trong 1v1 người đánh đi tiếp, trong 3-4P chuyển sang người kế tiếp)
+      const step = 2;
       this.scheduleTurnTransition(2000, step);
       return { success: true };
     } else if (card.value === 'draw_two') {
@@ -1239,20 +1243,15 @@ class OnlineGame {
       return { success: false, message: 'Bạn cần bốc ít nhất 1 lá trước khi bỏ lượt!' };
     }
 
-    this.isTransitioning = true;
     this.drawnCountInTurn = 0;
-    this.currentTurnIndex = this.getNextTurnIndex(1);
-    this.turnTimeRemaining = 15;
-
     this.io.to(this.roomCode).emit('game:action_event', {
       type: 'pass_turn',
       playerName: curPlayer.name,
       message: `↷ ${curPlayer.name} đã bỏ lượt.`,
     });
 
-    this.broadcastState();
-    this.checkBotTurn();
-
+    // Chuyển lượt an toàn qua scheduleTurnTransition (tự động reset isTransitioning và đồng bộ state)
+    this.scheduleTurnTransition(400, 1);
     return { success: true };
   }
 
@@ -1559,6 +1558,8 @@ class OnlineGame {
       isRanked: this.isRanked,
       isDealing: this.isDealing,
       dealingCountdown: this.dealingCountdown,
+      isTransitioning: this.isTransitioning,
+      turnNumber: this.turnNumber || 1,
       drawPileCount: this.drawPile.length,
       drawnCountInTurn: this.drawnCountInTurn,
       topCard,

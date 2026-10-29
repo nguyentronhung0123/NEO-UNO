@@ -108,6 +108,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const isCardActionLockedRef = useRef(false);
   const [isCardActionLocked, setIsCardActionLocked] = useState(false);
   const lastTurnIndexRef = useRef(-1);
+  const lastTurnNumberRef = useRef(-1);
+  const cardActionLockTimeoutRef = useRef(null);
 
   const [gameResult, setGameResult] = useState(null);
   const [autoReturnCountdown, setAutoReturnCountdown] = useState(120);
@@ -371,14 +373,23 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   // LẮNG NGHE SỰ KIỆN TỪ SOCKET SERVER (CHỈ BIND 1 LẦN DUY NHẤT TRÊN MOUNT - KHÔNG LAG)
   useEffect(() => {
     const handleStateSync = (state) => {
-      // Khi lượt chơi thay đổi -> Giải phóng khóa đánh bài cho lượt mới
-      if (state.currentTurnIndex !== lastTurnIndexRef.current) {
+      // Khi lượt chơi mới bắt đầu:
+      // 1. Nếu turnNumber tăng (kể cả cùng 1 người chơi được đánh tiếp như lá Cấm/Đổi chiều trong 1v1)
+      // 2. Hoặc lượt chuyển sang vị trí khác
+      // 3. Hoặc bàn cờ đã hoàn tất chuyển lượt (isTransitioning === false) và tới lượt mình với timer 14-15s
+      const isNewTurnNumber = state.turnNumber && state.turnNumber !== lastTurnNumberRef.current;
+      const turnIndexChanged = state.currentTurnIndex !== lastTurnIndexRef.current;
+      const isFreshTurnForMe = !state.isTransitioning && state.currentTurnIndex === state.mySeatIndex && state.turnTimeRemaining >= 14;
+
+      if (isNewTurnNumber || turnIndexChanged || isFreshTurnForMe || state.currentTurnIndex !== state.mySeatIndex) {
+        if (state.turnNumber) lastTurnNumberRef.current = state.turnNumber;
         lastTurnIndexRef.current = state.currentTurnIndex;
         isCardActionLockedRef.current = false;
         setIsCardActionLocked(false);
-      } else if (state.currentTurnIndex !== state.mySeatIndex) {
-        isCardActionLockedRef.current = false;
-        setIsCardActionLocked(false);
+        if (cardActionLockTimeoutRef.current) {
+          clearTimeout(cardActionLockTimeoutRef.current);
+          cardActionLockTimeoutRef.current = null;
+        }
       }
 
       setGameState(state);
@@ -670,6 +681,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       socket.off('game:afk_takeover_started', handleAfkTakeoverStarted);
       socket.off('game:afk_takeover_ended', handleAfkTakeoverEnded);
       if (avatarFxTimerRef.current) clearTimeout(avatarFxTimerRef.current);
+      if (cardActionLockTimeoutRef.current) clearTimeout(cardActionLockTimeoutRef.current);
     };
   }, [socket, room?.code, getMyUserId, runDealingIntroSequence, user?.nickname, user?.name]);
 
@@ -815,6 +827,15 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     isCardActionLockedRef.current = true;
     setIsCardActionLocked(true);
 
+    // Safety timeout: Tối đa 1400ms (sau khi bài bay và chuyển lượt hoàn tất), khóa BẮT BUỘC tự động mở ra
+    // Đảm bảo tuyệt đối người chơi không bao giờ bị kẹt bất tử hoặc bị treo do mất gói tin
+    if (cardActionLockTimeoutRef.current) clearTimeout(cardActionLockTimeoutRef.current);
+    cardActionLockTimeoutRef.current = setTimeout(() => {
+      isCardActionLockedRef.current = false;
+      setIsCardActionLocked(false);
+      cardActionLockTimeoutRef.current = null;
+    }, 1400);
+
     // 1. Ẩn ngay lá bài khỏi tay người chơi (phản hồi tức thì 0ms)
     setGameState((prev) => {
       if (!prev) return prev;
@@ -858,6 +879,10 @@ export default function OnlineGameBoard({ room, user, onBack }) {
           // Mở lại khóa nếu server từ chối vì lỗi
           isCardActionLockedRef.current = false;
           setIsCardActionLocked(false);
+          if (cardActionLockTimeoutRef.current) {
+            clearTimeout(cardActionLockTimeoutRef.current);
+            cardActionLockTimeoutRef.current = null;
+          }
         }
       }
     );
