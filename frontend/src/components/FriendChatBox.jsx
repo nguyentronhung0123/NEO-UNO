@@ -136,7 +136,7 @@ export default function FriendChatBox({
   if (!friend) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[90] w-80 sm:w-96 h-[460px] bg-[#0e1320] border-2 border-cyan-400/50 rounded-3xl shadow-[0_0_50px_rgba(0,210,255,0.35)] backdrop-blur-xl flex flex-col overflow-hidden animate-slide-up">
+    <div className="fixed bottom-6 right-4 sm:right-22 z-[90] w-80 sm:w-96 h-[460px] bg-[#0e1320] border-2 border-cyan-400/50 rounded-3xl shadow-[0_0_50px_rgba(0,210,255,0.35)] backdrop-blur-xl flex flex-col overflow-hidden animate-slide-up">
       {/* HEADER KHUNG CHAT */}
       <div className="flex items-center justify-between px-4 py-3 bg-[#131929] border-b border-white/10">
         <div className="flex items-center gap-2.5 min-w-0">

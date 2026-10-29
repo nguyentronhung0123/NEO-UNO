@@ -9,6 +9,7 @@ import OnlineRoomModal from '../components/OnlineRoomModal';
 import MatchmakingModal from '../components/MatchmakingModal';
 import FriendsModal from '../components/FriendsModal';
 import FriendChatBox from '../components/FriendChatBox';
+import MessengerDrawer from '../components/MessengerDrawer';
 import MatchInviteNotification from '../components/MatchInviteNotification';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
@@ -1168,6 +1169,15 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           </div>
         </div>
       )}
+
+      {/* ICON CHAT BÊN PHẢI GÓC DƯỚI & DANH SÁCH CHAT MESSENGER (TASK 2) */}
+      <MessengerDrawer
+        user={user}
+        socket={getSocket()}
+        onOpenChat={(friend) => setActiveChatFriend(friend)}
+        onOpenFriendsModal={() => setIsFriendsOpen(true)}
+        activeChatFriendId={activeChatFriend?._id || activeChatFriend?.id}
+      />
     </div>
   );
 }
