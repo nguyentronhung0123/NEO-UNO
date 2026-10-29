@@ -258,24 +258,19 @@ export default function EmoteWheel({
 
           {/* GRID HIỂN THỊ CÁC MỤC THEO TAB */}
           {activeTab === 'prop' ? (
-            /* 4 NÚT ĐẠO CỤ NÉM LỚN ĐẶC BIỆT BẮT MẮT */
-            <div className="grid grid-cols-2 gap-2 p-0.5">
+            /* 4 NÚT ĐẠO CỤ NÉM THUẦN ICON (KHÔNG CHỮ THEO YÊU CẦU NGƯỜI DÙNG) */
+            <div className="grid grid-cols-2 gap-3 p-1">
               {currentTabItems.map((item) => (
                 <button
                   key={item.id}
                   type="button"
+                  title={item.label}
                   disabled={cooldownRemaining > 0}
                   onClick={() => handleTriggerEmote(item)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-2xl bg-gradient-to-b ${item.color} border transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer shadow-md group`}
+                  className={`h-24 sm:h-28 rounded-2xl bg-gradient-to-b ${item.color} border flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer shadow-lg group hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]`}
                 >
-                  <span className="text-3xl sm:text-4xl filter drop-shadow group-hover:scale-125 transition-transform">
+                  <span className="text-5xl sm:text-6xl filter drop-shadow-[0_6px_16px_rgba(0,0,0,0.6)] group-hover:scale-125 group-hover:rotate-6 transition-all duration-200">
                     {item.icon}
-                  </span>
-                  <span className="font-headline font-black text-xs text-white mt-1">
-                    {item.label}
-                  </span>
-                  <span className="text-[9px] text-slate-300 opacity-80">
-                    {item.subtitle}
                   </span>
                 </button>
               ))}

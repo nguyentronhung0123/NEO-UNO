@@ -9,6 +9,13 @@ import { matchApi } from '../apis/matchApi.js';
 import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch } from '../utils/activeMatchStorage.js';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
+import {
+  getBotAttackEmote,
+  getBotPenaltyEmote,
+  getBotUnoEmote,
+  getBotRetaliationEmote,
+  getBotBanterEmote,
+} from '../utils/botDialogue.js';
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -269,19 +276,14 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         setActiveEmotes((prev) => prev.filter((item) => item.id !== id));
       }, 3400);
 
-      // Bot phản hồi nếu bị ném đạo cụ
+      // Bot phản hồi nếu bị ném đạo cụ (Đa dạng phản ứng theo từng Bot)
       if (isProjectile && resolvedTarget !== null && resolvedTarget !== undefined) {
         const targetBotIdx = resolvedTarget - 1;
         const targetBot = gameStateRef.current?.bots?.[targetBotIdx];
         if (targetBot) {
           setTimeout(() => {
-            const botReactions = [
-              { id: 'rage', icon: '😡', label: 'Sao ném tui?!', type: 'emoji', sound: 'zap' },
-              { id: 'cry', icon: '😭', label: 'Đau quá bạn ơi!', type: 'emoji', sound: 'splat' },
-              { id: 'tomato', icon: '🍅', label: 'Ném trả nè!', type: 'projectile', sound: 'splat' },
-              { id: 'salty', icon: '😤', label: 'Chờ đấy nhé!', type: 'text', sound: 'splat' },
-            ];
-            const chosen = botReactions[Math.floor(Math.random() * botReactions.length)];
+            const chosen = getBotRetaliationEmote(targetBot.name);
+            if (!chosen) return;
             const botEmoteId = `${Date.now()}_bot_${Math.random().toString(36).substring(2, 7)}`;
             setActiveEmotes((prev) => [
               ...prev,
@@ -300,7 +302,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
             setTimeout(() => {
               setActiveEmotes((prev) => prev.filter((item) => item.id !== botEmoteId));
             }, 3400);
-          }, 1000);
+          }, 900);
         }
       }
     },
@@ -1163,32 +1165,29 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         setTimeout(() => setShowUnoBurst(false), 1200);
         setTimeout(() => setStatusMessage(`🤖 ${botDisplayName} hô to: "UNO!" (chỉ còn đúng 1 lá trên tay)`), 200);
 
-        // Bot thể hiện cảm xúc khi báo UNO (Task 3)
-        if (Math.random() < 0.8) {
-          const unoEmotes = [
-            { id: 'uno_alert', icon: '🚨', label: 'UNO đây coi chừng!', type: 'text', sound: 'firework' },
-            { id: 'firework', icon: '🎉', label: 'Bắn pháo hoa!', type: 'projectile', sound: 'firework' },
-            { id: 'cool', icon: '😎', label: 'Đẳng cấp!', type: 'emoji', sound: 'firework' },
-          ];
-          const chosen = unoEmotes[Math.floor(Math.random() * unoEmotes.length)];
-          const emoteId = `${Date.now()}_bot_${Math.random().toString(36).substring(2, 7)}`;
-          setActiveEmotes((prev) => [
-            ...prev,
-            {
-              id: emoteId,
-              senderSeatIndex: botSeatIndex,
-              senderName: activeBot.name,
-              emote: chosen,
-              targetSeatIndex: null,
-              timestamp: Date.now(),
-            },
-          ]);
-          if (soundEnabled && chosen.sound) {
-            soundEngine.playEmoteEffect(chosen.sound, chosen.type === 'projectile');
+        // Bot thể hiện cảm xúc khi báo UNO (Task 3 - Đa dạng thoại Bot)
+        if (Math.random() < 0.85) {
+          const chosen = getBotUnoEmote(activeBot.name);
+          if (chosen) {
+            const emoteId = `${Date.now()}_bot_${Math.random().toString(36).substring(2, 7)}`;
+            setActiveEmotes((prev) => [
+              ...prev,
+              {
+                id: emoteId,
+                senderSeatIndex: botSeatIndex,
+                senderName: activeBot.name,
+                emote: chosen,
+                targetSeatIndex: chosen.type === 'projectile' ? 0 : null,
+                timestamp: Date.now(),
+              },
+            ]);
+            if (soundEnabled && chosen.sound) {
+              soundEngine.playEmoteEffect(chosen.sound, chosen.type === 'projectile');
+            }
+            setTimeout(() => {
+              setActiveEmotes((prev) => prev.filter((item) => item.id !== emoteId));
+            }, 3400);
           }
-          setTimeout(() => {
-            setActiveEmotes((prev) => prev.filter((item) => item.id !== emoteId));
-          }, 3400);
         }
       }
 
@@ -1198,6 +1197,57 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       }
 
       setIsTurnTransitioning(true);
+
+      // Bot AI phát ngôn/biểu cảm đa dạng khi tấn công hoặc đánh bài
+      if (['draw_two', 'skip', 'reverse', 'wild_draw_four'].includes(card.value)) {
+        if (Math.random() < 0.75) {
+          const attEmote = getBotAttackEmote(botDisplayName);
+          if (attEmote) {
+            const emoteId = `${Date.now()}_bot_${Math.random().toString(36).substring(2, 7)}`;
+            setActiveEmotes((prev) => [
+              ...prev,
+              {
+                id: emoteId,
+                senderSeatIndex: botSeatIndex,
+                senderName: botDisplayName,
+                emote: attEmote,
+                targetSeatIndex: null,
+                timestamp: Date.now(),
+              },
+            ]);
+            if (soundEnabled && attEmote.sound) {
+              soundEngine.playEmoteEffect(attEmote.sound, attEmote.type === 'projectile');
+            }
+            setTimeout(() => {
+              setActiveEmotes((prev) => prev.filter((item) => item.id !== emoteId));
+            }, 3400);
+          }
+        }
+      } else {
+        if (Math.random() < 0.15) {
+          const banEmote = getBotBanterEmote(botDisplayName);
+          if (banEmote) {
+            const emoteId = `${Date.now()}_bot_${Math.random().toString(36).substring(2, 7)}`;
+            setActiveEmotes((prev) => [
+              ...prev,
+              {
+                id: emoteId,
+                senderSeatIndex: botSeatIndex,
+                senderName: botDisplayName,
+                emote: banEmote,
+                targetSeatIndex: null,
+                timestamp: Date.now(),
+              },
+            ]);
+            if (soundEnabled && banEmote.sound) {
+              soundEngine.playEmoteEffect(banEmote.sound, banEmote.type === 'projectile');
+            }
+            setTimeout(() => {
+              setActiveEmotes((prev) => prev.filter((item) => item.id !== emoteId));
+            }, 3400);
+          }
+        }
+      }
 
       // 1. Chồng phạt +2
       if (card.value === 'draw_two') {
@@ -1295,7 +1345,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         advanceTurn(1);
       }, 1800);
     },
-    [advanceTurn, drawCards, finalizeRankings, getNextTurnIndex, getPlayerDirection, getPlayerInfo, totalPlayers, triggerActionFx, triggerCardImpact]
+    [advanceTurn, drawCards, finalizeRankings, getNextTurnIndex, getPlayerDirection, getPlayerInfo, totalPlayers, triggerActionFx, triggerCardImpact, soundEnabled]
   );
 
   // =========================================================================
@@ -1362,6 +1412,31 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
           const nextInfo = getPlayerInfo(nextSeat);
           setStatusMessage(`⚠️ ${botDisplayName} không có lá +2 để đỡ: Bắt buộc nhận ${penaltyCards} lá phạt...`);
           triggerAvatarFx(botId, 'draw_two_penalize', `💥 NHẬN +${penaltyCards} LÁ!`, 'emergency_home', 3000);
+
+          // Bot cay cú / than vãn khi bị phạt bốc nhiều bài
+          if (Math.random() < 0.85) {
+            const penEmote = getBotPenaltyEmote(botDisplayName);
+            if (penEmote) {
+              const emoteId = `${Date.now()}_bot_${Math.random().toString(36).substring(2, 7)}`;
+              setActiveEmotes((prev) => [
+                ...prev,
+                {
+                  id: emoteId,
+                  senderSeatIndex: curIdx,
+                  senderName: botDisplayName,
+                  emote: penEmote,
+                  targetSeatIndex: null,
+                  timestamp: Date.now(),
+                },
+              ]);
+              if (soundEnabled && penEmote.sound) {
+                soundEngine.playEmoteEffect(penEmote.sound, penEmote.type === 'projectile');
+              }
+              setTimeout(() => {
+                setActiveEmotes((prev) => prev.filter((item) => item.id !== emoteId));
+              }, 3400);
+            }
+          }
 
           actionTimerRef.current = setTimeout(() => {
             drawCards(penaltyCards, botId, () => {
@@ -1459,7 +1534,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         });
       }, 600);
     }, 1500);
-  }, [advanceTurn, botExecutePlayCard, drawCards, getNextTurnIndex, getPlayerInfo]);
+  }, [advanceTurn, botExecutePlayCard, drawCards, getNextTurnIndex, getPlayerInfo, soundEnabled]);
 
   useEffect(() => {
     if (

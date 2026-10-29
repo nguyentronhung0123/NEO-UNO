@@ -6,6 +6,7 @@ const gameEngine = require('./gameEngine');
 const matchmakingQueue = require('./matchmakingQueue');
 const userPresence = require('./userPresence');
 const DirectMessage = require('../models/DirectMessage');
+const { getBotRetaliationEmote } = require('../utils/botDialogue');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
@@ -442,6 +443,27 @@ function setupSocketIO(io) {
         });
 
         console.log(`[Emote] 🎭 [${cleanCode}] ${senderName} (P${(senderSeatIndex ?? 0) + 1}) -> ${emote.icon || ''} "${emote.label || emote.id}" (Target: ${targetSeatIndex !== null && targetSeatIndex !== undefined ? 'P' + (targetSeatIndex + 1) : 'Cả bàn'})`);
+
+        // Bot phản xạ khi bị ném đồ hoặc nhận biểu cảm (Task 3 - Đa dạng phản xạ Bot)
+        if (game && targetSeatIndex !== null && targetSeatIndex !== undefined) {
+          const targetPlayer = game.players.find((p) => p.seatIndex === targetSeatIndex);
+          if (targetPlayer && targetPlayer.isBot) {
+            setTimeout(() => {
+              if (game.status !== 'in_game') return;
+              const botReply = getBotRetaliationEmote(targetPlayer.name);
+              if (botReply) {
+                const isThrowBack = botReply.type === 'projectile';
+                io.to(cleanCode).emit('game:receive_emote', {
+                  senderSeatIndex: targetPlayer.seatIndex,
+                  senderName: targetPlayer.name,
+                  emote: botReply,
+                  targetSeatIndex: isThrowBack ? senderSeatIndex : null,
+                  timestamp: Date.now(),
+                });
+              }
+            }, 900 + Math.random() * 400);
+          }
+        }
       } catch (err) {
         console.error('[Socket] Lỗi phát biểu cảm:', err);
       }

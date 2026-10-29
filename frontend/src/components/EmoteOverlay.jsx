@@ -1,5 +1,26 @@
 import React from 'react';
 
+// Cụm hạt hiệu ứng bùng nổ nhiều icon khi va chạm (Multi-Icon Burst)
+const BURST_PARTICLES = [
+  { id: 0, dx: '0px', dy: '0px', scale: 1.6, rotate: '0deg', delay: '460ms' },
+  { id: 1, dx: '-45px', dy: '-38px', scale: 1.15, rotate: '-18deg', delay: '500ms' },
+  { id: 2, dx: '45px', dy: '-42px', scale: 1.25, rotate: '15deg', delay: '540ms' },
+  { id: 3, dx: '-55px', dy: '28px', scale: 1.0, rotate: '-12deg', delay: '580ms' },
+  { id: 4, dx: '52px', dy: '32px', scale: 1.1, rotate: '22deg', delay: '520ms' },
+  { id: 5, dx: '-12px', dy: '-68px', scale: 1.05, rotate: '-8deg', delay: '600ms' },
+  { id: 6, dx: '15px', dy: '62px', scale: 0.95, rotate: '14deg', delay: '560ms' },
+  { id: 7, dx: '-72px', dy: '-6px', scale: 0.9, rotate: '-25deg', delay: '620ms' },
+  { id: 8, dx: '72px', dy: '-6px', scale: 0.9, rotate: '26deg', delay: '640ms' },
+];
+
+function getParticleIcon(itemId, baseIcon, index) {
+  if (itemId === 'firework') {
+    const list = ['🎉', '✨', '🎆', '🎉', '✨', '🎇', '🎉', '✨', '🎆'];
+    return list[index % list.length];
+  }
+  return baseIcon;
+}
+
 /**
  * Emote Overlay - Hiển thị toàn bộ hiệu ứng thị giác đạn đạo bay (Projectile)
  * và bóng thoại biểu cảm (Speech Bubble) trên bàn cờ
@@ -29,7 +50,7 @@ export default function EmoteOverlay({
 
           return (
             <React.Fragment key={item.id}>
-              {/* ĐẠO CỤ BAY THEO HÌNH CUNG PARABOLIC TỪ GỐC ĐẾN ĐÍCH */}
+              {/* 1. ĐẠO CỤ BAY THEO HÌNH CUNG PARABOLIC TỪ GỐC ĐẾN ĐÍCH */}
               <div
                 className="absolute z-50 text-4xl animate-projectile filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.6)] transform-gpu"
                 style={{
@@ -42,70 +63,55 @@ export default function EmoteOverlay({
                 {item.emote.icon}
               </div>
 
-              {/* TÁC ĐỘNG VA CHẠM / ĐẬP BẸP TRÊN AVATAR ĐÍCH */}
-              {item.emote.id === 'tomato' && (
-                <div
-                  className="absolute z-50 -translate-x-1/2 -translate-y-1/2 animate-impact flex flex-col items-center"
-                  style={{ left: `${toPos.x}%`, top: `${toPos.y}%`, animationDelay: '460ms' }}
-                >
-                  <div className="relative flex items-center justify-center">
-                    <div className="absolute w-24 h-24 rounded-full bg-rose-600/40 filter blur-md animate-ping" />
-                    <div className="text-6xl filter drop-shadow-[0_0_25px_rgba(225,29,72,0.95)] transform rotate-12 scale-125">
-                      🍅
-                    </div>
-                  </div>
-                  <div className="px-3 py-1 rounded-full bg-gradient-to-r from-red-600 to-rose-600 border border-white text-white font-headline font-black text-[11px] uppercase tracking-wider shadow-[0_0_20px_rgba(225,29,72,0.8)] mt-1 animate-bounce whitespace-nowrap">
-                    💥 BẸP! NÉM CÀ CHUA!
-                  </div>
-                </div>
-              )}
+              {/* 2. HIỆU ỨNG BÙNG NỔ NHIỀU ICON TRÊN MÀN HÌNH / AVATAR ĐÍCH (KHÔNG HIỆN CHỮ) */}
+              {/* AURA PHÁT SÁNG NỀN TẠI VỊ TRÍ ĐÍCH */}
+              <div
+                className="absolute z-40 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ left: `${toPos.x}%`, top: `${toPos.y}%` }}
+              >
+                {item.emote.id === 'tomato' && (
+                  <div className="w-32 h-32 rounded-full bg-rose-600/40 filter blur-xl animate-ping" />
+                )}
+                {item.emote.id === 'zap' && (
+                  <div className="w-36 h-36 rounded-full bg-sky-400/50 filter blur-xl animate-pulse" />
+                )}
+                {item.emote.id === 'firework' && (
+                  <div className="w-36 h-36 rounded-full bg-amber-400/40 filter blur-xl animate-ping" />
+                )}
+                {item.emote.id === 'poop' && (
+                  <div className="w-32 h-32 rounded-full bg-amber-800/40 filter blur-xl animate-pulse" />
+                )}
+              </div>
 
-              {item.emote.id === 'zap' && (
-                <div
-                  className="absolute z-50 -translate-x-1/2 -translate-y-1/2 animate-lightning flex flex-col items-center"
-                  style={{ left: `${toPos.x}%`, top: `${toPos.y}%`, animationDelay: '460ms' }}
-                >
-                  <div className="text-7xl filter drop-shadow-[0_0_35px_rgba(56,189,248,1)] animate-pulse">
-                    ⚡
-                  </div>
-                  <div className="px-3 py-1 rounded-full bg-gradient-to-r from-sky-500 to-indigo-600 border border-white text-white font-headline font-black text-[11px] uppercase tracking-wider shadow-[0_0_25px_rgba(56,189,248,0.9)] mt-1 whitespace-nowrap">
-                    ⚡ GIẬT TÊ TÁI!
-                  </div>
-                </div>
-              )}
+              {/* CỤM NHIỀU ICON BÙNG NỔ LAN TỎA (MULTI-ICON BURST) */}
+              {BURST_PARTICLES.map((particle, idx) => {
+                const icon = getParticleIcon(item.emote.id, item.emote.icon, idx);
+                const isCenter = idx === 0;
 
-              {item.emote.id === 'poop' && (
-                <div
-                  className="absolute z-50 -translate-x-1/2 -translate-y-1/2 animate-impact flex flex-col items-center"
-                  style={{ left: `${toPos.x}%`, top: `${toPos.y}%`, animationDelay: '460ms' }}
-                >
-                  <div className="text-6xl filter drop-shadow-[0_0_25px_rgba(180,83,9,0.9)] animate-bounce">
-                    💩
+                return (
+                  <div
+                    key={`${item.id}_p_${particle.id}`}
+                    className="absolute z-50 animate-multi-burst filter drop-shadow-[0_6px_20px_rgba(0,0,0,0.7)] transform-gpu pointer-events-none"
+                    style={{
+                      left: `${toPos.x}%`,
+                      top: `${toPos.y}%`,
+                      '--pdx': particle.dx,
+                      '--pdy': particle.dy,
+                      '--pscale': particle.scale,
+                      '--prot': particle.rotate,
+                      animationDelay: particle.delay,
+                      fontSize: isCenter ? '4rem' : '2.8rem',
+                    }}
+                  >
+                    {icon}
                   </div>
-                  <div className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-700 to-yellow-900 border border-amber-300 text-yellow-200 font-headline font-black text-[11px] uppercase tracking-wider shadow-lg mt-1 whitespace-nowrap">
-                    💩 THÚI QUẮC!
-                  </div>
-                </div>
-              )}
-
-              {item.emote.id === 'firework' && (
-                <div
-                  className="absolute z-50 -translate-x-1/2 -translate-y-1/2 animate-impact flex flex-col items-center"
-                  style={{ left: `${toPos.x}%`, top: `${toPos.y}%`, animationDelay: '460ms' }}
-                >
-                  <div className="text-6xl filter drop-shadow-[0_0_30px_rgba(251,191,36,0.9)] animate-pulse">
-                    🎉
-                  </div>
-                  <div className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 border border-white text-white font-headline font-black text-[11px] uppercase tracking-wider shadow-lg mt-1 whitespace-nowrap">
-                    ✨ BẮN PHÁO HOA!
-                  </div>
-                </div>
-              )}
+                );
+              })}
             </React.Fragment>
           );
         }
 
-        // BÓNG THOẠI BAY NỔI TRÊN ĐẦU AVATAR NGƯỜI NÓI (Quick Chat & Emoji)
+        // BÓNG THOẠI BAY NỔI TRÊN ĐẦU AVATAR NGƯỜI NÓI (Quick Chat & Emoji - Thoại người chơi hoặc Bot)
         const senderPos = getSeatPosition(item.senderSeatIndex);
 
         return (

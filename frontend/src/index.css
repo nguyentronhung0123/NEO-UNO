@@ -734,3 +734,37 @@
 .animate-avatar-shake {
   animation: avatarShakeEffect 0.45s ease-in-out;
 }
+
+/* Hiệu ứng bùng nổ nhiều icon rải khắp mục tiêu khi ném đạo cụ (Multi-Icon Burst) */
+@keyframes multiParticleBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.1) rotate(0deg);
+  }
+  16% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--pdx) * 1.15), calc(-50% + var(--pdy) * 1.15)) scale(calc(var(--pscale, 1) * 1.25)) rotate(calc(var(--prot, 0deg) * 1.2));
+  }
+  30% {
+    transform: translate(calc(-50% + var(--pdx)), calc(-50% + var(--pdy))) scale(var(--pscale, 1)) rotate(var(--prot, 0deg));
+  }
+  45% {
+    transform: translate(calc(-50% + var(--pdx) + 3px), calc(-50% + var(--pdy) - 2px)) scale(var(--pscale, 1)) rotate(calc(var(--prot, 0deg) + 5deg));
+  }
+  60% {
+    transform: translate(calc(-50% + var(--pdx) - 2px), calc(-50% + var(--pdy) + 3px)) scale(var(--pscale, 1)) rotate(calc(var(--prot, 0deg) - 4deg));
+  }
+  80% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--pdx)), calc(-50% + var(--pdy) + 6px)) scale(var(--pscale, 1));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--pdx)), calc(-50% + var(--pdy) + 20px)) scale(0.3) rotate(var(--prot, 0deg));
+  }
+}
+
+.animate-multi-burst {
+  opacity: 0;
+  animation: multiParticleBurst 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

@@ -4,6 +4,13 @@
 const User = require('../models/User');
 const Match = require('../models/Match');
 const PlayerStats = require('../models/PlayerStats');
+const {
+  getBotAttackEmote,
+  getBotPenaltyEmote,
+  getBotUnoEmote,
+  getBotRetaliationEmote,
+  getBotBanterEmote,
+} = require('../utils/botDialogue');
 
 const COLORS = ['red', 'blue', 'green', 'yellow'];
 const ACTION_VALUES = ['skip', 'reverse', 'draw_two'];
@@ -451,21 +458,18 @@ class OnlineGame {
           message: `🎉 ${bot.name} đã hô UNO!`,
         });
 
-        // Bot AI phản xạ thả Emote khi hô UNO (Task 3)
-        if (Math.random() < 0.75) {
-          const coolEmotes = [
-            { id: 'cool', icon: '😎', label: 'UNO đây coi chừng!', type: 'text', sound: 'firework' },
-            { id: 'firework', icon: '🎉', label: 'Bắn pháo hoa!', type: 'projectile', sound: 'firework' },
-            { id: 'laugh', icon: '😂', label: 'Haha sắp thắng rồi!', type: 'emoji', sound: 'emote_pop' }
-          ];
-          const chosen = coolEmotes[Math.floor(Math.random() * coolEmotes.length)];
-          this.io.to(this.roomCode).emit('game:receive_emote', {
-            senderSeatIndex: bot.seatIndex,
-            senderName: bot.name,
-            emote: chosen,
-            targetSeatIndex: null,
-            timestamp: Date.now(),
-          });
+        // Bot AI phản xạ thả Emote khi hô UNO (Task 3 - Đa dạng thoại)
+        if (Math.random() < 0.85) {
+          const chosen = getBotUnoEmote(bot.name);
+          if (chosen) {
+            this.io.to(this.roomCode).emit('game:receive_emote', {
+              senderSeatIndex: bot.seatIndex,
+              senderName: bot.name,
+              emote: chosen,
+              targetSeatIndex: chosen.type === 'projectile' ? (bot.seatIndex === 0 ? 1 : 0) : null,
+              timestamp: Date.now(),
+            });
+          }
         }
 
         this.broadcastState();
@@ -502,6 +506,20 @@ class OnlineGame {
           message: `🔥 ${bot.name} đỡ đòn với lá +2! Chồng phạt: +${this.drawTwoStack} lá!`,
         });
 
+        // Bot phản ứng khi đỡ lá +2
+        if (Math.random() < 0.75) {
+          const attEmote = getBotAttackEmote(bot.name);
+          if (attEmote) {
+            this.io.to(this.roomCode).emit('game:receive_emote', {
+              senderSeatIndex: bot.seatIndex,
+              senderName: bot.name,
+              emote: attEmote,
+              targetSeatIndex: null,
+              timestamp: Date.now(),
+            });
+          }
+        }
+
         if (bot.hand.length === 1) this.triggerBotUnoCall(bot);
         if (bot.hand.length === 0) {
           this.finishGame(bot);
@@ -536,6 +554,20 @@ class OnlineGame {
           isPenalty: true,
           playerName: bot.name,
         });
+
+        // Bot cay cú / than vãn khi bị phạt bốc bài
+        if (Math.random() < 0.85) {
+          const penEmote = getBotPenaltyEmote(bot.name);
+          if (penEmote) {
+            this.io.to(this.roomCode).emit('game:receive_emote', {
+              senderSeatIndex: bot.seatIndex,
+              senderName: bot.name,
+              emote: penEmote,
+              targetSeatIndex: null,
+              timestamp: Date.now(),
+            });
+          }
+        }
 
         const animDelay = Math.max(1600, count * 380 + 400);
         this.scheduleTurnTransition(animDelay, 1);
@@ -602,6 +634,36 @@ class OnlineGame {
       if (bot.hand.length === 0) {
         this.finishGame(bot);
         return;
+      }
+
+      // Bot AI phát ngôn sinh động theo tình huống bài đánh
+      if (['wild_draw_four', 'draw_two', 'skip', 'reverse'].includes(card.value)) {
+        if (Math.random() < 0.75) {
+          const attEmote = getBotAttackEmote(bot.name);
+          if (attEmote) {
+            this.io.to(this.roomCode).emit('game:receive_emote', {
+              senderSeatIndex: bot.seatIndex,
+              senderName: bot.name,
+              emote: attEmote,
+              targetSeatIndex: null,
+              timestamp: Date.now(),
+            });
+          }
+        }
+      } else {
+        // Có 15% xác suất cà khịa nhẹ nhàng khi đánh lá bài thường
+        if (Math.random() < 0.15) {
+          const banEmote = getBotBanterEmote(bot.name);
+          if (banEmote) {
+            this.io.to(this.roomCode).emit('game:receive_emote', {
+              senderSeatIndex: bot.seatIndex,
+              senderName: bot.name,
+              emote: banEmote,
+              targetSeatIndex: null,
+              timestamp: Date.now(),
+            });
+          }
+        }
       }
 
       // Xử lý hiệu ứng lá bài
