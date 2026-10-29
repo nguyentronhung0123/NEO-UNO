@@ -127,6 +127,13 @@ function handleQueueTimeout(socketId, mode, io) {
 function createMatchedRoom(humanPlayers, mode, io, botCount = 0) {
   if (!humanPlayers || humanPlayers.length === 0) return null;
 
+  // Dọn dẹp phòng cũ nếu người chơi từng ở phòng custom trước khi ghép trận
+  humanPlayers.forEach((h) => {
+    if (h.socketId) {
+      roomManager.leaveRoom(h.socketId, true);
+    }
+  });
+
   const host = humanPlayers[0];
   const room = roomManager.createRoom(
     {

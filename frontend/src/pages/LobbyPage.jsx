@@ -34,7 +34,11 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [onlineInitialRoom, setOnlineInitialRoom] = useState(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [activeChatFriend, setActiveChatFriend] = useState(null);
+  const [incomingChatNotification, setIncomingChatNotification] = useState(null);
   const [copyIdToast, setCopyIdToast] = useState(false);
+
+  const activeChatFriendRef = useRef(activeChatFriend);
+  activeChatFriendRef.current = activeChatFriend;
 
   // PHÁT HIỆN TRẬN ĐẤU DỞ DANG ĐỂ TIẾP TỤC CHƠI (RECONNECT / AFK)
   const [rejoinMatch, setRejoinMatch] = useState(null);
@@ -74,12 +78,31 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       setPendingRequestsCount((prev) => prev + 1);
     };
 
+    const handleDmReceivedGlobally = ({ message, fromUserId }) => {
+      console.log('[Lobby] 💬 Nhận tin nhắn mới từ bạn bè:', message);
+      const curFriend = activeChatFriendRef.current;
+      const curFriendId = curFriend?._id || curFriend?.id;
+      // Nếu đang mở đúng khung chat với người này -> FriendChatBox sẽ tự cập nhật mượt mà
+      if (curFriendId && String(curFriendId) === String(fromUserId)) {
+        return;
+      }
+
+      setIncomingChatNotification({
+        friend: message.sender,
+        content: message.content,
+        fromUserId,
+        id: message._id || Date.now(),
+      });
+    };
+
     socket.on('invite:received', handleInviteReceived);
     socket.on('friend:request_received', handleFriendRequestReceived);
+    socket.on('dm:receive', handleDmReceivedGlobally);
 
     return () => {
       socket.off('invite:received', handleInviteReceived);
       socket.off('friend:request_received', handleFriendRequestReceived);
+      socket.off('dm:receive', handleDmReceivedGlobally);
     };
   }, [user]);
 
@@ -1109,6 +1132,42 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         onAccept={handleAcceptInvite}
         onDecline={handleDeclineInvite}
       />
+
+      {/* POPUP THÔNG BÁO TIN NHẮN MỚI TỪ BẠN BÈ (REALTIME CHAT TOAST) */}
+      {incomingChatNotification && (
+        <div className="fixed bottom-6 left-6 z-[100] max-w-sm bg-[#121727]/95 border-2 border-purple-500/60 rounded-2xl p-3.5 shadow-[0_0_40px_rgba(168,85,247,0.4)] backdrop-blur-xl flex items-center justify-between gap-3 animate-slide-up font-body">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-purple-600/30 border border-purple-400/50 flex items-center justify-center text-purple-300 text-lg shadow-inner shrink-0">
+              💬
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="font-headline font-black text-xs text-white truncate">
+                {incomingChatNotification.friend?.nickname || 'Bạn bè'}
+              </span>
+              <span className="text-[11px] text-slate-300 truncate max-w-[180px]">
+                {incomingChatNotification.content}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => {
+                setActiveChatFriend(incomingChatNotification.friend);
+                setIncomingChatNotification(null);
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:brightness-110 text-white font-headline font-bold text-[11px] cursor-pointer shadow-md transition-all active:scale-95"
+            >
+              Trả lời
+            </button>
+            <button
+              onClick={() => setIncomingChatNotification(null)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

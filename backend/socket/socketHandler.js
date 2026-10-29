@@ -15,8 +15,10 @@ function setupSocketIO(io) {
     socket.on('user:register', ({ userId, user }) => {
       try {
         if (userId) {
-          userPresence.registerUser(userId, socket.id, user, io);
-          console.log(`[Presence] 👤 Đăng ký người chơi: ${user?.nickname || user?.name || userId} (${socket.id})`);
+          const uid = String(userId);
+          socket.join(`user_${uid}`); // Gia nhập phòng cá nhân nhận tin nhắn và lời mời
+          userPresence.registerUser(uid, socket.id, user, io);
+          console.log(`[Presence] 👤 Đăng ký người chơi: ${user?.nickname || user?.name || uid} (${socket.id}) [Room: user_${uid}]`);
         }
       } catch (err) {
         console.error('[Presence] Lỗi đăng ký socket user:', err);
@@ -123,7 +125,8 @@ function setupSocketIO(io) {
           return;
         }
 
-        const senderId = sender?.id || sender?._id;
+        const senderId = String(sender?.id || sender?._id);
+        const recipientId = String(toUserId);
         if (!senderId) {
           if (typeof callback === 'function') callback({ success: false, message: 'Thiếu thông tin người gửi!' });
           return;
@@ -132,14 +135,20 @@ function setupSocketIO(io) {
         // Lưu tin nhắn vào MongoDB
         const newMsg = await DirectMessage.create({
           sender: senderId,
-          recipient: toUserId,
+          recipient: recipientId,
           content: content.trim(),
         });
 
         const populatedMsg = await newMsg.populate('sender', 'nickname avatar');
 
-        // Gửi realtime tới socket người nhận
-        const targetSockets = userPresence.getUserSockets(toUserId);
+        // 1. Phát qua socket room cá nhân của người nhận
+        io.to(`user_${recipientId}`).emit('dm:receive', {
+          message: populatedMsg,
+          fromUserId: senderId,
+        });
+
+        // 2. Phát qua danh sách socket người nhận từ userPresence
+        const targetSockets = userPresence.getUserSockets(recipientId);
         targetSockets.forEach((sockId) => {
           io.to(sockId).emit('dm:receive', {
             message: populatedMsg,
@@ -147,7 +156,13 @@ function setupSocketIO(io) {
           });
         });
 
-        console.log(`[DM] 💬 ${sender?.nickname || senderId} -> ${toUserId}: "${content.substring(0, 30)}..."`);
+        // 3. Thông báo cập nhật badge tin nhắn chưa đọc
+        io.to(`user_${recipientId}`).emit('dm:unread_update', {
+          fromUserId: senderId,
+          unreadCountDelta: 1,
+        });
+
+        console.log(`[DM] 💬 ${sender?.nickname || senderId} -> ${recipientId}: "${content.substring(0, 30)}..."`);
         if (typeof callback === 'function') {
           callback({ success: true, message: populatedMsg });
         }
@@ -161,9 +176,12 @@ function setupSocketIO(io) {
       try {
         if (fromUserId && myUserId) {
           await DirectMessage.markConversationAsRead(myUserId, fromUserId);
-          const senderSockets = userPresence.getUserSockets(fromUserId);
+          const fId = String(fromUserId);
+          io.to(`user_${fId}`).emit('dm:read_receipt', { readerId: String(myUserId) });
+
+          const senderSockets = userPresence.getUserSockets(fId);
           senderSockets.forEach((sockId) => {
-            io.to(sockId).emit('dm:read_receipt', { readerId: myUserId });
+            io.to(sockId).emit('dm:read_receipt', { readerId: String(myUserId) });
           });
         }
       } catch (err) {

@@ -15,7 +15,7 @@ export default function FriendChatBox({
   const messagesEndRef = useRef(null);
 
   const myId = currentUser?.id || currentUser?._id;
-  const friendId = friend?._id;
+  const friendId = friend?._id || friend?.id;
 
   // Cuộn xuống tin nhắn cuối cùng
   const scrollToBottom = () => {
@@ -55,11 +55,16 @@ export default function FriendChatBox({
 
     const handleDmReceive = ({ message, fromUserId }) => {
       if (String(fromUserId) === String(friendId)) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          if (prev.some((m) => m._id === message._id)) return prev;
+          return [...prev, message];
+        });
         setTimeout(scrollToBottom, 50);
 
         // Đánh dấu đã đọc ngay lập tức
-        socket.emit('dm:read', { fromUserId: friendId, myUserId: myId });
+        if (socket && myId) {
+          socket.emit('dm:read', { fromUserId: friendId, myUserId: myId });
+        }
       }
     };
 
@@ -90,8 +95,9 @@ export default function FriendChatBox({
     setInputText('');
 
     // Optimistic UI: Tạo tin nhắn tạm thời
+    const tempId = `temp_${Date.now()}`;
     const tempMsg = {
-      _id: `temp_${Date.now()}`,
+      _id: tempId,
       sender: {
         _id: myId,
         nickname: currentUser?.nickname || currentUser?.name || 'Bạn',
@@ -106,25 +112,13 @@ export default function FriendChatBox({
     setMessages((prev) => [...prev, tempMsg]);
     setTimeout(scrollToBottom, 50);
 
-    // Gửi đồng thời qua Socket (realtime) và REST API (lưu trữ CSDL)
-    if (socket) {
-      socket.emit('dm:send', {
-        toUserId: friendId,
-        content: text,
-        sender: {
-          id: myId,
-          nickname: currentUser?.nickname || currentUser?.name,
-          avatar: currentUser?.avatar,
-        },
-      });
-    }
-
     try {
+      // Gửi qua REST API: Lưu vào MongoDB Atlas và Backend phát Socket realtime tới phòng user_${friendId}
       const res = await friendApi.sendDirectMessage(friendId, text);
       if (res && res.success && res.message) {
         // Thay thế tempMsg bằng tin nhắn thực có ID từ MongoDB
         setMessages((prev) =>
-          prev.map((m) => (m._id === tempMsg._id ? res.message : m))
+          prev.map((m) => (m._id === tempId ? res.message : m))
         );
       }
     } catch (err) {

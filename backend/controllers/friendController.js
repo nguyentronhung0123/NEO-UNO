@@ -440,6 +440,36 @@ exports.sendDirectMessage = async (req, res) => {
 
     const populatedMsg = await messageDoc.populate('sender', 'nickname avatar');
 
+    // Phát sự kiện realtime tới người nhận qua Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      const recipientId = String(friendId);
+      const senderId = String(myId);
+
+      // 1. Phát trực tiếp vào Socket Room cá nhân của người nhận
+      io.to(`user_${recipientId}`).emit('dm:receive', {
+        message: populatedMsg,
+        fromUserId: senderId,
+      });
+
+      // 2. Dự phòng: Phát tới từng socketId được lưu trong userPresence
+      const targetSockets = userPresence.getUserSockets(recipientId);
+      targetSockets.forEach((sockId) => {
+        io.to(sockId).emit('dm:receive', {
+          message: populatedMsg,
+          fromUserId: senderId,
+        });
+      });
+
+      // 3. Thông báo cập nhật số tin nhắn chưa đọc
+      io.to(`user_${recipientId}`).emit('dm:unread_update', {
+        fromUserId: senderId,
+        unreadCountDelta: 1,
+      });
+
+      console.log(`[DM API] 💬 ${req.user.nickname || myId} -> ${recipientId}: "${content.trim().substring(0, 30)}..."`);
+    }
+
     res.status(201).json({
       success: true,
       message: populatedMsg,

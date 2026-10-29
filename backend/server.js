@@ -22,6 +22,9 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
+// Gắn io vào express app để các REST controller có thể phát sự kiện realtime
+app.set('io', io);
+
 // Tích hợp Socket.io
 setupSocketIO(io);
 
