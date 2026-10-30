@@ -15,7 +15,6 @@ import ShopModal from '../components/ShopModal';
 import AdminSecurityModal from '../components/AdminSecurityModal';
 import QuestModal from '../components/QuestModal';
 import PwaInstallPrompt, { PwaInstallHeaderButton } from '../components/PwaInstallPrompt';
-import OrientationNotice from '../components/OrientationNotice';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
@@ -340,13 +339,15 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
         <div className="flex items-center gap-2.5 relative" ref={profileMenuRef}>
           
-          {/* NÚT CÀI ĐẶT PWA APP RA MÀN HÌNH CHÍNH (TASK 7) */}
-          <PwaInstallHeaderButton />
+          {/* NÚT CÀI ĐẶT PWA APP RA MÀN HÌNH CHÍNH (TASK 7) - CHỈ HIỆN TRÊN MÀN HÌNH LỚN */}
+          <div className="hidden lg:flex">
+            <PwaInstallHeaderButton />
+          </div>
 
-          {/* NÚT NHIỆM VỤ & THÀNH TỰU (TASK 6) */}
+          {/* NÚT NHIỆM VỤ & THÀNH TỰU (TASK 6) - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE */}
           <button
             onClick={() => setIsQuestOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
+            className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
             title="Nhiệm vụ hằng ngày & Huy hiệu thành tựu (Task 6)"
           >
             <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-amber-400">
@@ -358,10 +359,10 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             )}
           </button>
 
-          {/* NÚT BẠN BÈ & LỜI MỜI (TASK 2) */}
+          {/* NÚT BẠN BÈ & LỜI MỜI (TASK 2) - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE & CHAT MESSENGER */}
           <button
             onClick={() => handleOpenFriends()}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
+            className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
             title="Hệ thống bạn bè & lời mời đấu trực tuyến (Task 2)"
           >
             <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform">
@@ -379,7 +380,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           {user?.role === 'admin' && (
             <button
               onClick={() => setIsAdminModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-900/70 to-rose-900/70 hover:from-purple-800 hover:to-rose-800 border border-purple-400/60 hover:border-cyan-400 text-purple-200 font-headline font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.4)] group relative hover:scale-105 active:scale-95 animate-pulse"
+              className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-900/70 to-rose-900/70 hover:from-purple-800 hover:to-rose-800 border border-purple-400/60 hover:border-cyan-400 text-purple-200 font-headline font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.4)] group relative hover:scale-105 active:scale-95 animate-pulse"
               title="Trung Tâm Quản Trị Bảo Mật & Chống Gian Lận (Admin SOC)"
             >
               <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-cyan-300">
@@ -396,7 +397,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           {isGuest && (
             <button
               onClick={() => onOpenAuth && onOpenAuth()}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.45)] hover:shadow-[0_0_25px_rgba(0,210,255,0.7)] transition-all cursor-pointer hover:scale-105 active:scale-95"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.45)] hover:shadow-[0_0_25px_rgba(0,210,255,0.7)] transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
               title="Bấm để Đăng nhập hoặc Tạo tài khoản leo Rank"
             >
               <span className="material-symbols-outlined text-base">login</span>
@@ -404,17 +405,26 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             </button>
           )}
 
-          {/* Profile Capsule (Có thể hover hoặc bấm để mở Menu Tab) */}
+          {/* Profile Capsule (Bấm để mở Menu Tab / Mobile Bottom Sheet) */}
           <div
             onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-            onMouseEnter={() => setIsProfileMenuOpen(true)}
-            className={`flex items-center gap-2.5 sm:gap-3 bg-[#131826]/90 hover:bg-[#1a2233] px-3 sm:px-3.5 py-1.5 rounded-full border transition-all cursor-pointer shadow-md select-none group ${
+            className={`relative flex items-center gap-2 sm:gap-3 bg-[#131826]/90 hover:bg-[#1a2233] px-2.5 sm:px-3.5 py-1.5 rounded-full border transition-all cursor-pointer shadow-md select-none group shrink-0 ${
               isProfileMenuOpen
                 ? 'border-cyan-400/80 shadow-[0_0_25px_rgba(0,210,255,0.35)]'
                 : 'border-outline-variant/30 hover:border-cyan-400/50'
             }`}
-            title="Nhấn hoặc rê chuột để mở Menu tính năng Hồ Sơ"
+            title="Nhấn để mở Menu tính năng Hồ Sơ"
           >
+            {/* Notification Badge cho Mobile khi các nút header bị ẩn */}
+            {(hasClaimableQuest || pendingRequestsCount > 0) && (
+              <span className="sm:hidden absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border border-[#131826] text-[8px] text-white font-mono font-bold items-center justify-center">
+                  {pendingRequestsCount > 0 ? pendingRequestsCount : '!'}
+                </span>
+              </span>
+            )}
+
             <AvatarFrame
               frameId={user?.equippedAvatarFrame || 'frame_default'}
               size="sm"
@@ -429,7 +439,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
             <div className="flex flex-col text-left">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs sm:text-sm text-white max-w-[95px] sm:max-w-[130px] truncate group-hover:text-cyan-300 transition-colors">
+                <span className="font-bold text-xs sm:text-sm text-white max-w-[85px] sm:max-w-[130px] truncate group-hover:text-cyan-300 transition-colors">
                   {user?.nickname || 'Khách Chơi Thử'}
                 </span>
                 <span
@@ -456,12 +466,35 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             </span>
           </div>
 
-          {/* ================= PROFILE DROPDOWN / MENU TAB POPUP ================= */}
+          {/* ================= BACKDROP CHO MOBILE KHI MỞ PROFILE DRAWER ================= */}
           {isProfileMenuOpen && (
             <div
-              onMouseLeave={() => setIsProfileMenuOpen(false)}
-              className="absolute top-full right-0 mt-2 z-50 w-80 sm:w-96 rounded-3xl bg-[#0f1422]/95 backdrop-blur-xl border border-cyan-500/40 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(0,210,255,0.25)] p-4 sm:p-5 text-left animate-in fade-in zoom-in-95 duration-150"
+              onClick={() => setIsProfileMenuOpen(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-xs z-[95] md:hidden animate-fade-in"
+            />
+          )}
+
+          {/* ================= PROFILE DROPDOWN / MOBILE BOTTOM SHEET DRAWER ================= */}
+          {isProfileMenuOpen && (
+            <div
+              className="fixed inset-x-0 bottom-0 z-[100] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-[#0e1322] border-t-2 border-cyan-500/50 p-4 sm:p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200 md:static md:inset-auto md:max-h-[85vh] md:overflow-y-auto md:absolute md:top-full md:right-0 md:mt-2 md:w-96 md:rounded-3xl md:border md:border-cyan-500/40 md:shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(0,210,255,0.25)] md:animate-in md:fade-in md:zoom-in-95 text-left"
             >
+              {/* THANH VUỐT KÉO & NÚT ĐÓNG CHO DI ĐỘNG (MOBILE DRAG PILL) */}
+              <div className="flex md:hidden items-center justify-between pb-3 mb-3 border-b border-white/10">
+                <div className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(0,210,255,0.8)]" />
+                  <span className="font-headline font-black text-xs text-white uppercase tracking-wider">
+                    Menu Cá Nhân & Tiện Ích
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsProfileMenuOpen(false)}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                  title="Đóng menu"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
               {/* 1. Header Hồ Sơ Người Chơi */}
               <div className="flex items-center gap-3.5 pb-3.5 border-b border-white/10">
                 <AvatarFrame
@@ -1439,9 +1472,6 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
       {/* BANNER GỢI Ý CÀI ĐẶT ỨNG DỤNG PWA (TASK 7) */}
       <PwaInstallPrompt />
-
-      {/* THÔNG BÁO NHẮC XOAY NGANG MÀN HÌNH DI ĐỘNG (TASK 7) */}
-      <OrientationNotice />
     </div>
   );
 }
