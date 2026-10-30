@@ -303,6 +303,15 @@ exports.adjustUserBalance = async (req, res) => {
 
     await targetUser.save();
 
+    // Thông báo realtime cho client nếu đang online
+    const io = req.app?.get?.('io');
+    if (io) {
+      io.to(`user_${targetUser._id}`).emit('user:balance_updated', {
+        coins: targetUser.coins,
+        elo: targetUser.elo,
+      });
+    }
+
     // Ghi nhận Audit Log
     const logAction = appliedCoinDelta !== 0 ? 'ADMIN_ADJUST_COINS' : 'ADMIN_ADJUST_ELO';
     await SecurityLog.create({

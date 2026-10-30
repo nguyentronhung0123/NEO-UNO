@@ -138,14 +138,23 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       });
     };
 
+    const handleBalanceUpdated = (data) => {
+      console.log('[Lobby] 🪙 Nhận cập nhật số dư từ máy chủ:', data);
+      if (data?.coins !== undefined) {
+        updateUser({ coins: data.coins, ...(data.elo !== undefined ? { elo: data.elo } : {}) });
+      }
+    };
+
     socket.on('invite:received', handleInviteReceived);
     socket.on('friend:request_received', handleFriendRequestReceived);
     socket.on('dm:receive', handleDmReceivedGlobally);
+    socket.on('user:balance_updated', handleBalanceUpdated);
 
     return () => {
       socket.off('invite:received', handleInviteReceived);
       socket.off('friend:request_received', handleFriendRequestReceived);
       socket.off('dm:receive', handleDmReceivedGlobally);
+      socket.off('user:balance_updated', handleBalanceUpdated);
     };
   }, [user]);
 

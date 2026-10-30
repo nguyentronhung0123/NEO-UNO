@@ -131,10 +131,10 @@ async function runSecurityTestSuite() {
     // TEST 3: CỬA HÀNG ATOMIC - CHỐNG MUA HÀNG KHI THIẾU TIỀN & MUA THÀNH CÔNG
     // ========================================================================
     console.log('\n--- TEST 3: CỬA HÀNG ATOMIC - CHỐNG GIAN LẬN SỐ DƯ & AUDIT LOG ---');
-    testPlayer.coins = 1500;
+    testPlayer.coins = 8000;
     await testPlayer.save();
 
-    // Thử mua vật phẩm đắt tiền (skin_halloween: 3,500 Vàng, trong khi chỉ có 1,500 Vàng)
+    // Thử mua vật phẩm đắt tiền (skin_halloween: 35,000 Vàng, trong khi chỉ có 8,000 Vàng)
     const mockReqOverspend = {
       body: { itemId: 'skin_halloween' },
       user: testPlayer,
@@ -148,7 +148,7 @@ async function runSecurityTestSuite() {
     }
     console.log(`  ✔ PASS: 3.1 Chặn mua hàng khi không đủ Vàng (Status 400, Thiếu Vàng)`);
 
-    // Mua vật phẩm hợp lệ (skin_cyberpunk: 1,500 Vàng, người chơi có đúng 1,500 Vàng)
+    // Mua vật phẩm hợp lệ (skin_cyberpunk: 8,000 Vàng, người chơi có đúng 8,000 Vàng)
     const mockReqValidBuy = {
       body: { itemId: 'skin_cyberpunk' },
       user: testPlayer,

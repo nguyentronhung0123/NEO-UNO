@@ -26,13 +26,13 @@ async function runShopTests() {
     // 1. Dọn dẹp dữ liệu test cũ
     await User.deleteMany({ email: 'test_shop_user_2026@neo.com' });
 
-    // 2. Tạo User thử nghiệm với 6,000 Vàng
+    // 2. Tạo User thử nghiệm với 60,000 Vàng
     testUser = await User.create({
       nickname: 'HalloweenMaster',
       email: 'test_shop_user_2026@neo.com',
       password: 'password_test_123',
       avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=HalloweenMaster',
-      coins: 6000,
+      coins: 60000,
       inventory: ['skin_classic', 'frame_default'],
       equippedCardSkin: 'skin_classic',
       equippedAvatarFrame: 'frame_default',
@@ -76,7 +76,7 @@ async function runShopTests() {
     console.log(`[TEST 1] ✅ Catalog trả về thành công ${catalogData.items.length} vật phẩm. Skin Halloween giá: ${halloweenSkin.price} Vàng.`);
 
     // ================= TEST 2: POST /api/shop/buy (Mua Thành Công) =================
-    console.log('\n--- [TEST 2]: Mua Skin "Halloween Spooky 2026" (3,500 Vàng) ---');
+    console.log('\n--- [TEST 2]: Mua Skin "Halloween Spooky 2026" (35,000 Vàng) ---');
     const buyRes = await fetch(`${BASE_URL}/buy`, {
       method: 'POST',
       headers: {
@@ -87,7 +87,7 @@ async function runShopTests() {
     });
     const buyData = await buyRes.json();
 
-    if (!buyData.success || buyData.userCoins !== 2500) {
+    if (!buyData.success || buyData.userCoins !== 25000) {
       throw new Error(`TEST 2 Thất bại: Mua không thành công hoặc trừ tiền sai! (Số dư: ${buyData.userCoins})`);
     }
 
@@ -119,7 +119,7 @@ async function runShopTests() {
     console.log(`[TEST 3] ✅ Hệ thống đã chặn mua trùng chính xác: "${duplicateBuyData.message}"`);
 
     // ================= TEST 4: Chặn mua khi số dư không đủ =================
-    console.log('\n--- [TEST 4]: Chặn Mua Khi Không Đủ Vàng (Vòng LED RGB 4,500 Vàng > 2,500 Vàng) ---');
+    console.log('\n--- [TEST 4]: Chặn Mua Khi Không Đủ Vàng (Vòng LED RGB 48,000 Vàng > 25,000 Vàng) ---');
     const poorBuyRes = await fetch(`${BASE_URL}/buy`, {
       method: 'POST',
       headers: {
@@ -133,13 +133,13 @@ async function runShopTests() {
     if (poorBuyData.success) {
       throw new Error('TEST 4 Thất bại: Cho phép mua khi số dư không đủ tiền!');
     }
-    if (poorBuyData.missingCoins !== 2000) {
+    if (poorBuyData.missingCoins !== 23000) {
       throw new Error(`TEST 4 Thất bại: Số vàng còn thiếu tính toán sai: ${poorBuyData.missingCoins}`);
     }
     console.log(`[TEST 4] ✅ Chặn mua khi thiếu tiền chính xác! Thiếu: ${poorBuyData.missingCoins} Vàng.`);
 
-    // ================= TEST 5: Mua Khung Halloween (1,800 Vàng) =================
-    console.log('\n--- [TEST 5]: Mua Khung Avatar Bí Ngô Halloween (1,800 Vàng) ---');
+    // ================= TEST 5: Mua Khung Halloween (18,000 Vàng) =================
+    console.log('\n--- [TEST 5]: Mua Khung Avatar Bí Ngô Halloween (18,000 Vàng) ---');
     const buyFrameRes = await fetch(`${BASE_URL}/buy`, {
       method: 'POST',
       headers: {
@@ -150,7 +150,7 @@ async function runShopTests() {
     });
     const buyFrameData = await buyFrameRes.json();
 
-    if (!buyFrameData.success || buyFrameData.userCoins !== 700) {
+    if (!buyFrameData.success || buyFrameData.userCoins !== 7000) {
       throw new Error(`TEST 5 Thất bại: Mua khung avatar không thành công! (Số dư: ${buyFrameData.userCoins})`);
     }
     if (buyFrameData.equippedAvatarFrame !== 'frame_halloween') {
@@ -212,8 +212,8 @@ async function runShopTests() {
     console.log('\n--- [TEST 8]: Kiểm Tra Dữ Liệu Đồng Bộ Trong MongoDB Atlas ---');
     const updatedUser = await User.findById(testUser._id);
 
-    if (updatedUser.coins !== 700) {
-      throw new Error(`TEST 8 Thất bại: Số dư trong DB sai: ${updatedUser.coins} (Kỳ vọng: 700)`);
+    if (updatedUser.coins !== 7000) {
+      throw new Error(`TEST 8 Thất bại: Số dư trong DB sai: ${updatedUser.coins} (Kỳ vọng: 7000)`);
     }
     if (!updatedUser.inventory.includes('skin_halloween') || !updatedUser.inventory.includes('frame_halloween')) {
       throw new Error('TEST 8 Thất bại: Inventory trong DB thiếu vật phẩm vừa mua!');
