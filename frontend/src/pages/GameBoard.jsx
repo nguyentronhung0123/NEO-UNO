@@ -2411,6 +2411,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                     <UnoCard
                       color={flyingPlay.card.color}
                       value={flyingPlay.card.value}
+                      skinId={equippedCardSkin}
                     />
                   </div>
                 )}
@@ -2433,6 +2434,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       <UnoCard
                         color={activeDiscard.color}
                         value={activeDiscard.value}
+                        skinId={equippedCardSkin}
                       />
                     </div>
 
@@ -2539,7 +2541,11 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       : 'opacity-40 grayscale-[40%] cursor-not-allowed'
                   } ${isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
                 >
-                  <UnoCard color={card.color} value={card.value} />
+                  <UnoCard
+                    color={card.color}
+                    value={card.value}
+                    skinId={equippedCardSkin}
+                  />
                 </div>
               );
             })}

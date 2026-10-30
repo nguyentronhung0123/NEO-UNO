@@ -1624,7 +1624,11 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                         : 'animate-play-right'
                     }`}
                   >
-                    <UnoCard color={flyingPlay.card.color} value={flyingPlay.card.value} />
+                    <UnoCard
+                      color={flyingPlay.card.color}
+                      value={flyingPlay.card.value}
+                      skinId={gameState?.myEquippedCardSkin || user?.equippedCardSkin || 'skin_classic'}
+                    />
                   </div>
                 )}
 
@@ -1648,6 +1652,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       <UnoCard
                         color={gameState.topCard?.color || 'red'}
                         value={gameState.topCard?.value || '0'}
+                        skinId={gameState?.myEquippedCardSkin || user?.equippedCardSkin || 'skin_classic'}
                       />
                     </div>
 
@@ -1777,7 +1782,11 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       : 'opacity-40 grayscale-[40%] cursor-not-allowed'
                   } ${isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
                 >
-                  <UnoCard color={card.color} value={card.value} />
+                  <UnoCard
+                    color={card.color}
+                    value={card.value}
+                    skinId={gameState?.myEquippedCardSkin || user?.equippedCardSkin || 'skin_classic'}
+                  />
                 </div>
               );
             })}
