@@ -6,6 +6,7 @@ export default function MessengerDrawer({
   socket,
   onOpenChat,
   onOpenFriendsModal,
+  onOpenShop,
   activeChatFriendId = null,
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -114,14 +115,16 @@ export default function MessengerDrawer({
     setIsOpen(false);
   };
 
-  // Không hiển thị nếu chưa đăng nhập hoặc là tài khoản khách
-  if (!user || user.role === 'guest') return null;
+  const isGuest = !user || user.role === 'guest';
+
+  // Không hiển thị nếu không có thông tin người dùng và không có nút Shop
+  if (!user && !onOpenShop) return null;
 
   return (
     <>
       {/* ================= BẢNG DANH SÁCH CHAT MESSENGER (POPOVER) ================= */}
-      {isOpen && (
-        <div className="fixed bottom-22 right-6 z-[85] w-80 sm:w-92 h-[480px] max-h-[80vh] bg-[#0c101d]/95 border-2 border-cyan-400/50 rounded-3xl shadow-[0_0_60px_rgba(0,210,255,0.35)] backdrop-blur-2xl flex flex-col overflow-hidden animate-slide-up font-body">
+      {isOpen && !isGuest && (
+        <div className="fixed bottom-[154px] sm:bottom-[160px] right-6 z-[85] w-80 sm:w-92 h-[480px] max-h-[calc(100vh-180px)] bg-[#0c101d]/95 border-2 border-cyan-400/50 rounded-3xl shadow-[0_0_60px_rgba(0,210,255,0.35)] backdrop-blur-2xl flex flex-col overflow-hidden animate-slide-up font-body">
           {/* HEADER */}
           <div className="flex items-center justify-between px-4 py-3 bg-[#111728] border-b border-white/10">
             <div className="flex items-center gap-2 min-w-0">
@@ -336,38 +339,77 @@ export default function MessengerDrawer({
         </div>
       )}
 
-      {/* ================= ICON CHAT NHỎ BÊN PHẢI GÓC DƯỚI (MESSENGER BUTTON) ================= */}
-      <div className="fixed bottom-6 right-6 z-[80]">
-        <button
-          onClick={() => setIsOpen((prev) => !prev)}
-          className={`relative w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer shadow-2xl active:scale-95 group ${
-            isOpen
-              ? 'bg-gradient-to-tr from-rose-600 to-purple-600 ring-4 ring-rose-400/40 shadow-[0_0_35px_rgba(244,63,94,0.6)] rotate-90'
-              : 'bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 hover:brightness-110 hover:-translate-y-1 ring-2 ring-cyan-400/60 shadow-[0_0_30px_rgba(0,210,255,0.45)]'
-          }`}
-          title={isOpen ? 'Thu nhỏ Messenger' : 'Mở trò chuyện Messenger'}
-          aria-label="Mở Messenger"
-        >
-          {/* Biểu tượng */}
-          <span className="material-symbols-outlined text-white text-2xl transition-transform group-hover:scale-110">
-            {isOpen ? 'close' : 'chat'}
-          </span>
-
-          {/* Đèn chỉ báo Online */}
-          {!isOpen && onlineCount > 0 && (
-            <span
-              className="absolute bottom-1 right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0c101d]"
-              title={`${onlineCount} bạn bè đang online`}
-            />
-          )}
-
-          {/* Huy hiệu số tin nhắn chưa đọc (Red Unread Badge) */}
-          {!isOpen && totalUnreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 px-2 py-0.5 rounded-full bg-rose-500 text-white font-mono font-black text-[11px] border-2 border-[#0b0e17] shadow-lg animate-bounce">
-              {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+      {/* ================= KHỐI NÚT NỔI GÓC DƯỚI PHẢI (CỬA HÀNG + CHAT MESSENGER NẰM CÙNG KHỐI) ================= */}
+      <div className="fixed bottom-6 right-6 z-[80] flex flex-col items-center p-1.5 rounded-full bg-[#0c101d]/85 border border-cyan-500/30 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.7),0_0_25px_rgba(0,210,255,0.2)] gap-2.5">
+        
+        {/* 1. NÚT CỬA HÀNG (ICON NẰM PHÍA TRÊN NÚT CHAT) */}
+        {onOpenShop && (
+          <button
+            onClick={onOpenShop}
+            className="relative w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 group bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 hover:-translate-y-0.5 ring-2 ring-amber-400/60 shadow-[0_0_25px_rgba(245,158,11,0.5)]"
+            title="Cửa Hàng Skin & Khung Avatar độc quyền (Task 5)"
+            aria-label="Mở Cửa Hàng"
+          >
+            {/* Biểu tượng storefront */}
+            <span className="material-symbols-outlined text-white text-2xl transition-transform group-hover:scale-110">
+              storefront
             </span>
-          )}
-        </button>
+
+            {/* Huy hiệu số dư Vàng mini */}
+            <span className="absolute -bottom-1 -left-1 px-1.5 py-0.2 rounded-full bg-[#0a0d16] text-amber-300 font-mono font-black text-[9px] border border-amber-400/60 shadow-md">
+              🪙 {(user?.coins ?? 1000) > 9999 ? `${Math.floor((user?.coins ?? 1000) / 1000)}k` : (user?.coins ?? 1000).toLocaleString()}
+            </span>
+
+            {/* Tooltip khi rê chuột */}
+            <div className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl bg-[#0f1422]/95 border border-amber-400/50 text-amber-200 text-xs font-headline font-bold whitespace-nowrap shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+              Cửa Hàng Skin 🛍️
+            </div>
+          </button>
+        )}
+
+        {/* ĐƯỜNG PHÂN CÁCH NHẸ NẾU CẢ 2 NÚT CÙNG HIỂN THỊ */}
+        {onOpenShop && !isGuest && (
+          <div className="w-6 h-[1px] bg-white/10" />
+        )}
+
+        {/* 2. NÚT CHAT MESSENGER (NẰM PHÍA DƯỚI CÙNG KHỐI) */}
+        {!isGuest && (
+          <button
+            onClick={() => setIsOpen((prev) => !prev)}
+            className={`relative w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 group ${
+              isOpen
+                ? 'bg-gradient-to-tr from-rose-600 to-purple-600 ring-4 ring-rose-400/40 shadow-[0_0_35px_rgba(244,63,94,0.6)] rotate-90'
+                : 'bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 hover:brightness-110 hover:-translate-y-0.5 ring-2 ring-cyan-400/60 shadow-[0_0_25px_rgba(0,210,255,0.45)]'
+            }`}
+            title={isOpen ? 'Thu nhỏ Messenger' : 'Mở trò chuyện Messenger'}
+            aria-label="Mở Messenger"
+          >
+            {/* Biểu tượng */}
+            <span className="material-symbols-outlined text-white text-2xl transition-transform group-hover:scale-110">
+              {isOpen ? 'close' : 'chat'}
+            </span>
+
+            {/* Đèn chỉ báo Online */}
+            {!isOpen && onlineCount > 0 && (
+              <span
+                className="absolute bottom-1 right-1 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0c101d]"
+                title={`${onlineCount} bạn bè đang online`}
+              />
+            )}
+
+            {/* Huy hiệu số tin nhắn chưa đọc (Red Unread Badge) */}
+            {!isOpen && totalUnreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 px-2 py-0.5 rounded-full bg-rose-500 text-white font-mono font-black text-[11px] border-2 border-[#0b0e17] shadow-lg animate-bounce">
+                {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+              </span>
+            )}
+
+            {/* Tooltip khi rê chuột */}
+            <div className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl bg-[#0f1422]/95 border border-cyan-400/50 text-cyan-200 text-xs font-headline font-bold whitespace-nowrap shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
+              Tin Nhắn Bạn Bè 💬
+            </div>
+          </button>
+        )}
       </div>
     </>
   );

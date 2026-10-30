@@ -333,21 +333,6 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             )}
           </button>
 
-          {/* NÚT CỬA HÀNG SKIN & KHUNG AVATAR (TASK 5) */}
-          <button
-            onClick={() => setIsShopOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
-            title="Cửa hàng Skin Mặt Lưng & Khung Avatar độc quyền Halloween (Task 5)"
-          >
-            <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-amber-400">
-              storefront
-            </span>
-            <span className="hidden md:inline">Cửa Hàng</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold border border-amber-500/30">
-              🪙 {(user?.coins ?? 1000).toLocaleString()}
-            </span>
-          </button>
-
           {/* NÚT QUẢN TRỊ AN NINH & BẢO MẬT (CHỈ DÀNH CHO ADMIN) */}
           {user?.role === 'admin' && (
             <button
@@ -1358,12 +1343,13 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         currentUser={user}
       />
 
-      {/* ICON CHAT BÊN PHẢI GÓC DƯỚI & DANH SÁCH CHAT MESSENGER (TASK 2) */}
+      {/* KHỐI NÚT NỔI GÓC DƯỚI PHẢI (CỬA HÀNG + CHAT MESSENGER NẰM CÙNG KHỐI) */}
       <MessengerDrawer
         user={user}
         socket={getSocket()}
         onOpenChat={(friend) => setActiveChatFriend(friend)}
         onOpenFriendsModal={() => setIsFriendsOpen(true)}
+        onOpenShop={() => setIsShopOpen(true)}
         activeChatFriendId={activeChatFriend?._id || activeChatFriend?.id}
       />
     </div>
