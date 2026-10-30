@@ -120,7 +120,7 @@ function setupSocketIO(io) {
       }
     });
 
-    // -4. TRÒ CHUYỆN BẠN BÈ TRỰC TIẾP (DIRECT CHAT DM - TASK 2)
+    // -4. TRÒ CHUYỆN BẠN BÈ TRỰC TIẾP 
     socket.on('dm:send', async ({ toUserId, content, sender }, callback) => {
       try {
         if (!toUserId || !content || !content.trim()) {

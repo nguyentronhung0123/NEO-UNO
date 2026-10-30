@@ -12,7 +12,6 @@ import { matchApi } from '../apis/matchApi.js';
 import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch } from '../utils/activeMatchStorage.js';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
-import OrientationNotice from '../components/OrientationNotice';
 import {
   getBotAttackEmote,
   getBotPenaltyEmote,
@@ -2034,9 +2033,6 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     >
       {/* LỚP PHỦ BIỂU CẢM & CHAT NHANH (TASK 3) */}
       <EmoteOverlay activeEmotes={activeEmotes} getSeatPosition={getSeatPosition} />
-
-      {/* THÔNG BÁO NHẮC XOAY NGANG MÀN HÌNH DI ĐỘNG (TASK 7) */}
-      <OrientationNotice />
 
       <div className="relative z-10 w-full min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto safe-pt safe-pb safe-pl safe-pr">
         

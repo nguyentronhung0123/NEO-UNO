@@ -34,10 +34,10 @@ friendshipSchema.index({ requester: 1, status: 1 });
 friendshipSchema.index({ recipient: 1, status: 1 });
 
 /**
- * THỦ TỤC CƠ SỞ DỮ LIỆU (DATABASE STORED PIPELINE):
- * Sử dụng Aggregation Pipeline kết hợp `$lookup`, `$match`, `$project`, `$facet`
- * Khai thác tối đa năng lực DBMS để lấy toàn bộ danh sách bạn bè, thông tin tài khoản,
- * và thống kê tin nhắn chưa đọc chỉ trong 1 truy vấn duy nhất.
+ THỦ TỤC CƠ SỞ DỮ LIỆU (DATABASE STORED PIPELINE):
+ Sử dụng Aggregation Pipeline kết hợp `$lookup`, `$match`, `$project`, `$facet`
+ Khai thác tối đa năng lực DBMS để lấy toàn bộ danh sách bạn bè, thông tin tài khoản,
+ và thống kê tin nhắn chưa đọc chỉ trong 1 truy vấn duy nhất.
  */
 friendshipSchema.statics.getFriendsDetailedPipeline = async function (userId) {
   const uId = new mongoose.Types.ObjectId(String(userId));

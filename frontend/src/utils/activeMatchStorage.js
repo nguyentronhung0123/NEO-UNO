@@ -22,10 +22,10 @@ export function isValidCardPlay(card, currentDiscard, activeColor, currentStack)
 }
 
 /**
- * MÔ PHỎNG TRẬN ĐẤU VẪN TIẾP TỤC CHẠY KHI NGƯỜI CHƠI THOÁT WEB (AFK CATCH-UP)
- * - Đồng hồ ván đấu 5 phút KHÔNG DỪNG (trừ thời gian thực trôi qua).
- * - Các Bot vẫn tiếp tục ra bài, bốc bài theo lượt.
- * - Khi đến lượt người chơi vắng mặt (AFK): hết 15s tự động bốc bài/bỏ lượt.
+  MÔ PHỎNG TRẬN ĐẤU VẪN TIẾP TỤC CHẠY KHI NGƯỜI CHƠI THOÁT WEB (AFK CATCH-UP)
+ - Đồng hồ ván đấu 5 phút KHÔNG DỪNG (trừ thời gian thực trôi qua).
+  - Các Bot vẫn tiếp tục ra bài, bốc bài theo lượt.
+ - Khi đến lượt người chơi vắng mặt (AFK): hết 15s tự động bốc bài/bỏ lượt.
  */
 export function catchUpActiveMatch(session) {
   if (!session || session.status !== 'in_progress') return session;
