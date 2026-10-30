@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import UnoCard from '../components/UnoCard';
+import { CardBack } from '../components/CardBack';
+import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { soundEngine } from '../utils/audioFx';
 import EmoteWheel from '../components/EmoteWheel';
@@ -20,12 +22,8 @@ const COLOR_NAME_MAP = {
   yellow: 'VÀNG',
 };
 
-// Helper render Avatar an toàn: Render ảnh khi là URL, render emoji khi là icon, TUYỆT ĐỐI KHÔNG in chuỗi URL hoặc ID text ra màn hình
-function renderPlayerAvatar(avatar, isBot = false, isActive = false, size = 'w-9 h-9 sm:w-10 sm:h-10') {
-  const activeRing = isActive
-    ? 'ring-2 ring-amber-300 shadow-[0_0_15px_rgba(251,191,36,0.6)]'
-    : 'border border-white/20';
-
+// Helper render Avatar an toàn kèm Khung Viền Customization (Task 5)
+function renderPlayerAvatar(avatar, isBot = false, isActive = false, size = 'w-9 h-9 sm:w-10 sm:h-10', frameId = 'frame_default') {
   let avatarUrl = avatar;
   // Nếu là bot và avatar không phải là URL -> Tự động sinh avatar Bot Dicebear Robot cực đẹp
   if (isBot && (!avatar || !avatar.startsWith('http'))) {
@@ -33,40 +31,36 @@ function renderPlayerAvatar(avatar, isBot = false, isActive = false, size = 'w-9
     avatarUrl = `https://api.dicebear.com/7.x/bottts/svg?seed=${seed}`;
   }
 
-  if (
+  const isEmoji = typeof avatar === 'string' && avatar.length <= 4;
+  const displayIcon = isEmoji ? avatar : (isBot ? '🤖' : '👤');
+
+  const avatarInner =
     avatarUrl &&
     typeof avatarUrl === 'string' &&
     (avatarUrl.startsWith('http://') ||
       avatarUrl.startsWith('https://') ||
       avatarUrl.startsWith('/') ||
-      avatarUrl.startsWith('data:'))
-  ) {
-    return (
-      <div
-        className={`${size} rounded-full overflow-hidden bg-slate-800 p-0.5 ${activeRing} shrink-0 flex items-center justify-center`}
-      >
-        <img
-          src={avatarUrl}
-          alt="Avatar"
-          className="w-full h-full object-cover rounded-full"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-        />
-      </div>
+      avatarUrl.startsWith('data:')) ? (
+      <img
+        src={avatarUrl}
+        alt="Avatar"
+        className="w-full h-full object-cover"
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+        }}
+      />
+    ) : (
+      <span className="text-sm sm:text-base select-none">{displayIcon}</span>
     );
-  }
-
-  // Nếu là chuỗi dài hơn 4 ký tự (ví dụ text ID, bot_id) -> Fallback sang robot emoji hoặc user emoji
-  const isEmoji = typeof avatar === 'string' && avatar.length <= 4;
-  const displayIcon = isEmoji ? avatar : (isBot ? '🤖' : '👤');
 
   return (
-    <div
-      className={`${size} rounded-full bg-slate-800/80 p-1 ${activeRing} shrink-0 flex items-center justify-center text-xl sm:text-2xl select-none shadow-md`}
+    <AvatarFrame
+      frameId={frameId || 'frame_default'}
+      className={size}
+      isActive={isActive}
     >
-      {displayIcon}
-    </div>
+      {avatarInner}
+    </AvatarFrame>
   );
 }
 
@@ -1075,7 +1069,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
         <div className="flex items-center gap-2 mb-1 mt-1 relative w-full justify-center">
           {renderAvatarFxBadge(player.seatIndex)}
-          {renderPlayerAvatar(player.avatar, player.isBot, isCurrent, 'w-8 h-8 sm:w-9 sm:h-9')}
+          {renderPlayerAvatar(player.avatar, player.isBot, isCurrent, 'w-8 h-8 sm:w-9 sm:h-9', player.equippedAvatarFrame)}
           <div className="flex flex-col text-left overflow-hidden">
             <span
               className={`text-[11px] sm:text-xs font-bold leading-tight truncate max-w-[70px] sm:max-w-[85px] ${
@@ -1095,11 +1089,12 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         {/* Compact Fan of Cards */}
         <div className="flex -space-x-3.5 mt-1 min-h-[36px] items-center justify-center max-w-full overflow-hidden">
           {Array.from({ length: Math.min(7, cardCount) }).map((_, cIdx) => (
-            <div
-              key={cIdx}
-              className="w-5 h-8 sm:w-6 sm:h-9 rounded-[4px] bg-gradient-to-br from-[#8b0032] to-[#400010] border border-white/20 shadow-xs flex items-center justify-center select-none shrink-0"
-            >
-              <span className="text-[6px] sm:text-[7px] font-black text-white/90">UNO</span>
+            <div key={cIdx} className="shrink-0">
+              <CardBack
+                skinId={player.equippedCardSkin || 'skin_classic'}
+                size="sm"
+                className="w-5 h-8 sm:w-6 sm:h-9"
+              />
             </div>
           ))}
           {cardCount > 7 && (
@@ -1381,7 +1376,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       topOpponent.avatar,
                       topOpponent.isBot,
                       isTopActive,
-                      'w-9 h-9 sm:w-10 sm:h-10'
+                      'w-9 h-9 sm:w-10 sm:h-10',
+                      topOpponent.equippedAvatarFrame
                     )}
                     <div className="flex items-center gap-2">
                       <span
@@ -1406,9 +1402,13 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                         <div
                           key={cIdx}
                           style={{ transform: `rotate(${rotationDegree}deg)` }}
-                          className="w-7 h-10 rounded-[5px] bg-gradient-to-br from-[#8b0032] to-[#400010] border border-white/20 shadow-xs flex items-center justify-center select-none"
+                          className="shrink-0"
                         >
-                          <span className="text-[7px] font-black text-white/90">UNO</span>
+                          <CardBack
+                            skinId={topOpponent.equippedCardSkin || 'skin_classic'}
+                            size="sm"
+                            className="w-7 h-10"
+                          />
                         </div>
                       );
                     })}
@@ -1576,50 +1576,35 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                         : 'animate-draw-right'
                     }`}
                   >
-                    <div className="w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] bg-gradient-to-br from-[#e00050] to-[#990033] border-2 border-white/70 shadow-2xl flex items-center justify-center">
-                      <span className="font-headline font-black text-white text-sm sm:text-base italic drop-shadow">
-                        UNO
-                      </span>
-                    </div>
+                    <CardBack
+                      skinId={gameState?.myEquippedCardSkin || user?.equippedCardSkin || 'skin_classic'}
+                      size="md"
+                    />
                   </div>
                 )}
 
                 <div
-                  className={`relative w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] border-2 shadow-2xl flex flex-col items-center justify-center select-none ${
-                    isShuffling
-                      ? 'bg-gradient-to-br from-indigo-700 to-purple-900 border-cyan-400 animate-pulse animate-reshuffle-vortex'
-                      : gameState?.drawTwoStack > 0
-                      ? 'bg-gradient-to-br from-amber-600 to-rose-700 border-amber-300 animate-pulse ring-2 ring-amber-400'
-                      : isMyTurn && (gameState?.drawnCountInTurn || 0) === 1
-                      ? 'bg-gradient-to-br from-cyan-600 to-blue-700 border-cyan-300 ring-2 ring-cyan-400/60 shadow-[0_0_20px_rgba(0,210,255,0.4)]'
-                      : isMyTurn
-                      ? 'bg-gradient-to-br from-cyan-600 to-blue-700 border-cyan-300 ring-2 ring-cyan-400/50'
-                      : 'bg-gradient-to-br from-[#e00050] to-[#990033] border-white/25'
+                  className={`relative w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] transition-transform duration-200 select-none ${
+                    isMyTurn && !isShuffling && !isDealing ? 'hover:scale-105 active:scale-95 cursor-pointer ring-2 ring-cyan-400/80 shadow-[0_0_20px_rgba(0,210,255,0.4)]' : ''
                   }`}
                 >
-                  <div className="w-10 h-7 sm:w-12 sm:h-8 md:w-16 md:h-10 rounded-full bg-black/25 flex items-center justify-center transform -rotate-12 border border-white/20 mb-1">
-                    <span className="font-headline font-black text-[11px] sm:text-xs md:text-sm text-white italic tracking-tighter drop-shadow">
-                      UNO
-                    </span>
-                  </div>
-
-                  <span className="text-[9px] sm:text-[10px] md:text-xs font-headline font-bold text-white uppercase tracking-wider drop-shadow-md text-center px-1">
-                    {isShuffling
-                      ? 'Đang xáo...'
-                      : isDealing
-                      ? `Chia ${dealingRound}/7`
-                      : gameState?.drawTwoStack > 0
-                      ? `Phạt +${gameState.drawTwoStack}`
-                      : (gameState?.drawnCountInTurn || 0) === 0
-                      ? 'Bốc Lá 1'
-                      : (gameState?.drawnCountInTurn || 0) === 1
-                      ? 'Bốc Lá 2'
-                      : 'Đã Bốc 2/2'}
-                  </span>
-
-                  <span className="text-[9px] text-white/70 font-mono mt-0.5">
-                    ({gameState?.drawPileCount ?? 108})
-                  </span>
+                  <CardBack
+                    skinId={gameState?.myEquippedCardSkin || user?.equippedCardSkin || 'skin_classic'}
+                    size="deck"
+                    label={
+                      isShuffling
+                        ? 'Đang xáo...'
+                        : isDealing
+                        ? `Chia ${dealingRound}/7`
+                        : gameState?.drawTwoStack > 0
+                        ? `+${gameState.drawTwoStack} LÁ`
+                        : (gameState?.drawnCountInTurn || 0) === 0
+                        ? `Bốc (${gameState?.drawPileCount ?? 108})`
+                        : (gameState?.drawnCountInTurn || 0) === 1
+                        ? 'Bốc Lá 2'
+                        : 'Đã Bốc 2/2'
+                    }
+                  />
                 </div>
               </div>
 
@@ -1821,7 +1806,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                   myPlayer?.avatar || user?.avatar,
                   false,
                   isMyTurn,
-                  'w-9 h-9 sm:w-10 sm:h-10'
+                  'w-9 h-9 sm:w-10 sm:h-10',
+                  gameState?.myEquippedAvatarFrame || user?.equippedAvatarFrame
                 )}
                 <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-slate-900 border border-cyan-400 text-[8px] font-mono font-bold text-cyan-300">
                   P{((gameState?.mySeatIndex ?? 0) + 1)}

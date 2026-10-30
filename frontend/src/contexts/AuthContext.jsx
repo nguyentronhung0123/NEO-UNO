@@ -96,6 +96,21 @@ export function AuthProvider({ children }) {
     clearSession();
   };
 
+  const updateUser = (partialUser) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...partialUser };
+      try {
+        if (localStorage.getItem('neo_user')) {
+          localStorage.setItem('neo_user', JSON.stringify(updated));
+        } else if (sessionStorage.getItem('neo_user')) {
+          sessionStorage.setItem('neo_user', JSON.stringify(updated));
+        }
+      } catch {}
+      return updated;
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -107,6 +122,7 @@ export function AuthProvider({ children }) {
         register,
         guestLogin,
         logout,
+        updateUser,
       }}
     >
       {children}

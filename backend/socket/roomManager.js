@@ -34,6 +34,8 @@ function createRoom(hostUser, socketId) {
     userId: hostUser?.id || hostUser?._id || `guest_${socketId}`,
     name: hostDisplayName,
     avatar: hostUser?.avatar || 'avatar_1',
+    equippedCardSkin: hostUser?.equippedCardSkin || 'skin_classic',
+    equippedAvatarFrame: hostUser?.equippedAvatarFrame || 'frame_default',
     elo: hostUser?.elo || 1000,
     isHost: true,
     isReady: true, // Chủ phòng luôn coi là sẵn sàng
@@ -97,6 +99,8 @@ function joinRoom(code, user, socketId) {
     userId,
     name: userDisplayName,
     avatar: user?.avatar || `avatar_${(room.players.length % 4) + 1}`,
+    equippedCardSkin: user?.equippedCardSkin || 'skin_classic',
+    equippedAvatarFrame: user?.equippedAvatarFrame || 'frame_default',
     elo: user?.elo || 1000,
     isHost: false,
     isReady: false,
@@ -130,11 +134,16 @@ function addBot(code, hostSocketId) {
     'https://api.dicebear.com/7.x/bottts/svg?seed=BotVortex',
   ];
 
+  const botSkins = ['skin_halloween', 'skin_cyberpunk', 'skin_galaxy', 'skin_gold_luxury'];
+  const botFrames = ['frame_halloween', 'frame_neon_cyan', 'frame_fire_blaze', 'frame_gold_crown'];
+
   const botPlayer = {
     socketId: null,
     userId: `bot_${Date.now()}_${botCount}`,
     name: botNames[(botCount - 1) % botNames.length],
     avatar: botAvatars[(botCount - 1) % botAvatars.length],
+    equippedCardSkin: botSkins[(botCount - 1) % botSkins.length],
+    equippedAvatarFrame: botFrames[(botCount - 1) % botFrames.length],
     elo: 1000 + Math.floor(Math.random() * 200),
     isHost: false,
     isReady: true, // Bot luôn luôn sẵn sàng

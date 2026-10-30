@@ -11,18 +11,21 @@ import FriendsModal from '../components/FriendsModal';
 import FriendChatBox from '../components/FriendChatBox';
 import MessengerDrawer from '../components/MessengerDrawer';
 import MatchInviteNotification from '../components/MatchInviteNotification';
+import ShopModal from '../components/ShopModal';
+import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
 import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [isShowcaseOpen, setIsShowcaseOpen] = useState(false);
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isOnlineRoomOpen, setIsOnlineRoomOpen] = useState(false);
   const [isMatchmakingOpen, setIsMatchmakingOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
   const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -328,6 +331,21 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             )}
           </button>
 
+          {/* NÚT CỬA HÀNG SKIN & KHUNG AVATAR (TASK 5) */}
+          <button
+            onClick={() => setIsShopOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
+            title="Cửa hàng Skin Mặt Lưng & Khung Avatar độc quyền Halloween (Task 5)"
+          >
+            <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-amber-400">
+              storefront
+            </span>
+            <span className="hidden md:inline">Cửa Hàng</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold border border-amber-500/30">
+              🪙 {(user?.coins ?? 1000).toLocaleString()}
+            </span>
+          </button>
+
           {/* Nút Đăng Nhập Duy Nhất Góc Trên Phải (chỉ hiện khi là Khách) */}
           {isGuest && (
             <button
@@ -351,16 +369,17 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             }`}
             title="Nhấn hoặc rê chuột để mở Menu tính năng Hồ Sơ"
           >
-            <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-slate-800 p-0.5 border border-cyan-400/40 flex items-center justify-center">
+            <AvatarFrame
+              frameId={user?.equippedAvatarFrame || 'frame_default'}
+              size="sm"
+              className="flex-shrink-0"
+            >
               <img
                 src={user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.nickname || 'Guest'}`}
                 alt="Avatar"
-                className="w-full h-full object-cover rounded-full"
+                className="w-full h-full object-cover"
               />
-              <span className="absolute -bottom-0.5 -right-0.5 text-[9px] leading-none">
-                {userTier.badge || '🥉'}
-              </span>
-            </div>
+            </AvatarFrame>
 
             <div className="flex flex-col text-left">
               <div className="flex items-center gap-1.5">
@@ -399,16 +418,17 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             >
               {/* 1. Header Hồ Sơ Người Chơi */}
               <div className="flex items-center gap-3.5 pb-3.5 border-b border-white/10">
-                <div className="relative w-13 h-13 rounded-2xl overflow-hidden flex-shrink-0 bg-black/40 p-1 border-2 border-cyan-400/60 shadow-[0_0_15px_rgba(0,210,255,0.3)]">
+                <AvatarFrame
+                  frameId={user?.equippedAvatarFrame || 'frame_default'}
+                  size="lg"
+                  className="flex-shrink-0"
+                >
                   <img
                     src={user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.nickname || 'Guest'}`}
                     alt="Avatar"
-                    className="w-full h-full object-cover rounded-xl"
+                    className="w-full h-full object-cover"
                   />
-                  <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-900 border border-cyan-400/50 flex items-center justify-center text-[10px] shadow-md">
-                    {userTier.badge || '🥉'}
-                  </div>
-                </div>
+                </AvatarFrame>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -431,9 +451,26 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                   </div>
 
                   <div className="flex items-center gap-3 mt-1.5 text-[11px] text-slate-400">
-                    <span>🪙 <strong>{user?.coins || 1000}</strong> Vàng</span>
+                    <span>🪙 <strong>{(user?.coins ?? 1000).toLocaleString()}</strong> Vàng</span>
                     <span>⭐ <strong>Lv.{user?.level || 1}</strong></span>
                   </div>
+
+                  {/* NÚT MỞ CỬA HÀNG & TÚI ĐỒ TRONG MENU */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsShopOpen(true);
+                    }}
+                    className="w-full mt-2.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 font-headline font-bold text-xs flex items-center justify-between transition-all cursor-pointer group shadow-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm group-hover:scale-110 transition-transform">🛍️</span>
+                      <span>Mở Cửa Hàng & Túi Đồ</span>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-amber-300">
+                      🪙 {(user?.coins ?? 1000).toLocaleString()} Vàng →
+                    </span>
+                  </button>
 
                   {/* ID TÀI KHOẢN (10 KÝ TỰ - TASK 2) */}
                   {user && !isGuest && (() => {
@@ -1255,6 +1292,14 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           </div>
         </div>
       )}
+
+      {/* MODAL CỬA HÀNG SKIN & KHUNG AVATAR (TASK 5) */}
+      <ShopModal
+        isOpen={isShopOpen}
+        onClose={() => setIsShopOpen(false)}
+        user={user}
+        onUpdateUser={updateUser}
+      />
 
       {/* ICON CHAT BÊN PHẢI GÓC DƯỚI & DANH SÁCH CHAT MESSENGER (TASK 2) */}
       <MessengerDrawer

@@ -505,6 +505,57 @@ class SoundEngine {
     }
   }
 
+  // 15. Âm thanh mua vật phẩm thành công trong Cửa Hàng (Coin Clink & Ascending Chime)
+  playCoinBuy() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const freqs = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6 (Major Arpeggio)
+      freqs.forEach((freq, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        const t = now + idx * 0.08;
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.28);
+      });
+    } catch (e) {
+      console.warn('Audio playCoinBuy error:', e);
+    }
+  }
+
+  // 16. Âm thanh trang bị skin / khung avatar (Crisp Equip Swoosh)
+  playEquip() {
+    if (!this.enabled) return;
+    this.init();
+    if (!this.ctx) return;
+
+    try {
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } catch (e) {
+      console.warn('Audio playEquip error:', e);
+    }
+  }
+
   // 14. Phát âm thanh theo tên loại hiệu ứng biểu cảm
   playEmoteEffect(soundType, isProjectile = false) {
     if (!this.enabled || !soundType) return;

@@ -54,6 +54,10 @@ app.use('/api/leaderboard', leaderboardRoutes);
 const friendRoutes = require('./routes/friendRoutes');
 app.use('/api/friends', friendRoutes);
 
+// 5. API Cửa Hàng Vật Phẩm & Skin (Shop & Inventory - Task 5)
+const shopRoutes = require('./routes/shopRoutes');
+app.use('/api/shop', shopRoutes);
+
 // Bắt lỗi toàn cục chống crash server ngoài ý muốn
 process.on('uncaughtException', (err) => {
   console.error('[BE] ⚠️ Uncaught Exception:', err.message);

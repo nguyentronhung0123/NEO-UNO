@@ -768,3 +768,50 @@
   opacity: 0;
   animation: multiParticleBurst 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ================= TASK 5: 3D CARD FLIP & SHOP CUSTOMIZATION ================= */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+@keyframes rgbBorderRotate {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.animate-rgb-rotate {
+  animation: rgbBorderRotate 3s linear infinite;
+}
+
+@keyframes pulseGlowSlow {
+  0%, 100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlowSlow 2.5s ease-in-out infinite;
+}
+

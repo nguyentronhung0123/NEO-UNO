@@ -35,6 +35,9 @@ function sanitizeUser(user, stats = null) {
     matchesLost: stats ? stats.losses : user.matchesLost || 0,
     winRate: stats ? stats.winRate : 0,
     role: user.role,
+    inventory: user.inventory || ['skin_classic', 'frame_default'],
+    equippedCardSkin: user.equippedCardSkin || 'skin_classic',
+    equippedAvatarFrame: user.equippedAvatarFrame || 'frame_default',
     createdAt: user.createdAt
   };
 }

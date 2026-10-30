@@ -63,6 +63,19 @@ const userSchema = new mongoose.Schema(
       enum: ['player', 'admin', 'guest', 'bot'],
       default: 'player',
     },
+    // Kho đồ cá nhân & Skin vật phẩm (Task 5: Shop Skins)
+    inventory: {
+      type: [String],
+      default: ['skin_classic', 'frame_default'],
+    },
+    equippedCardSkin: {
+      type: String,
+      default: 'skin_classic',
+    },
+    equippedAvatarFrame: {
+      type: String,
+      default: 'frame_default',
+    },
     lastLoginAt: {
       type: Date,
       default: Date.now,

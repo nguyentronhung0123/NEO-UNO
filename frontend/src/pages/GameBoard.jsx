@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import UnoCard from '../components/UnoCard';
+import { CardBack } from '../components/CardBack';
+import { AvatarFrame } from '../components/AvatarFrame';
+import { useAuth } from '../hooks/useAuth';
 import LeaderboardModal, { getRankTier } from '../components/LeaderboardModal';
 import MatchHistoryModal from '../components/MatchHistoryModal';
 import { initGameState, calculateHandPoints, getMaxCardPoint } from '../utils/gameLogic.js';
@@ -33,6 +36,10 @@ const COLOR_NAME_MAP = {
 };
 
 export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
+  const { user } = useAuth();
+  const equippedCardSkin = user?.equippedCardSkin || 'skin_classic';
+  const equippedAvatarFrame = user?.equippedAvatarFrame || 'frame_default';
+
   // Cấu hình bàn đấu: Mặc định 3 Bot (bàn 4 người 4 góc) & 5 phút
   const botCount = Math.max(1, Math.min(3, matchConfig?.botCount || 3));
   const timeLimit = matchConfig?.timeLimit || 300;
@@ -2351,46 +2358,37 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                         : 'animate-draw-right'
                     }`}
                   >
-                    <div className="w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] bg-gradient-to-br from-[#e00050] to-[#990033] border-2 border-white/70 shadow-2xl flex items-center justify-center">
-                      <span className="font-headline font-black text-white text-sm sm:text-base italic drop-shadow">UNO</span>
-                    </div>
+                    <CardBack
+                      skinId={equippedCardSkin}
+                      size="md"
+                    />
                   </div>
                 )}
 
-                <div className={`relative w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] border-2 shadow-2xl flex flex-col items-center justify-center select-none ${
-                  isShuffling || isReshufflingDeck
-                    ? 'bg-gradient-to-br from-indigo-700 to-purple-900 border-cyan-400 animate-pulse animate-reshuffle-vortex'
-                    : drawTwoStack > 0
-                    ? 'bg-gradient-to-br from-amber-600 to-rose-700 border-amber-300 animate-pulse ring-2 ring-amber-400'
-                    : drawnCountInTurn === 1
-                    ? 'bg-gradient-to-br from-cyan-600 to-blue-700 border-cyan-300 ring-2 ring-cyan-400/60 shadow-[0_0_20px_rgba(0,210,255,0.4)]'
-                    : 'bg-gradient-to-br from-[#e00050] to-[#990033] border-white/25'
-                }`}>
-                  <div className="w-10 h-7 sm:w-12 sm:h-8 md:w-16 md:h-10 rounded-full bg-black/25 flex items-center justify-center transform -rotate-12 border border-white/20 mb-1">
-                    <span className="font-headline font-black text-[11px] sm:text-xs md:text-sm text-white italic tracking-tighter drop-shadow">
-                      UNO
-                    </span>
-                  </div>
-                  
-                  <span className="text-[9px] sm:text-[10px] md:text-xs font-headline font-bold text-white uppercase tracking-wider drop-shadow-md text-center px-1">
-                    {isShuffling
-                      ? 'Đang xáo...'
-                      : isReshufflingDeck
-                      ? 'Xáo lại bài...'
-                      : isDealing
-                      ? `Chia ${dealingRound}/7`
-                      : drawTwoStack > 0
-                      ? `Phạt +${drawTwoStack}`
-                      : drawnCountInTurn === 0
-                      ? 'Bốc Lá 1'
-                      : drawnCountInTurn === 1
-                      ? 'Bốc Lá 2'
-                      : 'Đã Bốc 2/2'}
-                  </span>
-                  
-                  <span className="text-[9px] text-white/70 font-mono mt-0.5">
-                    ({drawPile.length})
-                  </span>
+                <div
+                  className={`relative w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] transition-transform duration-200 select-none ${
+                    currentTurnIndex === 0 && !isShuffling && !isDealing && !isReshufflingDeck ? 'hover:scale-105 active:scale-95 cursor-pointer ring-2 ring-cyan-400/80 shadow-[0_0_20px_rgba(0,210,255,0.4)]' : ''
+                  }`}
+                >
+                  <CardBack
+                    skinId={equippedCardSkin}
+                    size="deck"
+                    label={
+                      isShuffling
+                        ? 'Đang xáo...'
+                        : isReshufflingDeck
+                        ? 'Xáo lại bài...'
+                        : isDealing
+                        ? `Chia ${dealingRound}/7`
+                        : drawTwoStack > 0
+                        ? `+${drawTwoStack} LÁ`
+                        : drawnCountInTurn === 0
+                        ? `Bốc (${drawPile.length})`
+                        : drawnCountInTurn === 1
+                        ? 'Bốc Lá 2'
+                        : 'Đã Bốc 2/2'
+                    }
+                  />
                 </div>
               </div>
 
@@ -2563,13 +2561,19 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
             <div className="flex items-center gap-2.5 relative">
               {renderAvatarFxBadge('player')}
-              <div className={`w-8 h-8 rounded-full font-black text-xs flex items-center justify-center shadow-md ${
-                isPlayerTurn
-                  ? 'bg-primary-container text-black ring-2 ring-white shadow-[0_0_15px_rgba(0,210,255,0.8)]'
-                  : 'bg-primary-container/60 text-black'
-              }`}>
-                P1
-              </div>
+              <AvatarFrame
+                frameId={equippedAvatarFrame}
+                size="sm"
+                isActive={isPlayerTurn}
+              >
+                <div className={`w-full h-full rounded-full font-black text-xs flex items-center justify-center shadow-md ${
+                  isPlayerTurn
+                    ? 'bg-primary-container text-black'
+                    : 'bg-primary-container/60 text-black'
+                }`}>
+                  P1
+                </div>
+              </AvatarFrame>
               <div className="flex flex-col">
                 <span className={`text-xs font-bold leading-tight ${isPlayerTurn ? 'text-primary-container font-black' : 'text-white'}`}>
                   Bạn (Dưới)
