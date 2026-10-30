@@ -1959,11 +1959,12 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         {/* Compact Fan of Cards */}
         <div className="flex -space-x-3.5 mt-1 min-h-[36px] items-center justify-center max-w-full overflow-hidden">
           {bot.hand.map((c, cIdx) => (
-            <div
-              key={c.id || `${bot.id}_card_${cIdx}`}
-              className="w-5 h-8 sm:w-6 sm:h-9 rounded-[4px] bg-gradient-to-br from-[#8b0032] to-[#400010] border border-white/20 shadow-xs flex items-center justify-center select-none shrink-0"
-            >
-              <span className="text-[6px] sm:text-[7px] font-black text-white/90">UNO</span>
+            <div key={c.id || `${bot.id}_card_${cIdx}`} className="shrink-0">
+              <CardBack
+                skinId={equippedCardSkin}
+                size="sm"
+                className="w-5 h-8 sm:w-6 sm:h-9"
+              />
             </div>
           ))}
         </div>
@@ -2194,9 +2195,13 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                         <div
                           key={c.id || `${topBot.id}_card_${cIdx}`}
                           style={{ transform: `rotate(${rotationDegree}deg)` }}
-                          className="w-7 h-10 rounded-[5px] bg-gradient-to-br from-[#8b0032] to-[#400010] border border-white/20 shadow-xs flex items-center justify-center select-none"
+                          className="shrink-0"
                         >
-                          <span className="text-[7px] font-black text-white/90">UNO</span>
+                          <CardBack
+                            skinId={equippedCardSkin}
+                            size="sm"
+                            className="w-7 h-10"
+                          />
                         </div>
                       );
                     })}
