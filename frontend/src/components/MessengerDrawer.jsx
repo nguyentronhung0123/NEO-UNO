@@ -378,14 +378,18 @@ export default function MessengerDrawer({
             onClick={() => setIsOpen((prev) => !prev)}
             className={`relative w-13 h-13 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 group ${
               isOpen
-                ? 'bg-gradient-to-tr from-rose-600 to-purple-600 ring-4 ring-rose-400/40 shadow-[0_0_35px_rgba(244,63,94,0.6)] rotate-90'
+                ? 'bg-gradient-to-tr from-rose-600 to-purple-600 ring-4 ring-rose-400/40 shadow-[0_0_35px_rgba(244,63,94,0.6)]'
                 : 'bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 hover:brightness-110 hover:-translate-y-0.5 ring-2 ring-cyan-400/60 shadow-[0_0_25px_rgba(0,210,255,0.45)]'
             }`}
             title={isOpen ? 'Thu nhỏ Messenger' : 'Mở trò chuyện Messenger'}
             aria-label="Mở Messenger"
           >
-            {/* Biểu tượng */}
-            <span className="material-symbols-outlined text-white text-2xl transition-transform group-hover:scale-110">
+            {/* Biểu tượng xoay mượt mà khi mở/đóng */}
+            <span
+              className={`material-symbols-outlined text-white text-2xl transition-transform duration-300 group-hover:scale-110 ${
+                isOpen ? 'rotate-90' : ''
+              }`}
+            >
               {isOpen ? 'close' : 'chat'}
             </span>
 
@@ -404,9 +408,9 @@ export default function MessengerDrawer({
               </span>
             )}
 
-            {/* Tooltip khi rê chuột */}
-            <div className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl bg-[#0f1422]/95 border border-cyan-400/50 text-cyan-200 text-xs font-headline font-bold whitespace-nowrap shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
-              Tin Nhắn Bạn Bè 💬
+            {/* Tooltip khi rê chuột (Nằm ngang chuẩn xác sang trái, không bị xoay theo nút) */}
+            <div className="absolute right-full mr-3.5 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-xl bg-[#0f1422]/95 border border-cyan-400/50 text-cyan-200 text-xs font-headline font-bold whitespace-nowrap shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50">
+              {isOpen ? 'Thu nhỏ Messenger ✕' : 'Tin Nhắn Bạn Bè 💬'}
             </div>
           </button>
         )}
