@@ -4,57 +4,8 @@ const PlayerStats = require('../models/PlayerStats');
 const SecurityLog = require('../models/SecurityLog');
 const { trackQuestProgress } = require('./questController');
 
-// 0. CẤU HÌNH BOT ĐẤU TRƯỜNG ĐỒNG BỘ ELO
-const BOT_DEFINITIONS = [
-  {
-    regex: /titan/i,
-    nickname: 'Bot Titan 🛡️',
-    email: 'bot_titan@neouno.ai',
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=BotTitan',
-  },
-  {
-    regex: /neon/i,
-    nickname: 'Bot Neon ⚡',
-    email: 'bot_neon@neouno.ai',
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=BotNeon',
-  },
-  {
-    regex: /cyber/i,
-    nickname: 'Bot Cyber 🤖',
-    email: 'bot_cyber@neouno.ai',
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=BotCyber',
-  },
-];
-
-async function findOrCreateBot(playerEntry) {
-  const matched = BOT_DEFINITIONS.find(b => 
-    b.regex.test(playerEntry.id) || b.regex.test(playerEntry.name)
-  );
-  if (!matched) return null;
-
-  let botUser = await User.findOne({
-    $or: [{ email: matched.email }, { nickname: matched.nickname }]
-  });
-
-  if (!botUser) {
-    const bcrypt = require('bcryptjs');
-    const hash = await bcrypt.hash('bot_secret_password_2026', 10);
-    botUser = await User.create({
-      nickname: matched.nickname,
-      email: matched.email,
-      password: hash,
-      avatar: matched.avatar,
-      elo: 1000,
-      coins: 1000,
-      level: 1,
-      exp: 0,
-      role: 'bot',
-    });
-  }
-
-  return botUser;
-}
-
+// 0. BOT ĐẤU TRƯỜNG: CHỈ DÙNG TRONG TRẬN ĐẤU, TUYỆT ĐỐI KHÔNG TÍNH RANK HAY LƯU CƠ SỞ DỮ LIỆU
+// Rank ELO và Bảng Xếp Hạng chỉ tính riêng cho Người chơi thật (Human Players)
 function calculateDeltas(totalPlayerCount, rank) {
   let eloDelta = 0;
   let coinsDelta = 0;
@@ -244,7 +195,7 @@ exports.recordMatch = async (req, res) => {
     let humanExpDelta = 0;
     let humanIsLevelUp = false;
 
-    // TÍNH ĐIỂM ELO VÀ CẬP NHẬT THỐNG KÊ CHO TOÀN BỘ NGƯỜI CHƠI VÀ CÁC BOT AI
+    // TÍNH ĐIỂM ELO VÀ CẬP NHẬT THỐNG KÊ - CHỈ TÍNH RANK CHO NGƯỜI CHƠI THẬT, KHÔNG TÍNH BOT
     for (const p of players) {
       const isHuman = Boolean(p.isHuman || p.id === 'player' || (targetUserId && p.id === String(targetUserId)));
       let userDoc = null;
@@ -253,9 +204,8 @@ exports.recordMatch = async (req, res) => {
         if (targetUserId) {
           userDoc = preloadedHumanUser || await User.findById(targetUserId);
         }
-      } else {
-        userDoc = await findOrCreateBot(p);
       }
+      // Bot AI: Không tính điểm ELO, không lưu userDoc vào CSDL
 
       // Nếu người chơi bỏ cuộc / thoát trận (AFK): tự động xếp hạng chót
       const isPlayerForfeit = isHuman && (isMatchForfeit || Boolean(p.isForfeit));

@@ -162,7 +162,10 @@ export default function LeaderboardModal({ isOpen, onClose, onOpenAuth }) {
 
       matchApi.getLeaderboard(15).then((data) => {
         if (data.success && data.leaderboard) {
-          setLeaderboard(data.leaderboard);
+          const humanOnly = data.leaderboard.filter(
+            (p) => p.role !== 'bot' && !/^bot/i.test(p.nickname)
+          );
+          setLeaderboard(humanOnly);
         }
         setLoading(false);
       });

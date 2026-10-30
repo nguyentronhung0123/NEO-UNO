@@ -2851,7 +2851,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                               <span className="px-2.5 py-0.5 rounded-full bg-black/40 text-[11px] font-mono font-bold text-slate-200 border border-white/10">
                                 {contender.cardCount} lá
                               </span>
-                              {pRes && (
+                              {contender.isHuman && pRes ? (
                                 <span
                                   className={`text-[11px] font-mono font-black px-2 py-0.5 rounded-full border ${
                                     pRes.eloDelta > 0
@@ -2864,10 +2864,14 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                                 >
                                   {pRes.eloDelta > 0 ? `+${pRes.eloDelta}` : pRes.eloDelta} ELO
                                 </span>
+                              ) : (
+                                <span className="text-[10px] font-mono text-slate-400/80 px-2 py-0.5 rounded-full bg-black/30 border border-white/5">
+                                  🤖 Bot (Không tính rank)
+                                </span>
                               )}
                             </div>
                             <div className="flex items-center gap-2 mt-0.5">
-                              {pRes && (
+                              {contender.isHuman && pRes && (
                                 <span className="text-[10px] text-amber-300/90 font-mono font-bold">
                                   {pRes.newElo} ELO
                                 </span>

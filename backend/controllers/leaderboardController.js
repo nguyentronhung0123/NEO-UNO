@@ -1,13 +1,16 @@
 const User = require('../models/User');
 const PlayerStats = require('../models/PlayerStats');
 
-// LẤY BẢNG XẾP HẠNG TOP CAO THỦ
+// LẤY BẢNG XẾP HẠNG TOP CAO THỦ (CHỈ TÍNH RANK CHO NGƯỜI CHƠI THẬT, KHÔNG TÍNH BOT & GUEST)
 exports.getLeaderboard = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
 
-    // Lấy top người chơi theo Elo và số trận thắng
-    const topUsers = await User.find({ role: { $ne: 'guest' } })
+    // Lấy top người chơi theo Elo và số trận thắng - CHỈ TÍNH NGƯỜI THẬT (player, admin), LOẠI BỎ TOÀN BỘ BOT & GUEST
+    const topUsers = await User.find({
+      role: { $in: ['player', 'admin'] },
+      nickname: { $not: /^bot/i },
+    })
       .select('nickname avatar elo coins level exp matchesWon matchesLost role')
       .sort({ elo: -1, matchesWon: -1 })
       .limit(limit);

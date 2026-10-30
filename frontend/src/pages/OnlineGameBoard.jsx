@@ -2180,7 +2180,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    {gameResult.isRanked && r.eloDelta !== undefined && (
+                    {gameResult.isRanked && !r.isBot && r.eloDelta !== undefined && (
                       <span
                         className={`px-2 py-0.5 rounded-md font-mono text-[10px] font-bold ${
                           r.isAfk && r.eloDelta >= 0
@@ -2201,6 +2201,11 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                           : r.eloDelta > 0
                           ? `+${r.eloDelta} ELO`
                           : `${r.eloDelta} ELO`}
+                      </span>
+                    )}
+                    {r.isBot && (
+                      <span className="text-[10px] font-mono text-slate-400/80 px-2 py-0.5 rounded-md bg-black/30 border border-white/5">
+                        🤖 Bot (Không tính rank)
                       </span>
                     )}
                     <span className="text-slate-400 font-mono text-[11px]">{r.cardsRemaining} lá</span>
