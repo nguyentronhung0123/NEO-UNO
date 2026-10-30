@@ -2131,10 +2131,22 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                         <span className="text-[10px] text-slate-400 block uppercase font-mono">Điểm Rank ELO</span>
                         <span
                           className={`text-sm sm:text-base font-headline font-black ${
-                            (myRank.eloDelta || 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                            myRank.isAfk && (myRank.eloDelta || 0) >= 0
+                              ? 'text-amber-400'
+                              : myRank.isLossProtected
+                              ? 'text-cyan-400'
+                              : (myRank.eloDelta || 0) > 0
+                              ? 'text-emerald-400'
+                              : 'text-rose-400'
                           }`}
                         >
-                          {(myRank.eloDelta || 0) > 0 ? `+${myRank.eloDelta}` : myRank.eloDelta} ELO
+                          {myRank.isAfk && (myRank.eloDelta || 0) >= 0
+                            ? '0 ELO 🚫 (AFK)'
+                            : myRank.isLossProtected
+                            ? '0 ELO 🛡️ (Bảo toàn)'
+                            : (myRank.eloDelta || 0) > 0
+                            ? `+${myRank.eloDelta} ELO`
+                            : `${myRank.eloDelta} ELO`}
                         </span>
                       </div>
                       <div className="h-8 w-px bg-white/10" />
@@ -2176,14 +2188,24 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                     {gameResult.isRanked && r.eloDelta !== undefined && (
                       <span
                         className={`px-2 py-0.5 rounded-md font-mono text-[10px] font-bold ${
-                          r.eloDelta > 0
+                          r.isAfk && r.eloDelta >= 0
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            : r.isLossProtected
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                            : r.eloDelta > 0
                             ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                             : r.eloDelta < 0
                             ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
                             : 'bg-slate-500/20 text-slate-300'
                         }`}
                       >
-                        {r.eloDelta > 0 ? `+${r.eloDelta}` : r.eloDelta} ELO
+                        {r.isAfk && r.eloDelta >= 0
+                          ? '0 ELO 🚫 (AFK)'
+                          : r.isLossProtected
+                          ? '0 ELO 🛡️ (Bảo toàn)'
+                          : r.eloDelta > 0
+                          ? `+${r.eloDelta} ELO`
+                          : `${r.eloDelta} ELO`}
                       </span>
                     )}
                     <span className="text-slate-400 font-mono text-[11px]">{r.cardsRemaining} lá</span>

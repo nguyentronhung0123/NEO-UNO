@@ -189,6 +189,7 @@ class OnlineGame {
       unoCalled: false,
       isAfk: false,
       afkTurnsCount: 0,
+      totalAfkTurns: 0,
       isBotTakeover: false,
       isDisconnected: false,
       disconnectedAt: null,
@@ -416,16 +417,29 @@ class OnlineGame {
     // Theo dõi AFK người chơi (Task 4: Chống AFK & Bot đánh hộ)
     if (!curPlayer.isBot) {
       curPlayer.afkTurnsCount = (curPlayer.afkTurnsCount || 0) + 1;
+      curPlayer.totalAfkTurns = (curPlayer.totalAfkTurns || 0) + 1;
       curPlayer.isAfk = true;
 
-      // Nếu AFK 2 lượt liên tiếp -> Kích hoạt chế độ Bot AI đánh hộ
+      // Nếu AFK 2 lượt liên tiếp
       if (curPlayer.afkTurnsCount >= 2 && !curPlayer.isBotTakeover) {
+        // TRẬN ĐẤU XẾP HẠNG 1V1: Xử thua Forfeit ngay lập tức, trao chiến thắng cho người chơi còn lại!
+        if (this.players.length === 2 && this.isRanked) {
+          this.io.to(this.roomCode).emit('game:action_event', {
+            type: 'afk_forfeit',
+            seatIndex: curPlayer.seatIndex,
+            playerName: curPlayer.name,
+            message: `⚠️ ${curPlayer.name} đã AFK 2 lượt liên tiếp! Xử thua do bỏ cuộc (-25 ELO).`,
+          });
+          this.forfeitPlayer(curPlayer, 'afk_timeout');
+          return;
+        }
+
         curPlayer.isBotTakeover = true;
         this.io.to(this.roomCode).emit('game:action_event', {
           type: 'afk_takeover',
           seatIndex: curPlayer.seatIndex,
           playerName: curPlayer.name,
-          message: `🤖 ${curPlayer.name} đã vắng mặt 2 lượt liên tiếp! Bot AI tự động tiếp quản đánh hộ.`,
+          message: `🤖 ${curPlayer.name} đã vắng mặt 2 lượt liên tiếp! Bot AI tự động tiếp quản đánh hộ (Bị hủy tư cách nhận thưởng ELO).`,
         });
         this.io.to(this.roomCode).emit('game:afk_takeover_started', {
           seatIndex: curPlayer.seatIndex,
@@ -1340,28 +1354,68 @@ class OnlineGame {
     const enrichedRankings = [];
     const matchPlayers = [];
 
+    // Kiểm tra xem người về nhất có phải là Bot đánh hộ do người chơi AFK/rớt mạng không
+    const firstPlace = sortedRankings[0];
+    const winnerWasAfkBot = !!(
+      firstPlace &&
+      !firstPlace.isBot &&
+      (firstPlace.isBotTakeover || firstPlace.isDisconnected || (firstPlace.totalAfkTurns >= 2))
+    );
+
     for (let idx = 0; idx < sortedRankings.length; idx++) {
       const p = sortedRankings[idx];
       const rank = idx + 1;
-      const { eloDelta, coinsDelta, expDelta, isWin, isLoss } = calculateDeltas(totalPlayerCount, rank);
+      let { eloDelta, coinsDelta, expDelta, isWin, isLoss } = calculateDeltas(totalPlayerCount, rank);
+
+      // 1. KIỂM TRA TÌNH TRẠNG AFK / MÁY ĐÁNH HỘ (CHỐNG CÀY RANK BẰNG BOT AFK)
+      const isAfkPlayer = !!(
+        !p.isBot &&
+        (p.isBotTakeover || p.isDisconnected || p.forfeited || (p.totalAfkTurns >= 2))
+      );
+
+      let effectiveEloDelta = eloDelta;
+      let isLossProtected = false;
+
+      // NẾU LÀ NGƯỜI CHƠI AFK:
+      if (isAfkPlayer) {
+        if (eloDelta > 0) {
+          // TUYỆT ĐỐI TƯỚC PHẦN THƯỞNG: 0 ELO, 0 VÀNG, 0 EXP, KHÔNG TÍNH THẮNG
+          effectiveEloDelta = 0;
+          coinsDelta = 0;
+          expDelta = 0;
+          isWin = false;
+        }
+        if (p.forfeited) {
+          effectiveEloDelta = -25;
+        }
+      }
+
+      // 2. BẢO TOÀN ELO (LOSS PREVENTION) CHO NGƯỜI CHƠI THẬT NẾU ĐỐI THỦ THẮNG LÀ BOT AFK
+      if (!isAfkPlayer && !p.isBot && winnerWasAfkBot && isLoss) {
+        effectiveEloDelta = 0;
+        isLossProtected = true;
+        console.log(`[Rank Engine] 🛡️ Áp dụng Bảo toàn ELO (Loss Prevention) cho ${p.name}: 0 ELO (đối thủ thắng là Bot AFK)`);
+      }
 
       let newElo = p.elo || 1000;
-      let effectiveEloDelta = eloDelta;
 
       if (!p.isBot && p.userId) {
         try {
           const userDoc = await User.findByNicknameOrId(p.userId);
           if (userDoc) {
             const isGuest = userDoc.role === 'guest';
-            effectiveEloDelta = isGuest ? 0 : eloDelta;
+            if (isGuest) effectiveEloDelta = 0;
 
-            userDoc.elo = Math.max(100, (userDoc.elo || 1000) + effectiveEloDelta);
+            // Nếu người chơi đã bị trừ 25 ELO trong forfeitPlayer thì không trừ thêm một lần nữa
+            if (!p.forfeited && effectiveEloDelta !== 0) {
+              userDoc.elo = Math.max(100, (userDoc.elo || 1000) + effectiveEloDelta);
+            }
             userDoc.coins = (userDoc.coins || 0) + coinsDelta;
             userDoc.exp = (userDoc.exp || 0) + expDelta;
 
             if (isWin) {
               userDoc.matchesWon = (userDoc.matchesWon || 0) + 1;
-            } else if (isLoss) {
+            } else if (isLoss && !p.forfeited) {
               userDoc.matchesLost = (userDoc.matchesLost || 0) + 1;
             }
 
@@ -1375,33 +1429,38 @@ class OnlineGame {
             await userDoc.save();
             newElo = userDoc.elo;
 
-            let stats = await PlayerStats.findOne({ user: userDoc._id });
-            if (!stats) {
-              stats = await PlayerStats.create({ user: userDoc._id });
-            }
-            stats.totalMatches += 1;
-            if (isWin) {
-              stats.wins += 1;
-              stats.winStreak += 1;
-              if (stats.winStreak > stats.highestWinStreak) {
-                stats.highestWinStreak = stats.winStreak;
+            if (!p.forfeited) {
+              let stats = await PlayerStats.findOne({ user: userDoc._id });
+              if (!stats) {
+                stats = await PlayerStats.create({ user: userDoc._id });
               }
-            } else if (isLoss) {
-              stats.losses += 1;
-              stats.winStreak = 0;
+              stats.totalMatches += 1;
+              if (isWin) {
+                stats.wins += 1;
+                stats.winStreak += 1;
+                if (stats.winStreak > stats.highestWinStreak) {
+                  stats.highestWinStreak = stats.winStreak;
+                }
+              } else if (isLoss) {
+                stats.losses += 1;
+                stats.winStreak = 0;
+              }
+              if (isAfkPlayer) {
+                stats.afkCount = (stats.afkCount || 0) + 1;
+              }
+              stats.winRate = Math.round((stats.wins / stats.totalMatches) * 100);
+              await stats.save();
             }
-            stats.winRate = Math.round((stats.wins / stats.totalMatches) * 100);
-            await stats.save();
 
             console.log(
-              `[Rank Engine] 🏆 Đã cập nhật ELO cho ${userDoc.nickname}: ${effectiveEloDelta > 0 ? '+' : ''}${effectiveEloDelta} ELO -> Mới: ${newElo}`
+              `[Rank Engine] 🏆 Cập nhật kết quả rank cho ${userDoc.nickname}: ${effectiveEloDelta > 0 ? '+' : ''}${effectiveEloDelta} ELO (AFK: ${isAfkPlayer}, Protected: ${isLossProtected}) -> Mới: ${newElo}`
             );
           }
         } catch (dbErr) {
           console.error(`[Rank Engine] Lỗi cập nhật CSDL cho người chơi ${p.name}:`, dbErr);
         }
       } else {
-        newElo = Math.max(100, (p.elo || 1000) + eloDelta);
+        newElo = Math.max(100, (p.elo || 1000) + effectiveEloDelta);
       }
 
       enrichedRankings.push({
@@ -1411,6 +1470,8 @@ class OnlineGame {
         avatar: p.avatar || 'avatar_1',
         cardsRemaining: p.hand.length,
         isBot: p.isBot,
+        isAfk: isAfkPlayer,
+        isLossProtected,
         eloDelta: effectiveEloDelta,
         newElo,
         coinsDelta,
@@ -1424,6 +1485,8 @@ class OnlineGame {
         avatar: p.avatar || '👤',
         rank,
         cardsRemaining: p.hand.length,
+        isAfk: isAfkPlayer,
+        isLossProtected,
         eloDelta: effectiveEloDelta,
         coinsDelta,
         expDelta,
