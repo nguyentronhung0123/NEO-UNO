@@ -37,10 +37,13 @@ const userSchema = new mongoose.Schema(
     elo: {
       type: Number,
       default: 1000,
+      min: [0, 'Điểm ELO không thể nhỏ hơn 0!'],
+      max: [4000, 'Điểm ELO vượt ngưỡng 4000 tối đa!'],
     },
     coins: {
       type: Number,
       default: 1000,
+      min: [0, 'Số dư Vàng không thể âm! Chặn hack tiền tiêu âm!'],
     },
     matchesWon: {
       type: Number,
@@ -62,6 +65,31 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ['player', 'admin', 'guest', 'bot'],
       default: 'player',
+    },
+    // RÀNG BUỘC BẢO MẬT & CHỐNG GIAN LẬN (SECURITY & ANTI-CHEAT)
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+    banReason: {
+      type: String,
+      default: null,
+    },
+    bannedAt: {
+      type: Date,
+      default: null,
+    },
+    isFlagged: {
+      type: Boolean,
+      default: false,
+    },
+    cheatWarnings: {
+      type: [String],
+      default: [],
+    },
+    lastMatchAt: {
+      type: Date,
+      default: null,
     },
     // Kho đồ cá nhân & Skin vật phẩm (Task 5: Shop Skins)
     inventory: {

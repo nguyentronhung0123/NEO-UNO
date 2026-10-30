@@ -30,6 +30,15 @@ const requireAuth = async (req, res, next) => {
         });
       }
 
+      // RÀNG BUỘC AN NINH: Chặn tài khoản bị cấm (Banned)
+      if (user.isBanned) {
+        return res.status(403).json({
+          success: false,
+          message: `Tài khoản của bạn đã bị KHÓA do vi phạm quy tắc an toàn hoặc nghi vấn gian lận! Lý do: ${user.banReason || 'Không xác định'}`,
+          isBanned: true,
+        });
+      }
+
       req.user = user;
       next();
     });
@@ -42,4 +51,19 @@ const requireAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { requireAuth };
+/**
+ * Middleware phân quyền Admin cấp cao (Chỉ dành cho quản trị viên)
+ */
+const requireAdmin = async (req, res, next) => {
+  await requireAuth(req, res, () => {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'TRUY CẬP BỊ TỪ CHỐI: Yêu cầu quyền Quản trị viên (Admin) cấp cao!',
+      });
+    }
+    next();
+  });
+};
+
+module.exports = { requireAuth, requireAdmin };

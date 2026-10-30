@@ -1,6 +1,7 @@
 const Match = require('../models/Match');
 const User = require('../models/User');
 const PlayerStats = require('../models/PlayerStats');
+const SecurityLog = require('../models/SecurityLog');
 
 // 0. CẤU HÌNH BOT ĐẤU TRƯỜNG ĐỒNG BỘ ELO
 const BOT_DEFINITIONS = [
@@ -157,6 +158,80 @@ exports.recordMatch = async (req, res) => {
       }
     }
 
+    // 0. BẢO MẬT & KIỂM TRA TÀI KHOẢN NGƯỜI DÙNG (ANTI-CHEAT PRE-CHECKS)
+    let preloadedHumanUser = null;
+    if (targetUserId) {
+      preloadedHumanUser = await User.findById(targetUserId);
+    }
+
+    // A. Chặn tài khoản đã bị khóa (Banned)
+    if (preloadedHumanUser && preloadedHumanUser.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: `Tài khoản của bạn đã bị KHÓA do vi phạm quy tắc an toàn hoặc nghi vấn gian lận! Lý do: ${preloadedHumanUser.banReason || 'Vi phạm điều khoản trò chơi'}`,
+        isBanned: true,
+      });
+    }
+
+    // B. Chống spam ghi nhận kết quả liên tục (Rate-limiting Cooldown 12s giữa các ván)
+    if (preloadedHumanUser && preloadedHumanUser.lastMatchAt) {
+      const elapsedMs = Date.now() - new Date(preloadedHumanUser.lastMatchAt).getTime();
+      if (elapsedMs < 12000) {
+        await SecurityLog.create({
+          userId: preloadedHumanUser._id,
+          action: 'RATE_LIMIT_EXCEEDED',
+          severity: 'warning',
+          details: {
+            reason: 'MATCH_RECORD_SPAM_COOLDOWN',
+            elapsedMs,
+            thresholdMs: 12000,
+            roomCode,
+          },
+          performedBy: preloadedHumanUser.nickname || 'USER',
+          ipAddress: req.ip || req.connection?.remoteAddress,
+        });
+
+        return res.status(429).json({
+          success: false,
+          message: 'Thao tác quá nhanh! Vui lòng chờ ít nhất 12 giây giữa các ván đấu để hệ thống kiểm toán tính hợp lệ.',
+          retryAfterSeconds: Math.ceil((12000 - elapsedMs) / 1000),
+        });
+      }
+    }
+
+    // C. Kiểm tra nghi vấn Speedrun bất thường (< 12 giây mà không phải do bỏ cuộc)
+    const matchDuration = Number(durationSeconds) || 0;
+    const isMatchForfeit = Boolean(req.body.isForfeit);
+    let isSpeedrunSuspicious = false;
+
+    if (matchDuration > 0 && matchDuration < 12 && !isMatchForfeit) {
+      isSpeedrunSuspicious = true;
+      if (preloadedHumanUser) {
+        preloadedHumanUser.isFlagged = true;
+        if (!Array.isArray(preloadedHumanUser.cheatWarnings)) {
+          preloadedHumanUser.cheatWarnings = [];
+        }
+        preloadedHumanUser.cheatWarnings.push(
+          `Cảnh báo speedrun: Ván đấu kết thúc bất thường trong ${matchDuration}s vào ${new Date().toISOString()}`
+        );
+        await preloadedHumanUser.save();
+      }
+
+      await SecurityLog.create({
+        userId: preloadedHumanUser?._id,
+        action: 'SUSPICIOUS_EXPLOIT_ATTEMPT',
+        severity: 'warning',
+        details: {
+          reason: 'MATCH_SPEEDRUN_TOO_FAST',
+          durationSeconds: matchDuration,
+          thresholdSeconds: 12,
+          roomCode,
+        },
+        performedBy: preloadedHumanUser?.nickname || 'USER',
+        ipAddress: req.ip || req.connection?.remoteAddress,
+      });
+    }
+
     const enrichedPlayers = [];
     const playersResult = [];
 
@@ -169,15 +244,13 @@ exports.recordMatch = async (req, res) => {
     let humanIsLevelUp = false;
 
     // TÍNH ĐIỂM ELO VÀ CẬP NHẬT THỐNG KÊ CHO TOÀN BỘ NGƯỜI CHƠI VÀ CÁC BOT AI
-    const isMatchForfeit = Boolean(req.body.isForfeit);
-
     for (const p of players) {
       const isHuman = Boolean(p.isHuman || p.id === 'player' || (targetUserId && p.id === String(targetUserId)));
       let userDoc = null;
 
       if (isHuman) {
         if (targetUserId) {
-          userDoc = await User.findById(targetUserId);
+          userDoc = preloadedHumanUser || await User.findById(targetUserId);
         }
       } else {
         userDoc = await findOrCreateBot(p);
@@ -198,10 +271,22 @@ exports.recordMatch = async (req, res) => {
         isWin = false;
       }
 
+      // CHỐNG HACK SPEEDRUN: Nếu phát hiện bất thường, không cộng ELO/Coins/EXP
+      if (isSpeedrunSuspicious && isHuman) {
+        eloDelta = 0;
+        coinsDelta = 0;
+        expDelta = 0;
+      }
+
       if (userDoc) {
         // Chế độ Khách: Chỉ chơi với Bot, không tính điểm ELO xếp hạng
         const isGuestUser = userDoc.role === 'guest';
-        const effectiveEloDelta = isGuestUser ? 0 : eloDelta;
+        let effectiveEloDelta = isGuestUser ? 0 : eloDelta;
+
+        // RÀNG BUỘC SERVER-AUTHORITATIVE: Giới hạn biên độ an toàn deltas
+        effectiveEloDelta = Math.max(-50, Math.min(35, effectiveEloDelta));
+        coinsDelta = Math.max(0, Math.min(150, coinsDelta));
+        expDelta = Math.max(0, Math.min(100, expDelta));
 
         let stats = await PlayerStats.findOne({ user: userDoc._id });
         if (!stats) {
@@ -209,7 +294,7 @@ exports.recordMatch = async (req, res) => {
         }
 
         stats.totalMatches += 1;
-        if (isWin) {
+        if (isWin && !isSpeedrunSuspicious) {
           stats.wins += 1;
           stats.winStreak += 1;
           userDoc.matchesWon = (userDoc.matchesWon || 0) + 1;
@@ -223,9 +308,15 @@ exports.recordMatch = async (req, res) => {
         }
 
         const oldLevel = userDoc.level || 1;
-        userDoc.elo = Math.max(100, (userDoc.elo || 1000) + effectiveEloDelta);
-        userDoc.coins = (userDoc.coins || 0) + coinsDelta;
+        // Ràng buộc ELO tối thiểu 0, tối đa 4000
+        userDoc.elo = Math.min(4000, Math.max(0, (userDoc.elo || 1000) + effectiveEloDelta));
+        userDoc.coins = Math.max(0, (userDoc.coins || 0) + coinsDelta);
         userDoc.exp = (userDoc.exp || 0) + expDelta;
+
+        // Cập nhật timestamp ván đấu gần nhất phục vụ kiểm toán cooldown
+        if (isHuman) {
+          userDoc.lastMatchAt = new Date();
+        }
 
         const nextLevel = Math.floor(userDoc.exp / 150) + 1;
         let isLevelUp = false;
@@ -309,6 +400,30 @@ exports.recordMatch = async (req, res) => {
       durationSeconds: durationSeconds || 0,
       players: enrichedPlayers
     });
+
+    // GHI NHẬN NHẬT KÝ AN NINH (Security Audit Log)
+    if (updatedHumanUser) {
+      await SecurityLog.create({
+        userId: updatedHumanUser._id,
+        action: 'RECORD_MATCH_POINTS',
+        severity: isSpeedrunSuspicious ? 'warning' : 'info',
+        details: {
+          matchId: newMatch._id,
+          roomCode: newMatch.roomCode,
+          mode: matchMode,
+          rank: humanRank,
+          eloDelta: humanEloDelta,
+          coinsDelta: humanCoinsDelta,
+          newElo: updatedHumanUser.elo,
+          newCoins: updatedHumanUser.coins,
+          durationSeconds: matchDuration,
+          isSpeedrunSuspicious,
+          isForfeit: isMatchForfeit,
+        },
+        performedBy: updatedHumanUser.nickname || 'SYSTEM',
+        ipAddress: req.ip || req.connection?.remoteAddress,
+      });
+    }
 
     return res.status(201).json({
       success: true,

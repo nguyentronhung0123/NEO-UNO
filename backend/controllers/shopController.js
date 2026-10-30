@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const SecurityLog = require('../models/SecurityLog');
 const { SHOP_ITEMS, getShopItemById } = require('../config/shopItems');
 const jwt = require('jsonwebtoken');
 
@@ -86,6 +87,7 @@ exports.getShopCatalog = async (req, res) => {
 
 /**
  * 2. MUA VẬT PHẨM BẰNG TIỀN VÀNG (POST /api/shop/buy)
+ * RÀNG BUỘC BẢO MẬT: Giao dịch Atomic chống race-condition & double-spending
  */
 exports.buyItem = async (req, res) => {
   try {
@@ -113,20 +115,27 @@ exports.buyItem = async (req, res) => {
       });
     }
 
-    // Đảm bảo inventory luôn là mảng
-    if (!Array.isArray(user.inventory)) {
-      user.inventory = ['skin_classic', 'frame_default'];
+    // 1. Kiểm tra tài khoản có bị khóa không
+    if (user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: `Tài khoản của bạn đã bị KHÓA! Lý do: ${user.banReason || 'Vi phạm an toàn'}`,
+        isBanned: true,
+      });
     }
 
-    // 1. Kiểm tra nếu đã sở hữu
-    if (item.isDefault || user.inventory.includes(item.id)) {
+    // Đảm bảo inventory luôn là mảng
+    const currentInventory = Array.isArray(user.inventory) ? user.inventory : ['skin_classic', 'frame_default'];
+
+    // 2. Kiểm tra nếu đã sở hữu
+    if (item.isDefault || currentInventory.includes(item.id)) {
       return res.status(400).json({
         success: false,
         message: `Bạn đã sở hữu vật phẩm "${item.name}" này từ trước rồi!`,
       });
     }
 
-    // 2. Kiểm tra số dư tiền Vàng
+    // 3. Kiểm tra số dư tiền Vàng
     const currentCoins = user.coins ?? 0;
     if (currentCoins < item.price) {
       const missing = item.price - currentCoins;
@@ -138,37 +147,83 @@ exports.buyItem = async (req, res) => {
       });
     }
 
-    // 3. Trừ tiền và thêm vào kho đồ
-    user.coins = currentCoins - item.price;
-    user.inventory.push(item.id);
-
-    // Tự động trang bị vật phẩm mới mua luôn cho người chơi
+    // 4. THỰC THI GIAO DỊCH ATOMIC CHỐNG HACK TIỀN / CONCURRENCY SPEND
+    const updateOps = {
+      $inc: { coins: -item.price },
+      $addToSet: { inventory: item.id },
+    };
     if (item.type === 'card_skin') {
-      user.equippedCardSkin = item.id;
+      updateOps.$set = { equippedCardSkin: item.id };
     } else if (item.type === 'avatar_frame') {
-      user.equippedAvatarFrame = item.id;
+      updateOps.$set = { equippedAvatarFrame: item.id };
     }
 
-    await user.save();
+    const updatedUser = await User.findOneAndUpdate(
+      {
+        _id: user._id,
+        coins: { $gte: item.price },
+        inventory: { $ne: item.id },
+      },
+      updateOps,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      // Ghi log hành vi nghi vấn gian lận concurrency
+      await SecurityLog.create({
+        userId: user._id,
+        action: 'SUSPICIOUS_EXPLOIT_ATTEMPT',
+        severity: 'warning',
+        details: {
+          attempt: 'CONCURRENT_DOUBLE_SPEND_BLOCKED',
+          itemId: item.id,
+          price: item.price,
+          originalCoins: user.coins,
+        },
+        performedBy: user.nickname || 'USER',
+        ipAddress: req.ip || req.connection?.remoteAddress,
+      });
+
+      return res.status(400).json({
+        success: false,
+        message: 'Giao dịch bị từ chối: Số dư không đủ hoặc vật phẩm đã được mua trên một tiến trình khác!',
+      });
+    }
+
+    // 5. GHI NHẬN KIỂM TOÁN AN NINH (Security Audit Log)
+    await SecurityLog.create({
+      userId: user._id,
+      action: 'SHOP_BUY',
+      severity: 'info',
+      details: {
+        itemId: item.id,
+        itemName: item.name,
+        itemType: item.type,
+        price: item.price,
+        remainingCoins: updatedUser.coins,
+      },
+      performedBy: user.nickname || 'USER',
+      ipAddress: req.ip || req.connection?.remoteAddress,
+    });
 
     console.log(
-      `[Shop] 🛒 Người chơi ${user.nickname} đã mua thành công "${item.name}" với giá ${item.price} Vàng. Số dư mới: ${user.coins}`
+      `[Shop] 🛒 Người chơi ${updatedUser.nickname} đã mua thành công "${item.name}" với giá ${item.price} Vàng (Atomic). Số dư mới: ${updatedUser.coins}`
     );
 
     return res.status(200).json({
       success: true,
       message: `🎉 Chúc mừng! Bạn đã mở khóa thành công "${item.name}" và đã được tự động trang bị!`,
       item,
-      userCoins: user.coins,
-      inventory: user.inventory,
-      equippedCardSkin: user.equippedCardSkin,
-      equippedAvatarFrame: user.equippedAvatarFrame,
+      userCoins: updatedUser.coins,
+      inventory: updatedUser.inventory,
+      equippedCardSkin: updatedUser.equippedCardSkin,
+      equippedAvatarFrame: updatedUser.equippedAvatarFrame,
     });
   } catch (err) {
     console.error('[Shop BuyItem Error]:', err);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi giao dịch máy chủ khi mua vật phẩm!',
+      message: err.message || 'Lỗi giao dịch máy chủ khi mua vật phẩm!',
     });
   }
 };
@@ -202,6 +257,14 @@ exports.equipItem = async (req, res) => {
       });
     }
 
+    if (user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: `Tài khoản đã bị KHÓA! Lý do: ${user.banReason || 'Vi phạm an toàn'}`,
+        isBanned: true,
+      });
+    }
+
     if (!Array.isArray(user.inventory)) {
       user.inventory = ['skin_classic', 'frame_default'];
     }
@@ -223,6 +286,19 @@ exports.equipItem = async (req, res) => {
     }
 
     await user.save();
+
+    // Ghi nhận Audit Log
+    await SecurityLog.create({
+      userId: user._id,
+      action: 'SHOP_EQUIP',
+      severity: 'info',
+      details: {
+        itemId: item.id,
+        itemType: item.type,
+      },
+      performedBy: user.nickname || 'USER',
+      ipAddress: req.ip || req.connection?.remoteAddress,
+    });
 
     console.log(
       `[Shop] 👔 ${user.nickname} đã trang bị thành công ${item.type}: "${item.name}" (${item.id})`

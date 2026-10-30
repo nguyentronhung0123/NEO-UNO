@@ -35,6 +35,9 @@ function sanitizeUser(user, stats = null) {
     matchesLost: stats ? stats.losses : user.matchesLost || 0,
     winRate: stats ? stats.winRate : 0,
     role: user.role,
+    isBanned: Boolean(user.isBanned),
+    banReason: user.banReason || null,
+    isFlagged: Boolean(user.isFlagged),
     inventory: user.inventory || ['skin_classic', 'frame_default'],
     equippedCardSkin: user.equippedCardSkin || 'skin_classic',
     equippedAvatarFrame: user.equippedAvatarFrame || 'frame_default',
@@ -130,7 +133,7 @@ exports.login = async (req, res) => {
     }
 
     const cleanIdentifier = identifier.trim().toLowerCase();
-    const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'local';
+    const clientIp = req.headers?.['x-forwarded-for'] || req.socket?.remoteAddress || req.ip || 'local';
     const rateLimitKey = `${cleanIdentifier}_${clientIp}`;
 
     const limitStatus = checkRateLimit(rateLimitKey);
@@ -169,6 +172,14 @@ exports.login = async (req, res) => {
           ? `Mật mã bảo mật không chính xác! (Còn ${remainingAttempts} lần thử)`
           : 'Mật mã bảo mật không chính xác! Tài khoản tạm khóa 30 giây.',
         remainingAttempts
+      });
+    }
+
+    if (user.isBanned) {
+      return res.status(403).json({
+        success: false,
+        message: `Tài khoản đã bị KHÓA do vi phạm quy tắc an toàn hoặc nghi vấn gian lận! Lý do: ${user.banReason || 'Vi phạm điều khoản trò chơi'}`,
+        isBanned: true,
       });
     }
 
@@ -349,6 +360,14 @@ exports.getMe = async (req, res) => {
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy thông tin tài khoản người dùng!'
+        });
+      }
+
+      if (user.isBanned) {
+        return res.status(403).json({
+          success: false,
+          message: `Tài khoản đã bị KHÓA do vi phạm quy tắc an toàn hoặc nghi vấn gian lận! Lý do: ${user.banReason || 'Vi phạm điều khoản trò chơi'}`,
+          isBanned: true,
         });
       }
 

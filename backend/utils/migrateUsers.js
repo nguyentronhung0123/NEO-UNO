@@ -47,6 +47,18 @@ const migrateExistingUsers = async () => {
         console.log(`[Migration] 🔄 Đã chuyển đổi tài khoản [${u.nickname}] sang MongoDB Atlas thành công!`);
       }
     }
+
+    // Đảm bảo có ít nhất 1 tài khoản Admin để truy cập Hệ Quản Trị Bảo Mật
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (!adminExists) {
+      // Ưu tiên cấp quyền admin cho hung0123 (tài khoản đang hoạt động) hoặc CyberStriker_99
+      const primaryUser = await User.findOne({ nickname: 'hung0123' }) || await User.findOne({ nickname: 'CyberStriker_99' });
+      if (primaryUser) {
+        primaryUser.role = 'admin';
+        await primaryUser.save();
+        console.log(`[Admin Setup] 🛡️ Đã phân quyền Quản Trị Viên (Admin) cho tài khoản [${primaryUser.nickname}]!`);
+      }
+    }
   } catch (err) {
     console.error('[Migration Error]:', err.message);
   }

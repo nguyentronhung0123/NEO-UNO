@@ -12,6 +12,7 @@ import FriendChatBox from '../components/FriendChatBox';
 import MessengerDrawer from '../components/MessengerDrawer';
 import MatchInviteNotification from '../components/MatchInviteNotification';
 import ShopModal from '../components/ShopModal';
+import AdminSecurityModal from '../components/AdminSecurityModal';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
@@ -26,6 +27,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [isOnlineRoomOpen, setIsOnlineRoomOpen] = useState(false);
   const [isMatchmakingOpen, setIsMatchmakingOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -346,6 +348,23 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             </span>
           </button>
 
+          {/* NÚT QUẢN TRỊ AN NINH & BẢO MẬT (CHỈ DÀNH CHO ADMIN) */}
+          {user?.role === 'admin' && (
+            <button
+              onClick={() => setIsAdminModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-900/70 to-rose-900/70 hover:from-purple-800 hover:to-rose-800 border border-purple-400/60 hover:border-cyan-400 text-purple-200 font-headline font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.4)] group relative hover:scale-105 active:scale-95 animate-pulse"
+              title="Trung Tâm Quản Trị Bảo Mật & Chống Gian Lận (Admin SOC)"
+            >
+              <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-cyan-300">
+                shield
+              </span>
+              <span className="hidden sm:inline">Quản Trị</span>
+              <span className="px-1.5 py-0.2 rounded-full bg-purple-500/30 text-purple-200 text-[9px] font-mono font-bold border border-purple-400/40">
+                SOC
+              </span>
+            </button>
+          )}
+
           {/* Nút Đăng Nhập Duy Nhất Góc Trên Phải (chỉ hiện khi là Khách) */}
           {isGuest && (
             <button
@@ -644,6 +663,37 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                       chevron_right
                     </span>
                   </button>
+
+                  {/* Tab Admin: Quản Trị Bảo Mật (Chỉ dành cho Admin) */}
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        setIsAdminModalOpen(true);
+                      }}
+                      className="w-full bg-gradient-to-r from-purple-950/40 to-rose-950/40 hover:from-purple-900/50 hover:to-rose-900/50 border border-purple-500/40 hover:border-cyan-400 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left shadow-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                          🛡️
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors flex items-center gap-2">
+                            <span>Quản Trị An Ninh (SOC)</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/30 text-purple-200 font-mono font-bold">
+                              ADMIN
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            Khóa tài khoản, chống hack điểm/tiền & kiểm toán
+                          </div>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-slate-400 group-hover:text-purple-300 group-hover:translate-x-1 transition-all text-sm">
+                        chevron_right
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -1299,6 +1349,13 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         onClose={() => setIsShopOpen(false)}
         user={user}
         onUpdateUser={updateUser}
+      />
+
+      {/* MODAL TRUNG TÂM QUẢN TRỊ BẢO MẬT & CHỐNG GIAN LẬN (ADMIN SOC) */}
+      <AdminSecurityModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        currentUser={user}
       />
 
       {/* ICON CHAT BÊN PHẢI GÓC DƯỚI & DANH SÁCH CHAT MESSENGER (TASK 2) */}

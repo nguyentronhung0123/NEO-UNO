@@ -58,6 +58,10 @@ app.use('/api/friends', friendRoutes);
 const shopRoutes = require('./routes/shopRoutes');
 app.use('/api/shop', shopRoutes);
 
+// 6. API Hệ Quản Trị Bảo Mật & Chống Gian Lận (Admin Security Operations Center)
+const adminRoutes = require('./routes/adminRoutes');
+app.use('/api/admin', adminRoutes);
+
 // Bắt lỗi toàn cục chống crash server ngoài ý muốn
 process.on('uncaughtException', (err) => {
   console.error('[BE] ⚠️ Uncaught Exception:', err.message);
