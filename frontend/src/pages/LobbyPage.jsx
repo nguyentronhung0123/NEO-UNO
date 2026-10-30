@@ -14,7 +14,6 @@ import MatchInviteNotification from '../components/MatchInviteNotification';
 import ShopModal from '../components/ShopModal';
 import AdminSecurityModal from '../components/AdminSecurityModal';
 import QuestModal from '../components/QuestModal';
-import PwaInstallPrompt, { PwaInstallHeaderButton } from '../components/PwaInstallPrompt';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
@@ -339,11 +338,6 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
         <div className="flex items-center gap-2.5 relative" ref={profileMenuRef}>
           
-          {/* NÚT CÀI ĐẶT PWA APP RA MÀN HÌNH CHÍNH (TASK 7) - CHỈ HIỆN TRÊN MÀN HÌNH LỚN */}
-          <div className="hidden lg:flex">
-            <PwaInstallHeaderButton />
-          </div>
-
           {/* NÚT NHIỆM VỤ & THÀNH TỰU (TASK 6) - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE */}
           <button
             onClick={() => setIsQuestOpen(true)}
@@ -1469,9 +1463,6 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         onOpenShop={() => setIsShopOpen(true)}
         activeChatFriendId={activeChatFriend?._id || activeChatFriend?.id}
       />
-
-      {/* BANNER GỢI Ý CÀI ĐẶT ỨNG DỤNG PWA (TASK 7) */}
-      <PwaInstallPrompt />
     </div>
   );
 }
