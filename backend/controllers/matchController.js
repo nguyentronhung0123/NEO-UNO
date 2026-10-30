@@ -2,6 +2,7 @@ const Match = require('../models/Match');
 const User = require('../models/User');
 const PlayerStats = require('../models/PlayerStats');
 const SecurityLog = require('../models/SecurityLog');
+const { trackQuestProgress } = require('./questController');
 
 // 0. CẤU HÌNH BOT ĐẤU TRƯỜNG ĐỒNG BỘ ELO
 const BOT_DEFINITIONS = [
@@ -423,6 +424,28 @@ exports.recordMatch = async (req, res) => {
         performedBy: updatedHumanUser.nickname || 'SYSTEM',
         ipAddress: req.ip || req.connection?.remoteAddress,
       });
+
+      // TỰ ĐỘNG CẬP NHẬT TIẾN TRÌNH NHIỆM VỤ HẰNG NGÀY & THÀNH TỰU (TASK 6)
+      if (!isSpeedrunSuspicious) {
+        // 1. Nhiệm vụ chơi ván đấu
+        trackQuestProgress(updatedHumanUser._id, 'quest_play_matches', 1);
+
+        // 2. Nhiệm vụ thắng ván đấu (Hạng 1)
+        if (humanRank === 1) {
+          trackQuestProgress(updatedHumanUser._id, 'quest_win_match', 1);
+        }
+
+        // 3. Nhiệm vụ đánh lá bài Wild
+        const wildCount = Number(req.body.wildCardsPlayed) || (req.body.playedWild ? 1 : 0);
+        if (wildCount > 0) {
+          trackQuestProgress(updatedHumanUser._id, 'quest_play_wild', wildCount);
+        }
+
+        // 4. Nhiệm vụ hô UNO thành công
+        if (req.body.calledUno) {
+          trackQuestProgress(updatedHumanUser._id, 'quest_say_uno', 1);
+        }
+      }
     }
 
     return res.status(201).json({

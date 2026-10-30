@@ -62,6 +62,10 @@ app.use('/api/shop', shopRoutes);
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
 
+// 7. API Nhiệm Vụ Hằng Ngày & Thành Tựu Danh Hiệu (Quests & Achievements - Task 6)
+const questRoutes = require('./routes/questRoutes');
+app.use('/api/quests', questRoutes);
+
 // Bắt lỗi toàn cục chống crash server ngoài ý muốn
 process.on('uncaughtException', (err) => {
   console.error('[BE] ⚠️ Uncaught Exception:', err.message);

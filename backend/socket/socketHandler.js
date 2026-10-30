@@ -5,6 +5,7 @@ const roomManager = require('./roomManager');
 const gameEngine = require('./gameEngine');
 const matchmakingQueue = require('./matchmakingQueue');
 const userPresence = require('./userPresence');
+const { trackQuestProgress } = require('../controllers/questController');
 const DirectMessage = require('../models/DirectMessage');
 const { getBotRetaliationEmote } = require('../utils/botDialogue');
 
@@ -17,6 +18,7 @@ function setupSocketIO(io) {
       try {
         if (userId) {
           const uid = String(userId);
+          socket.userId = uid;
           socket.join(`user_${uid}`); // Gia nhập phòng cá nhân nhận tin nhắn và lời mời
           userPresence.registerUser(uid, socket.id, user, io);
           console.log(`[Presence] 👤 Đăng ký người chơi: ${user?.nickname || user?.name || uid} (${socket.id}) [Room: user_${uid}]`);
@@ -443,6 +445,11 @@ function setupSocketIO(io) {
         });
 
         console.log(`[Emote] 🎭 [${cleanCode}] ${senderName} (P${(senderSeatIndex ?? 0) + 1}) -> ${emote.icon || ''} "${emote.label || emote.id}" (Target: ${targetSeatIndex !== null && targetSeatIndex !== undefined ? 'P' + (targetSeatIndex + 1) : 'Cả bàn'})`);
+
+        // Tự động cập nhật tiến trình nhiệm vụ ném tương tác (Task 6)
+        if (socket.userId) {
+          trackQuestProgress(socket.userId, 'quest_interact_emote', 1);
+        }
 
         // Bot phản xạ khi bị ném đồ hoặc nhận biểu cảm (Task 3 - Đa dạng phản xạ Bot)
         if (game && targetSeatIndex !== null && targetSeatIndex !== undefined) {

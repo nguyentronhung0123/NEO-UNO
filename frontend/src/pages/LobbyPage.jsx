@@ -13,9 +13,11 @@ import MessengerDrawer from '../components/MessengerDrawer';
 import MatchInviteNotification from '../components/MatchInviteNotification';
 import ShopModal from '../components/ShopModal';
 import AdminSecurityModal from '../components/AdminSecurityModal';
+import QuestModal from '../components/QuestModal';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
+import { questApi } from '../apis/questApi';
 import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
@@ -28,6 +30,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [isMatchmakingOpen, setIsMatchmakingOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isQuestOpen, setIsQuestOpen] = useState(false);
+  const [hasClaimableQuest, setHasClaimableQuest] = useState(false);
   const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -95,6 +99,15 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       friendApi.getFriendRequests().then((res) => {
         if (res && res.success) {
           setPendingRequestsCount(res.received?.length || 0);
+        }
+      });
+
+      // Kiểm tra trạng thái quà nhiệm vụ chờ nhận (Task 6)
+      questApi.getDailyQuests().then((res) => {
+        if (res && res.success && res.stats?.hasClaimableReward) {
+          setHasClaimableQuest(true);
+        } else {
+          setHasClaimableQuest(false);
         }
       });
     }
@@ -316,6 +329,21 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
         <div className="flex items-center gap-2.5 relative" ref={profileMenuRef}>
           
+          {/* NÚT NHIỆM VỤ & THÀNH TỰU (TASK 6) */}
+          <button
+            onClick={() => setIsQuestOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
+            title="Nhiệm vụ hằng ngày & Huy hiệu thành tựu (Task 6)"
+          >
+            <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-amber-400">
+              assignment
+            </span>
+            <span className="hidden md:inline">Nhiệm Vụ</span>
+            {hasClaimableQuest && (
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+            )}
+          </button>
+
           {/* NÚT BẠN BÈ & LỜI MỜI (TASK 2) */}
           <button
             onClick={() => handleOpenFriends()}
@@ -541,6 +569,35 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-slate-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 0.5: Nhiệm Vụ & Thành Tựu (Task 6) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsQuestOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-amber-500/15 border border-white/5 hover:border-amber-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        📜
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors flex items-center gap-2">
+                          <span>Nhiệm Vụ & Thành Tựu</span>
+                          {hasClaimableQuest && (
+                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Nhiệm vụ ngày reset 24h & mở khóa danh hiệu
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all text-sm">
                       chevron_right
                     </span>
                   </button>
@@ -1341,6 +1398,19 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         currentUser={user}
+      />
+
+      {/* MODAL NHIỆM VỤ HẰNG NGÀY & THÀNH TỰU DANH HIỆU (TASK 6) */}
+      <QuestModal
+        isOpen={isQuestOpen}
+        onClose={() => {
+          setIsQuestOpen(false);
+          questApi.getDailyQuests().then((res) => {
+            setHasClaimableQuest(Boolean(res?.stats?.hasClaimableReward));
+          });
+        }}
+        user={user}
+        onUpdateUser={updateUser}
       />
 
       {/* KHỐI NÚT NỔI GÓC DƯỚI PHẢI (CỬA HÀNG + CHAT MESSENGER NẰM CÙNG KHỐI) */}
