@@ -252,11 +252,8 @@ export default function FriendsModal({
               <span className="material-symbols-outlined text-2xl">group</span>
             </div>
             <div>
-              <h2 className="text-white font-headline text-lg sm:text-xl font-black uppercase tracking-wide flex items-center gap-2">
+              <h2 className="text-white font-headline text-lg sm:text-xl font-black uppercase tracking-wide">
                 HỆ THỐNG BẠN BÈ & LỜI MỜI
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono">
-                  TASK 2
-                </span>
               </h2>
               <p className="text-slate-400 text-xs">
                 Kết nối chiến hữu, theo dõi trạng thái online và mời đấu trực tiếp

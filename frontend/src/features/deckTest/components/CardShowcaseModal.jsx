@@ -78,7 +78,7 @@ export default function CardShowcaseModal({ isOpen, onClose }) {
             </div>
             <div>
               <h2 className="text-white font-headline text-lg sm:text-xl font-black uppercase tracking-wide flex items-center gap-2">
-                KIỂM THỬ TASK 1: BỘ SƯU TẬP 108 LÁ BÀI UNO
+                BỘ SƯU TẬP 108 LÁ BÀI UNO
               </h2>
               <p className="text-slate-400 text-xs">
                 Xác thực giao diện Neo Glassmorphism, góc xoay 180°, hiệu ứng hover và bộ bài 108 lá

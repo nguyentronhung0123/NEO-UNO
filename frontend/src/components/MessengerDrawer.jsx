@@ -347,7 +347,7 @@ export default function MessengerDrawer({
           <button
             onClick={onOpenShop}
             className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 group bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 hover:-translate-y-0.5 ring-2 ring-amber-400/60 shadow-[0_0_25px_rgba(245,158,11,0.5)]"
-            title="Cửa Hàng Skin & Khung Avatar độc quyền (Task 5)"
+            title="Cửa Hàng Skin & Khung Avatar độc quyền"
             aria-label="Mở Cửa Hàng"
           >
             {/* Biểu tượng storefront */}

@@ -338,11 +338,11 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
         <div className="flex items-center gap-2.5 relative" ref={profileMenuRef}>
           
-          {/* NÚT NHIỆM VỤ & THÀNH TỰU (TASK 6) - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE */}
+          {/* NÚT NHIỆM VỤ & THÀNH TỰU - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE */}
           <button
             onClick={() => setIsQuestOpen(true)}
             className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
-            title="Nhiệm vụ hằng ngày & Huy hiệu thành tựu (Task 6)"
+            title="Nhiệm vụ hằng ngày & Huy hiệu thành tựu"
           >
             <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-amber-400">
               assignment
@@ -353,11 +353,11 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             )}
           </button>
 
-          {/* NÚT BẠN BÈ & LỜI MỜI (TASK 2) - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE & CHAT MESSENGER */}
+          {/* NÚT BẠN BÈ & LỜI MỜI - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE & CHAT MESSENGER */}
           <button
             onClick={() => handleOpenFriends()}
             className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
-            title="Hệ thống bạn bè & lời mời đấu trực tuyến (Task 2)"
+            title="Hệ thống bạn bè & lời mời đấu trực tuyến"
           >
             <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform">
               group

@@ -152,7 +152,7 @@ export default function EmoteWheel({
             ? 'bg-slate-900/80 text-slate-500 border border-white/10 opacity-70 cursor-not-allowed'
             : 'bg-gradient-to-tr from-[#111726]/90 via-[#182138]/90 to-[#222f4d]/90 hover:from-amber-500/25 hover:to-orange-500/25 text-yellow-300 border border-amber-400/40 hover:border-yellow-300 shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:scale-110 active:scale-95 backdrop-blur-md'
         }`}
-        title="Biểu cảm & Ném đạo cụ (Task 3)"
+        title="Biểu cảm & Ném đạo cụ"
         aria-label="Biểu cảm"
       >
         <span className="text-2xl filter drop-shadow">
