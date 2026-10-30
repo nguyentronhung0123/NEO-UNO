@@ -12,6 +12,7 @@ import { matchApi } from '../apis/matchApi.js';
 import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch } from '../utils/activeMatchStorage.js';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
+import OrientationNotice from '../components/OrientationNotice';
 import {
   getBotAttackEmote,
   getBotPenaltyEmote,
@@ -148,6 +149,11 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
   // Khóa đồng bộ chống click nhanh đánh 2-3 lá bài trong cùng 1 lượt (LUẬT: 1 LƯỢT = 1 LÁ)
   const isCardActionLockedRef = useRef(false);
+
+  // Cử chỉ chạm vuốt bài lên để đánh (Task 7: Mobile Touch Gestures)
+  const [swipingCardId, setSwipingCardId] = useState(null);
+  const [swipeDeltaY, setSwipeDeltaY] = useState(0);
+  const touchStartPosRef = useRef({ x: 0, y: 0, time: 0 });
 
   const turnDirectionRef = useRef(turnDirection);
   turnDirectionRef.current = turnDirection;
@@ -2029,7 +2035,10 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       {/* LỚP PHỦ BIỂU CẢM & CHAT NHANH (TASK 3) */}
       <EmoteOverlay activeEmotes={activeEmotes} getSeatPosition={getSeatPosition} />
 
-      <div className="relative z-10 w-full min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto">
+      {/* THÔNG BÁO NHẮC XOAY NGANG MÀN HÌNH DI ĐỘNG (TASK 7) */}
+      <OrientationNotice />
+
+      <div className="relative z-10 w-full min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto safe-pt safe-pb safe-pl safe-pr">
         
         {/* 1. TOP HEADER HUD */}
         <div className="w-full flex items-center justify-between pb-1 border-b border-white/5">
@@ -2532,8 +2541,60 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       handlePlayCard(card);
                     }
                   }}
-                  className={`transform transition-all duration-200 shrink-0 ${
-                    isNewlyDealt
+                  onTouchStart={(e) => {
+                    if (!isPlayable || isCardActionLockedRef.current) return;
+                    const touch = e.touches[0];
+                    touchStartPosRef.current = {
+                      x: touch.clientX,
+                      y: touch.clientY,
+                      time: Date.now(),
+                    };
+                    setSwipingCardId(card.id);
+                    setSwipeDeltaY(0);
+                  }}
+                  onTouchMove={(e) => {
+                    if (swipingCardId !== card.id) return;
+                    const touch = e.touches[0];
+                    const deltaY = touch.clientY - touchStartPosRef.current.y;
+                    if (deltaY < 0) {
+                      setSwipeDeltaY(deltaY);
+                    } else {
+                      setSwipeDeltaY(0);
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    if (swipingCardId !== card.id) return;
+                    const swipedDistance = -swipeDeltaY;
+                    setSwipingCardId(null);
+                    setSwipeDeltaY(0);
+
+                    // Nếu vuốt lên từ 40px trở lên: ĐÁNH BÀI NGAY! (Task 7: Swipe to Play)
+                    if (swipedDistance >= 40) {
+                      if (isCardActionLockedRef.current) return;
+                      if (isOtherCardWhilePicking) {
+                        handleCancelWildColor();
+                        setTimeout(() => handlePlayCard(card), 50);
+                      } else if (isSelectedWild) {
+                        handleCancelWildColor();
+                      } else {
+                        handlePlayCard(card);
+                      }
+                    }
+                  }}
+                  style={
+                    swipingCardId === card.id && swipeDeltaY < 0
+                      ? {
+                          transform: `translateY(${Math.max(-90, swipeDeltaY)}px) scale(1.12)`,
+                          zIndex: 60,
+                          boxShadow: '0 0 35px rgba(0, 210, 255, 0.95)',
+                          transition: 'none',
+                        }
+                      : undefined
+                  }
+                  className={`touch-card transform transition-all duration-200 shrink-0 select-none ${
+                    swipingCardId === card.id && swipeDeltaY < 0
+                      ? 'is-dragging ring-4 ring-cyan-300'
+                      : isNewlyDealt
                       ? 'animate-deal-to-player'
                       : isSelectedWild
                       ? '-translate-y-7 scale-110 z-40 ring-4 ring-primary-container rounded-2xl shadow-[0_0_30px_rgba(0,210,255,0.8)] cursor-pointer'

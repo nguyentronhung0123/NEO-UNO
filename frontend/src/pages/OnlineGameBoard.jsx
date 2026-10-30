@@ -6,6 +6,7 @@ import { getSocket } from '../services/socket';
 import { soundEngine } from '../utils/audioFx';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
+import OrientationNotice from '../components/OrientationNotice';
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -104,6 +105,11 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const lastTurnIndexRef = useRef(-1);
   const lastTurnNumberRef = useRef(-1);
   const cardActionLockTimeoutRef = useRef(null);
+
+  // Cử chỉ chạm vuốt bài lên để đánh (Task 7: Mobile Touch Gestures)
+  const [swipingCardId, setSwipingCardId] = useState(null);
+  const [swipeDeltaY, setSwipeDeltaY] = useState(0);
+  const touchStartPosRef = useRef({ x: 0, y: 0, time: 0 });
 
   const [gameResult, setGameResult] = useState(null);
   const [autoReturnCountdown, setAutoReturnCountdown] = useState(120);
@@ -1173,7 +1179,10 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       {/* LỚP PHỦ BIỂU CẢM & CHAT NHANH (TASK 3) */}
       <EmoteOverlay activeEmotes={activeEmotes} getSeatPosition={getSeatPosition} />
 
-      <div className="relative z-10 w-full min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto">
+      {/* THÔNG BÁO NHẮC XOAY NGANG MÀN HÌNH DI ĐỘNG (TASK 7) */}
+      <OrientationNotice />
+
+      <div className="relative z-10 w-full min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto safe-pt safe-pb safe-pl safe-pr">
         
         {/* ================= 1. TOP HEADER HUD (GIỐNG 100% GAMEBOARD.JSX) ================= */}
         <div className="w-full flex items-center justify-between pb-1 border-b border-white/5">
@@ -1768,8 +1777,62 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       handlePlayCardClick(card);
                     }
                   }}
-                  className={`transform transition-all duration-200 shrink-0 transform-gpu ${
-                    isNewlyDealt
+                  onTouchStart={(e) => {
+                    if (!isPlayable || isCardActionLockedRef.current || isCardActionLocked) return;
+                    const touch = e.touches[0];
+                    touchStartPosRef.current = {
+                      x: touch.clientX,
+                      y: touch.clientY,
+                      time: Date.now(),
+                    };
+                    setSwipingCardId(card.id);
+                    setSwipeDeltaY(0);
+                  }}
+                  onTouchMove={(e) => {
+                    if (swipingCardId !== card.id) return;
+                    const touch = e.touches[0];
+                    const deltaY = touch.clientY - touchStartPosRef.current.y;
+                    if (deltaY < 0) {
+                      setSwipeDeltaY(deltaY);
+                    } else {
+                      setSwipeDeltaY(0);
+                    }
+                  }}
+                  onTouchEnd={() => {
+                    if (swipingCardId !== card.id) return;
+                    const swipedDistance = -swipeDeltaY;
+                    setSwipingCardId(null);
+                    setSwipeDeltaY(0);
+
+                    // Nếu vuốt lên từ 40px trở lên: ĐÁNH BÀI NGAY! (Task 7: Swipe to Play)
+                    if (swipedDistance >= 40) {
+                      if (isCardActionLockedRef.current || isCardActionLocked) return;
+                      if (isOtherCardWhilePicking) {
+                        setColorPickerOpen(false);
+                        setPendingWildCard(null);
+                        setTimeout(() => handlePlayCardClick(card), 50);
+                      } else if (isSelectedWild) {
+                        setColorPickerOpen(false);
+                        setPendingWildCard(null);
+                      } else {
+                        handlePlayCardClick(card);
+                      }
+                    }
+                  }}
+                  style={
+                    swipingCardId === card.id && swipeDeltaY < 0
+                      ? {
+                          transform: `translateY(${Math.max(-90, swipeDeltaY)}px) scale(1.12)`,
+                          zIndex: 60,
+                          boxShadow: '0 0 35px rgba(0, 210, 255, 0.95)',
+                          transition: 'none',
+                        }
+                      : undefined
+                  }
+                  className={`touch-card transform transition-all duration-200 shrink-0 transform-gpu select-none ${
+                    swipingCardId === card.id && swipeDeltaY < 0
+                      ? 'is-dragging ring-4 ring-cyan-300'
+                      : isNewlyDealt
                       ? 'animate-deal-to-player'
                       : isSelectedWild
                       ? '-translate-y-7 scale-110 z-40 ring-4 ring-primary-container rounded-2xl shadow-[0_0_30px_rgba(0,210,255,0.8)] cursor-pointer'

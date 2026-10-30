@@ -815,3 +815,67 @@
   animation: pulseGlowSlow 2.5s ease-in-out infinite;
 }
 
+/* ==========================================================================
+   TASK 7: MOBILE TOUCH OPTIMIZATIONS & SAFE AREA INSETS (PWA)
+   ========================================================================== */
+
+/* Chống double-tap zoom và cuộn trang ngoài ý muốn trên mobile */
+html, body {
+  touch-action: manipulation;
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Chống bôi đen text khi nhấn liên tục trên bài và nút bấm */
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Thao tác vuốt bài (Touch Swipe gesture) */
+.touch-card {
+  touch-action: pan-x;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease;
+}
+
+.touch-card.is-dragging {
+  cursor: grabbing;
+  z-index: 50 !important;
+  transition: none !important;
+}
+
+/* Safe-area insets cho màn hình tai thỏ / Dynamic Island */
+.safe-pt {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.safe-pb {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.safe-pl {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+}
+
+.safe-pr {
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+}
+
+/* Animation quay điện thoại mượt mà cho banner gợi ý xoay ngang */
+@keyframes spinSlow {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(90deg); }
+  50% { transform: rotate(90deg); }
+  75% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 3s ease-in-out infinite;
+}
+
+

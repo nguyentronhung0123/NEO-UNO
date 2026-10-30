@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="192" height="192">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad192" cx="50%" cy="50%" r="65%">
+      <stop offset="0%" stop-color="#182035" />
+      <stop offset="60%" stop-color="#0b0e17" />
+      <stop offset="100%" stop-color="#05070d" />
+    </radialGradient>
+
+    <!-- Neon Cyan & Magenta Gradients -->
+    <linearGradient id="neonCyan192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff" />
+      <stop offset="100%" stop-color="#7000ff" />
+    </linearGradient>
+
+    <linearGradient id="neonMagenta192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff007a" />
+      <stop offset="100%" stop-color="#ff8c00" />
+    </linearGradient>
+
+    <linearGradient id="goldGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd700" />
+      <stop offset="100%" stop-color="#ff8800" />
+    </linearGradient>
+
+    <filter id="glowCyan192" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Base Rounded Rectangle for App Icon -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad192)" />
+  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#neonCyan192)" stroke-width="6" opacity="0.7" />
+
+  <!-- Card 1: Back Card (Magenta) -->
+  <g transform="translate(256,236) rotate(-16) translate(-100,-140)">
+    <rect width="200" height="280" rx="24" fill="#0c1020" stroke="url(#neonMagenta192)" stroke-width="8" filter="url(#glowCyan192)" />
+    <text x="100" y="155" font-family="'Sora', 'Arial Black', sans-serif" font-weight="900" font-size="44" fill="#ff007a" text-anchor="middle">UNO</text>
+  </g>
+
+  <!-- Card 2: Front Card (Cyan Neon) -->
+  <g transform="translate(256,256) rotate(10) translate(-100,-140)">
+    <rect width="200" height="280" rx="24" fill="#0d1428" stroke="url(#neonCyan192)" stroke-width="10" filter="url(#glowCyan192)" />
+    <ellipse cx="100" cy="140" rx="72" ry="106" fill="url(#neonCyan192)" opacity="0.15" />
+    
+    <!-- Central UNO Emblem -->
+    <text x="100" y="160" font-family="'Sora', 'Arial Black', sans-serif" font-weight="900" font-size="58" fill="#ffffff" text-anchor="middle">UNO</text>
+    <text x="32" y="56" font-family="'Sora', sans-serif" font-weight="900" font-size="32" fill="#00f0ff">7</text>
+    <text x="168" y="246" font-family="'Sora', sans-serif" font-weight="900" font-size="32" fill="#00f0ff" text-anchor="end">7</text>
+  </g>
+
+  <!-- App Title Banner: NEO-UNO -->
+  <g transform="translate(256, 420)">
+    <rect x="-140" y="-30" width="280" height="56" rx="28" fill="#0c101d" stroke="url(#goldGrad192)" stroke-width="4" />
+    <text x="0" y="8" font-family="'Sora', 'Plus Jakarta Sans', sans-serif" font-weight="900" font-size="28" fill="url(#goldGrad192)" text-anchor="middle" letter-spacing="4">NEO • UNO</text>
+  </g>
+</svg>
