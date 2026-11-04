@@ -522,6 +522,12 @@ exports.getMyMatchHistory = async (req, res) => {
       else if (pEntry.rank === 3) rank3Count++;
       else rank4Count++;
 
+      const isReplayExpired = Boolean(
+        !m.turnLogs ||
+        m.turnLogs.length === 0 ||
+        (Date.now() - new Date(m.createdAt).getTime() > 7 * 24 * 60 * 60 * 1000)
+      );
+
       formattedMatches.push({
         _id: m._id,
         roomCode: m.roomCode,
@@ -530,6 +536,7 @@ exports.getMyMatchHistory = async (req, res) => {
         durationSeconds: m.durationSeconds,
         createdAt: m.createdAt,
         winner: m.winner,
+        isReplayAvailable: !isReplayExpired,
         myResult: {
           rank: pEntry.rank,
           isWin: isWinner,
@@ -640,6 +647,27 @@ exports.getMatchReplay = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Không tìm thấy dữ liệu ván đấu yêu cầu!',
+      });
+    }
+
+    // Kiểm tra thời hạn 7 ngày: Nếu quá 7 ngày và turnLogs đã được giải phóng
+    const isExpired = Date.now() - new Date(match.createdAt).getTime() > 7 * 24 * 60 * 60 * 1000;
+    if (isExpired && (!match.turnLogs || match.turnLogs.length === 0)) {
+      return res.status(200).json({
+        success: false,
+        isExpired: true,
+        message: 'Dữ liệu Replay của ván đấu này đã hết hạn lưu trữ (chỉ lưu trong 7 ngày để tối ưu hệ thống).',
+        match: {
+          _id: match._id,
+          roomCode: match.roomCode,
+          mode: match.mode,
+          winner: match.winner,
+          reason: match.reason,
+          durationSeconds: match.durationSeconds,
+          createdAt: match.createdAt,
+          players: match.players,
+          turnLogs: [],
+        },
       });
     }
 

@@ -12,6 +12,7 @@ const CARD_COLORS = {
 export default function MatchReplayModal({ isOpen, onClose, matchId, onOpenReport }) {
   const [loading, setLoading] = useState(false);
   const [matchData, setMatchData] = useState(null);
+  const [isExpired, setIsExpired] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1); // 1, 1.5, 2
@@ -24,13 +25,17 @@ export default function MatchReplayModal({ isOpen, onClose, matchId, onOpenRepor
 
     let isMounted = true;
     setLoading(true);
+    setIsExpired(false);
     setCurrentStep(0);
     setIsPlaying(false);
 
     matchApi.getMatchReplay(matchId).then((res) => {
       if (!isMounted) return;
       setLoading(false);
-      if (res && res.success && res.match) {
+      if (res && res.isExpired) {
+        setIsExpired(true);
+        setMatchData(res.match || null);
+      } else if (res && res.success && res.match) {
         setMatchData(res.match);
       } else {
         setMatchData(null);
@@ -194,7 +199,25 @@ export default function MatchReplayModal({ isOpen, onClose, matchId, onOpenRepor
         </div>
 
         {/* Content Body */}
-        {loading ? (
+        {isExpired ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-12 text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-3xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-3xl mb-4 shadow-[0_0_20px_rgba(251,191,36,0.2)]">
+              ⏱️
+            </div>
+            <h4 className="text-base font-black text-amber-300 uppercase mb-2">
+              DỮ LIỆU REPLAY ĐÃ HẾT HẠN
+            </h4>
+            <p className="text-xs text-slate-300 leading-relaxed mb-6">
+              Ván đấu này đã diễn ra hơn <strong>7 ngày trước</strong>. Để bảo vệ máy chủ luôn mượt mà và tối ưu hóa dung lượng cơ sở dữ liệu, các nước đi chi tiết đã được tự động dọn dẹp.
+            </p>
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all border border-white/10 cursor-pointer"
+            >
+              Quay Lại Lịch Sử
+            </button>
+          </div>
+        ) : loading ? (
           <div className="flex-1 flex flex-col items-center justify-center p-16 gap-4">
             <div className="w-12 h-12 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin shadow-[0_0_20px_rgba(0,210,255,0.5)]" />
             <p className="text-xs font-bold text-cyan-300 animate-pulse">Đang nạp dữ liệu Replay ván đấu...</p>

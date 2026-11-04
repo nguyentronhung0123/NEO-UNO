@@ -523,17 +523,27 @@ export default function MatchHistoryModal({ isOpen, onClose, onOpenAuth, onPlayN
                       </div>
 
                       {/* Nút Xem Lại Ván Đấu (Match Replay) */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setReplayMatchId(m._id);
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-black transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,210,255,0.2)] hover:scale-105 cursor-pointer"
-                        title="Xem lại chi tiết từng lượt đánh của ván đấu"
-                      >
-                        <span>▶️</span>
-                        <span className="hidden sm:inline">Replay</span>
-                      </button>
+                      {m.isReplayAvailable !== false ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReplayMatchId(m._id);
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-black transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,210,255,0.2)] hover:scale-105 cursor-pointer"
+                          title="Xem lại chi tiết từng lượt đánh của ván đấu"
+                        >
+                          <span>▶️</span>
+                          <span className="hidden sm:inline">Replay</span>
+                        </button>
+                      ) : (
+                        <div
+                          className="px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-500 text-xs font-medium flex items-center gap-1 cursor-not-allowed select-none"
+                          title="Dữ liệu Replay tự động dọn dẹp sau 7 ngày để tối ưu hệ thống"
+                        >
+                          <span>⏱️</span>
+                          <span className="hidden sm:inline">Hết hạn</span>
+                        </div>
+                      )}
 
                       {/* Nút Xem Chi Tiết Accordion */}
                       <button
@@ -641,10 +651,10 @@ export default function MatchHistoryModal({ isOpen, onClose, onOpenAuth, onPlayN
         </div>
 
         {/* ================= FOOTER ================= */}
-        <div className="px-6 py-4 border-t border-white/10 bg-[#0c101a] flex items-center justify-between text-xs text-slate-400">
+        <div className="px-6 py-4 border-t border-white/10 bg-[#0c101a] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Đồng bộ thời gian thực với Cloud Database</span>
+            <span>Lưu tối đa 100 trận gần nhất • Replay khả dụng trong 7 ngày</span>
           </div>
 
           <button

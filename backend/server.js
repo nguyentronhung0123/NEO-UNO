@@ -83,6 +83,14 @@ connectDB().then(async () => {
   // Tự động đồng bộ tài khoản cũ sang MongoDB nếu có
   await migrateExistingUsers();
 
+  // Khởi động chu trình tối ưu CSDL: Dọn dẹp Replay > 7 ngày & giới hạn 100 trận gần nhất
+  const { runMatchRetentionCleanup } = require('./utils/matchRetention');
+  runMatchRetentionCleanup().catch((err) => console.warn('[Retention Init Warning]:', err.message));
+  // Định kỳ chạy dọn dẹp mỗi 6 tiếng một lần
+  setInterval(() => {
+    runMatchRetentionCleanup().catch((err) => console.warn('[Retention Interval Warning]:', err.message));
+  }, 6 * 60 * 60 * 1000);
+
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.error(`[BE] ⚠️ Cổng ${PORT} đang bị tiến trình khác chiếm dụng! Vui lòng tắt server cũ trước khi khởi động.`);
