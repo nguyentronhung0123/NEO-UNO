@@ -2454,7 +2454,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                     <span className="text-slate-400 font-mono text-[11px]">{r.cardsRemaining} lá</span>
 
                     {/* Nút tố cáo đối thủ */}
-                    {!r.isBot && r.name !== currentUser?.nickname && (
+                    {!r.isBot && r.name !== (user?.nickname || user?.name) && (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -2463,7 +2463,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                             id: r.userId || r.name,
                             name: r.name,
                             matchId: gameResult.matchId,
-                            roomCode,
+                            roomCode: room?.code || gameState?.roomCode || 'ONLINE_ROOM',
                           });
                         }}
                         title={`Tố cáo người chơi ${r.name}`}
