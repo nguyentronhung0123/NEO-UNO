@@ -232,20 +232,20 @@ export default function AudioSettingsModal({ isOpen, onClose }) {
                 disabled={!settings.bgmEnabled || settings.isMuted}
                 className={`p-2.5 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                   settings.currentTrack === 'battle'
-                    ? 'bg-rose-500/20 border-rose-400/60 shadow-[0_0_15px_rgba(244,63,94,0.25)]'
+                    ? 'bg-emerald-500/20 border-emerald-400/60 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
                     : 'bg-white/5 border-white/5 hover:bg-white/10 text-slate-300'
                 } disabled:opacity-40 disabled:cursor-not-allowed`}
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-base">⚔️</span>
+                  <span className="text-base">🍃</span>
                   <div>
-                    <div className="text-xs font-bold text-slate-200">Bàn Đấu Kịch Tính</div>
-                    <div className="text-[10px] text-slate-400">Intense Beat 124 BPM</div>
+                    <div className="text-xs font-bold text-slate-200">Bàn Đấu Êm Dịu</div>
+                    <div className="text-[10px] text-slate-400">Ambient Lo-Fi Thư Thái</div>
                   </div>
                 </div>
                 {settings.currentTrack === 'battle' ? (
-                  <span className="flex items-center gap-1 text-[10px] font-bold text-rose-400">
-                    <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                     ĐANG PHÁT
                   </span>
                 ) : (

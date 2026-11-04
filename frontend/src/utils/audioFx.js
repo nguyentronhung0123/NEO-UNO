@@ -341,83 +341,98 @@ class SoundEngine {
 
     if (!this.settings.bgmEnabled || this.settings.isMuted) return;
 
-    // Giai điệu Bàn Đấu Dồn Dập (124 BPM -> 1 nhịp = 483ms, 16th note = 120ms)
-    // Chuỗi Dm (Rê thứ) -> Bb -> F -> C
-    const battleChords = [
-      { root: 146.83, notes: [293.66, 349.23, 440.00, 587.33] }, // Dm
-      { root: 116.54, notes: [233.08, 293.66, 349.23, 466.16] }, // Bb
-      { root: 174.61, notes: [349.23, 440.00, 523.25, 698.46] }, // F
-      { root: 130.81, notes: [261.63, 329.63, 392.00, 523.25] }  // C
+    // Giai điệu Bàn Đấu Êm Dịu, Thư Thái (Ambient Lo-Fi & Gentle Harmony ~75 BPM)
+    // Sử dụng sóng Sine & Triangle ấm áp, không còn tiếng trống dồn dập
+    const chillChords = [
+      {
+        bass: 73.42, // D2
+        pad: [174.61, 220.00, 261.63, 329.63], // F3, A3, C4, E4 (Dm9)
+        melody: [440.00, 523.25, 659.25, 523.25] // A4, C5, E5, C5
+      },
+      {
+        bass: 98.00, // G2
+        pad: [196.00, 246.94, 293.66, 349.23], // G3, B3, D4, F4 (G7)
+        melody: [392.00, 493.88, 587.33, 493.88] // G4, B4, D5, B4
+      },
+      {
+        bass: 65.41, // C2
+        pad: [164.81, 196.00, 246.94, 293.66], // E3, G3, B3, D4 (Cmaj9)
+        melody: [523.25, 659.25, 783.99, 659.25] // C5, E5, G5, E5
+      },
+      {
+        bass: 87.31, // F2
+        pad: [174.61, 220.00, 261.63, 329.63], // F3, A3, C4, E4 (Fmaj7)
+        melody: [349.23, 440.00, 523.25, 440.00] // F4, A4, C5, A4
+      }
     ];
 
     let chordIdx = 0;
-    const stepTime = 0.22; // giây
+    const measureDuration = 2.4; // 2.4 giây mỗi ô nhịp (dịu êm, thư thái)
 
-    const playBattleMeasure = () => {
+    const playChillMeasure = () => {
       if (!this.ctx || this.settings.currentTrack !== 'battle') return;
       const now = this.ctx.currentTime;
-      const cur = battleChords[chordIdx];
-      chordIdx = (chordIdx + 1) % battleChords.length;
+      const cur = chillChords[chordIdx];
+      chordIdx = (chordIdx + 1) % chillChords.length;
 
       try {
-        // 1. Electronic Driving Kick (Punch nhịp trống)
-        [0, 2].forEach((beat) => {
-          const kickOsc = this.ctx.createOscillator();
-          const kickGain = this.ctx.createGain();
-          const t = now + beat * stepTime;
-
-          kickOsc.type = 'sine';
-          kickOsc.frequency.setValueAtTime(140, t);
-          kickOsc.frequency.exponentialRampToValueAtTime(38, t + 0.12);
-
-          kickGain.gain.setValueAtTime(0.3, t);
-          kickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
-
-          kickOsc.connect(kickGain);
-          kickGain.connect(this.getBgmDestination());
-          kickOsc.start(t);
-          kickOsc.stop(t + 0.14);
-        });
-
-        // 2. Punchy Synth Bassline
+        // 1. Tiếng Bass Trầm Ấm Dịu Nhẹ (Warm Sub-bass)
         const bassOsc = this.ctx.createOscillator();
         const bassGain = this.ctx.createGain();
-        bassOsc.type = 'sawtooth';
-        bassOsc.frequency.setValueAtTime(cur.root, now);
+        bassOsc.type = 'triangle';
+        bassOsc.frequency.setValueAtTime(cur.bass, now);
 
-        bassGain.gain.setValueAtTime(0.18, now);
-        bassGain.gain.exponentialRampToValueAtTime(0.01, now + stepTime * 3.8);
+        bassGain.gain.setValueAtTime(0.001, now);
+        bassGain.gain.linearRampToValueAtTime(0.12, now + 0.15);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + measureDuration - 0.1);
 
         bassOsc.connect(bassGain);
         bassGain.connect(this.getBgmDestination());
         bassOsc.start(now);
-        bassOsc.stop(now + stepTime * 3.8);
+        bassOsc.stop(now + measureDuration);
 
-        // 3. Fast High Arpeggios (Tăng kịch tính)
-        cur.notes.forEach((freq, i) => {
-          const arp = this.ctx.createOscillator();
-          const g = this.ctx.createGain();
-          const t = now + i * stepTime;
+        // 2. Lofi Rhodes / Dream Ambient Pad (Thanh khiết, không chói gắt)
+        cur.pad.forEach((freq, idx) => {
+          const padOsc = this.ctx.createOscillator();
+          const padGain = this.ctx.createGain();
+          padOsc.type = 'sine';
+          padOsc.frequency.setValueAtTime(freq, now);
 
-          arp.type = 'square';
-          arp.frequency.setValueAtTime(freq, t);
+          padGain.gain.setValueAtTime(0.001, now);
+          padGain.gain.linearRampToValueAtTime(0.035, now + 0.3 + idx * 0.05);
+          padGain.gain.exponentialRampToValueAtTime(0.001, now + measureDuration - 0.05);
 
-          g.gain.setValueAtTime(0.001, t);
-          g.gain.linearRampToValueAtTime(0.08, t + 0.02);
-          g.gain.exponentialRampToValueAtTime(0.001, t + stepTime * 1.2);
+          padOsc.connect(padGain);
+          padGain.connect(this.getBgmDestination());
+          padOsc.start(now);
+          padOsc.stop(now + measureDuration);
+        });
 
-          arp.connect(g);
-          g.connect(this.getBgmDestination());
-          arp.start(t);
-          arp.stop(t + stepTime * 1.2);
+        // 3. Tiếng Chuông Gió Thư Giãn (Delicate Music Box Drops)
+        cur.melody.forEach((freq, i) => {
+          const bellOsc = this.ctx.createOscillator();
+          const bellGain = this.ctx.createGain();
+          const t = now + 0.3 + i * (measureDuration / 4.5);
+
+          bellOsc.type = 'sine';
+          bellOsc.frequency.setValueAtTime(freq, t);
+
+          bellGain.gain.setValueAtTime(0.001, t);
+          bellGain.gain.linearRampToValueAtTime(0.038, t + 0.04);
+          bellGain.gain.exponentialRampToValueAtTime(0.0005, t + 0.65);
+
+          bellOsc.connect(bellGain);
+          bellGain.connect(this.getBgmDestination());
+          bellOsc.start(t);
+          bellOsc.stop(t + 0.65);
         });
       } catch (e) {
         // Ignored
       }
     };
 
-    playBattleMeasure();
-    this.bgmInterval = setInterval(playBattleMeasure, stepTime * 4 * 1000);
+    playChillMeasure();
+    this.bgmInterval = setInterval(playChillMeasure, measureDuration * 1000);
   }
 
   stopBGM(immediate = false) {
