@@ -41,6 +41,38 @@ const matchSchema = new mongoose.Schema(
         isForfeit: { type: Boolean, default: false },
       },
     ],
+    initialState: {
+      startPlayerId: { type: String, default: null },
+      startCard: { type: mongoose.Schema.Types.Mixed, default: null },
+      playerHands: [
+        {
+          id: { type: String, required: true },
+          name: { type: String, required: true },
+          initialCount: { type: Number, default: 7 },
+        },
+      ],
+    },
+    turnLogs: [
+      {
+        turnNumber: { type: Number, required: true },
+        timestamp: { type: Number, default: Date.now },
+        playerId: { type: String, required: true },
+        playerName: { type: String, required: true },
+        isBot: { type: Boolean, default: false },
+        actionType: {
+          type: String,
+          enum: ['play_card', 'draw_card', 'pass_turn', 'call_uno', 'catch_uno', 'choose_color'],
+          required: true,
+        },
+        cardPlayed: { type: mongoose.Schema.Types.Mixed, default: null },
+        chosenColor: { type: String, default: null },
+        cardsRemaining: { type: Number, default: 0 },
+        topDiscardCard: { type: mongoose.Schema.Types.Mixed, default: null },
+        currentColor: { type: String, default: null },
+        description: { type: String, default: '' },
+        specialEffect: { type: String, default: null },
+      },
+    ],
   },
   {
     timestamps: true,

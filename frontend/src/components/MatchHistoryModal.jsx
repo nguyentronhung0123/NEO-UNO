@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { matchApi } from '../apis/matchApi';
+import MatchReplayModal from './MatchReplayModal';
+import ReportModal from './ReportModal';
 
 export default function MatchHistoryModal({ isOpen, onClose, onOpenAuth, onPlayNow }) {
   const [loading, setLoading] = useState(false);
@@ -8,6 +10,8 @@ export default function MatchHistoryModal({ isOpen, onClose, onOpenAuth, onPlayN
   const [filter, setFilter] = useState('all'); // 'all', 'win', 'loss'
   const [modeFilter, setModeFilter] = useState('all'); // 'all', '1v1', '3p', '4p'
   const [expandedMatchId, setExpandedMatchId] = useState(null);
+  const [replayMatchId, setReplayMatchId] = useState(null);
+  const [reportTarget, setReportTarget] = useState(null);
 
   // Lấy dữ liệu lịch sử đấu từ API
   const fetchHistory = async () => {
@@ -518,6 +522,19 @@ export default function MatchHistoryModal({ isOpen, onClose, onOpenAuth, onPlayN
                         </div>
                       </div>
 
+                      {/* Nút Xem Lại Ván Đấu (Match Replay) */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReplayMatchId(m._id);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-black transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,210,255,0.2)] hover:scale-105 cursor-pointer"
+                        title="Xem lại chi tiết từng lượt đánh của ván đấu"
+                      >
+                        <span>▶️</span>
+                        <span className="hidden sm:inline">Replay</span>
+                      </button>
+
                       {/* Nút Xem Chi Tiết Accordion */}
                       <button
                         onClick={() => toggleExpand(m._id)}
@@ -576,21 +593,40 @@ export default function MatchHistoryModal({ isOpen, onClose, onOpenAuth, onPlayN
                                   </div>
                                 </div>
 
-                                <div className="text-right flex-shrink-0">
-                                  <div className="text-[11px] font-black text-amber-300">
-                                    Hạng {p.rank}
+                                <div className="flex items-center gap-2">
+                                  <div className="text-right flex-shrink-0">
+                                    <div className="text-[11px] font-black text-amber-300">
+                                      Hạng {p.rank}
+                                    </div>
+                                    <div
+                                      className={`text-[10px] font-bold ${
+                                        p.eloDelta > 0
+                                          ? 'text-emerald-400'
+                                          : p.eloDelta < 0
+                                          ? 'text-rose-400'
+                                          : 'text-slate-400'
+                                      }`}
+                                    >
+                                      {p.eloDelta > 0 ? `+${p.eloDelta}` : p.eloDelta} ELO
+                                    </div>
                                   </div>
-                                  <div
-                                    className={`text-[10px] font-bold ${
-                                      p.eloDelta > 0
-                                        ? 'text-emerald-400'
-                                        : p.eloDelta < 0
-                                        ? 'text-rose-400'
-                                        : 'text-slate-400'
-                                    }`}
-                                  >
-                                    {p.eloDelta > 0 ? `+${p.eloDelta}` : p.eloDelta} ELO
-                                  </div>
+
+                                  {!isMe && (
+                                    <button
+                                      onClick={() => {
+                                        setReportTarget({
+                                          id: p.id,
+                                          name: p.name,
+                                          matchId: m._id,
+                                          roomCode: m.roomCode,
+                                        });
+                                      }}
+                                      title={`Tố cáo vi phạm người chơi ${p.name}`}
+                                      className="w-7 h-7 rounded-lg bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 hover:border-rose-500/50 flex items-center justify-center text-xs transition-colors cursor-pointer"
+                                    >
+                                      ⚠️
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -619,6 +655,28 @@ export default function MatchHistoryModal({ isOpen, onClose, onOpenAuth, onPlayN
           </button>
         </div>
       </div>
+
+      {/* Modal Xem Lại Trận Đấu (Replay) */}
+      {replayMatchId && (
+        <MatchReplayModal
+          isOpen={Boolean(replayMatchId)}
+          onClose={() => setReplayMatchId(null)}
+          matchId={replayMatchId}
+          onOpenReport={(reportInfo) => setReportTarget(reportInfo)}
+        />
+      )}
+
+      {/* Modal Tố Cáo Vi Phạm (Report) */}
+      {reportTarget && (
+        <ReportModal
+          isOpen={Boolean(reportTarget)}
+          onClose={() => setReportTarget(null)}
+          targetUser={reportTarget}
+          matchId={reportTarget.matchId}
+          roomCode={reportTarget.roomCode}
+          evidenceTurn={reportTarget.evidenceTurn}
+        />
+      )}
     </div>
   );
 }

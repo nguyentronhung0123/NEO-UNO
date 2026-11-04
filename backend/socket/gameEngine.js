@@ -228,6 +228,19 @@ class OnlineGame {
     this.penalizedThisTurn = false; // Đánh dấu đã bị phạt trong lượt này (chống phạt kép 2 lá UNO + 2 lá AFK)
     this.turnNumber = 1; // Số thứ tự lượt tăng dần, giúp frontend nhận diện lượt mới chính xác 100%
 
+    // Nhật ký chi tiết ván đấu phục vụ Match Replay & SOC Audit (Task 3 - Tuần 4)
+    this.turnLogs = [];
+    this.initialState = {
+      startPlayerId: this.players[0] ? String(this.players[0].userId || this.players[0].name) : null,
+      startCard: { id: startCard.id, color: startCard.color, value: startCard.value },
+      playerHands: this.players.map((p) => ({
+        id: String(p.userId || p.name),
+        name: p.name,
+        initialCount: p.hand.length,
+      })),
+    };
+    this.lastMatchId = null;
+
     this.timerInterval = null;
     this.botTimeout = null;
     this.botUnoTimer = null;
@@ -237,6 +250,41 @@ class OnlineGame {
     // Phát trạng thái bàn cờ ban đầu ngay lập tức
     this.broadcastState();
     this.startTimers();
+  }
+
+  // Ghi nhận nhật ký nước đi vào ván đấu (Task 3 - Match Replay)
+  recordTurnLog({
+    actionType,
+    playerId,
+    playerName,
+    isBot = false,
+    cardPlayed = null,
+    chosenColor = null,
+    cardsRemaining = 0,
+    description = '',
+    specialEffect = null,
+  }) {
+    const logEntry = {
+      turnNumber: this.turnLogs.length + 1,
+      timestamp: Date.now(),
+      playerId: String(playerId),
+      playerName: playerName || 'Người chơi',
+      isBot: Boolean(isBot),
+      actionType,
+      cardPlayed: cardPlayed ? { id: cardPlayed.id, color: cardPlayed.color, value: cardPlayed.value } : null,
+      chosenColor: chosenColor || null,
+      cardsRemaining: typeof cardsRemaining === 'number' ? cardsRemaining : 0,
+      topDiscardCard: this.discardPile.length > 0 ? {
+        id: this.discardPile[this.discardPile.length - 1].id,
+        color: this.discardPile[this.discardPile.length - 1].color,
+        value: this.discardPile[this.discardPile.length - 1].value,
+      } : null,
+      currentColor: this.activeColor,
+      description,
+      specialEffect,
+    };
+    this.turnLogs.push(logEntry);
+    return logEntry;
   }
 
   // Chuyển lượt sau khi hiệu ứng hoạt ảnh kết thúc trơn tru (chống giật và cắt hiệu ứng)
@@ -678,6 +726,18 @@ class OnlineGame {
         action: card.value,
       });
 
+      this.recordTurnLog({
+        actionType: 'play_card',
+        playerId: bot.userId || bot.name,
+        playerName: bot.name,
+        isBot: true,
+        cardPlayed: card,
+        chosenColor: card.color === 'wild' ? this.activeColor : null,
+        cardsRemaining: bot.hand.length,
+        description: `${bot.name} đánh lá ${card.color.toUpperCase()} ${card.value}${card.color === 'wild' ? ` (Đổi màu sang ${this.activeColor.toUpperCase()})` : ''}`,
+        specialEffect: ['draw_two', 'skip', 'reverse', 'wild_draw_four'].includes(card.value) ? card.value : null,
+      });
+
       if (bot.hand.length === 1) this.triggerBotUnoCall(bot);
       if (bot.hand.length === 0) {
         this.finishGame(bot);
@@ -983,6 +1043,19 @@ class OnlineGame {
       this.activeColor = card.color;
     }
 
+    // Ghi nhật ký nước đánh (Task 3 - Match Replay)
+    this.recordTurnLog({
+      actionType: 'play_card',
+      playerId: curPlayer.userId || curPlayer.name,
+      playerName: curPlayer.name,
+      isBot: Boolean(curPlayer.isBot),
+      cardPlayed: card,
+      chosenColor: card.color === 'wild' ? this.activeColor : null,
+      cardsRemaining: curPlayer.hand.length,
+      description: `${curPlayer.name} đánh lá ${card.color.toUpperCase()} ${card.value}${card.color === 'wild' ? ` (Đổi màu sang ${this.activeColor.toUpperCase()})` : ''}`,
+      specialEffect: ['draw_two', 'skip', 'reverse', 'wild_draw_four'].includes(card.value) ? card.value : null,
+    });
+
     // Phát sự kiện đánh bài cho tất cả client tạo hiệu ứng
     this.io.to(this.roomCode).emit('game:card_played', {
       seatIndex: curPlayer.seatIndex,
@@ -1172,6 +1245,16 @@ class OnlineGame {
         playerName: curPlayer.name,
       });
 
+      this.recordTurnLog({
+        actionType: 'draw_card',
+        playerId: curPlayer.userId || curPlayer.name,
+        playerName: curPlayer.name,
+        isBot: Boolean(curPlayer.isBot),
+        cardsRemaining: curPlayer.hand.length,
+        description: `💥 ${curPlayer.name} nhận +${count} lá phạt và mất lượt!`,
+        specialEffect: 'draw_two_penalty',
+      });
+
       const animDelay = Math.max(1600, count * 380 + 400);
       this.scheduleTurnTransition(animDelay, 1);
 
@@ -1196,6 +1279,15 @@ class OnlineGame {
       seatIndex: curPlayer.seatIndex,
       count: 1,
       playerName: curPlayer.name,
+    });
+
+    this.recordTurnLog({
+      actionType: 'draw_card',
+      playerId: curPlayer.userId || curPlayer.name,
+      playerName: curPlayer.name,
+      isBot: Boolean(curPlayer.isBot),
+      cardsRemaining: curPlayer.hand.length,
+      description: `${curPlayer.name} rút 1 lá bài.`,
     });
 
     // Kiểm tra xem sau khi bốc, người chơi có lá nào đánh được không
@@ -1266,6 +1358,15 @@ class OnlineGame {
       message: `↷ ${curPlayer.name} đã bỏ lượt.`,
     });
 
+    this.recordTurnLog({
+      actionType: 'pass_turn',
+      playerId: curPlayer.userId || curPlayer.name,
+      playerName: curPlayer.name,
+      isBot: Boolean(curPlayer.isBot),
+      cardsRemaining: curPlayer.hand.length,
+      description: `${curPlayer.name} đã bỏ lượt.`,
+    });
+
     // Chuyển lượt an toàn qua scheduleTurnTransition (tự động reset isTransitioning và đồng bộ state)
     this.scheduleTurnTransition(400, 1);
     return { success: true };
@@ -1293,6 +1394,15 @@ class OnlineGame {
         seatIndex: player.seatIndex,
         playerName: player.name,
         message: `🎉 ${player.name} đã hô UNO!`,
+      });
+
+      this.recordTurnLog({
+        actionType: 'call_uno',
+        playerId: player.userId || player.name,
+        playerName: player.name,
+        isBot: Boolean(player.isBot),
+        cardsRemaining: player.hand.length,
+        description: `🎉 ${player.name} đã hô UNO! Còn ${player.hand.length} lá trên tay.`,
       });
       this.broadcastState();
 
@@ -1338,6 +1448,16 @@ class OnlineGame {
         count: penaltyCards.length,
         isPenalty: true,
         playerName: forgotOpponent.name,
+      });
+
+      this.recordTurnLog({
+        actionType: 'catch_uno',
+        playerId: player.userId || player.name,
+        playerName: player.name,
+        isBot: Boolean(player.isBot),
+        cardsRemaining: player.hand.length,
+        description: `🎯 ${player.name} bắt quả tang ${forgotOpponent.name} quên hô UNO! Phạt bốc 2 lá.`,
+        specialEffect: 'catch_uno_penalty',
       });
 
       this.broadcastState();
@@ -1504,7 +1624,7 @@ class OnlineGame {
           ? '3p'
           : '4p';
 
-      await Match.create({
+      const createdMatch = await Match.create({
         roomCode: this.roomCode,
         mode: modeKey,
         winner: {
@@ -1515,8 +1635,11 @@ class OnlineGame {
         reason,
         durationSeconds: Math.floor((Date.now() - (this.startTime || Date.now())) / 1000),
         players: matchPlayers,
+        initialState: this.initialState,
+        turnLogs: this.turnLogs,
       });
-      console.log(`[Rank Engine] 📝 Đã lưu lịch sử trận đấu xếp hạng phòng ${this.roomCode} vào MongoDB Atlas!`);
+      this.lastMatchId = createdMatch._id;
+      console.log(`[Rank Engine] 📝 Đã lưu lịch sử trận đấu xếp hạng phòng ${this.roomCode} (ID: ${createdMatch._id}, ${this.turnLogs.length} nước đi) vào MongoDB Atlas!`);
     } catch (matchErr) {
       console.error('[Rank Engine] Lỗi lưu Match record:', matchErr);
     }
@@ -1553,6 +1676,47 @@ class OnlineGame {
         cardsRemaining: p.hand.length,
         isBot: p.isBot,
       }));
+
+      // Lưu ván đấu thường (bao gồm đấu với Bot AI) để phục vụ Match Replay & Tố cáo
+      try {
+        const totalPlayerCount = this.players.length;
+        const modeKey = totalPlayerCount === 2 ? '1v1' : totalPlayerCount === 3 ? '3p' : '4p';
+        const matchPlayers = this.players.map((p, idx) => {
+          const rankIdx = sortedRankings.findIndex((sp) => sp.seatIndex === p.seatIndex);
+          return {
+            id: String(p.userId || p.name),
+            name: p.name,
+            isHuman: !p.isBot,
+            avatar: p.avatar || '👤',
+            rank: rankIdx !== -1 ? rankIdx + 1 : idx + 1,
+            cardsRemaining: p.hand.length,
+            eloDelta: 0,
+            coinsDelta: 0,
+            expDelta: 0,
+            newElo: 1000,
+            isForfeit: Boolean(p.forfeited),
+          };
+        });
+
+        const createdMatch = await Match.create({
+          roomCode: this.roomCode,
+          mode: modeKey,
+          winner: {
+            id: String(winnerPlayer.userId || winnerPlayer.name),
+            name: winnerPlayer.name,
+            isHuman: !winnerPlayer.isBot,
+          },
+          reason: 'out_of_cards',
+          durationSeconds: Math.floor((Date.now() - (this.startTime || Date.now())) / 1000),
+          players: matchPlayers,
+          initialState: this.initialState,
+          turnLogs: this.turnLogs,
+        });
+        this.lastMatchId = createdMatch._id;
+        console.log(`[GameEngine] 📝 Đã lưu Match Replay phòng ${this.roomCode} (ID: ${createdMatch._id}, ${this.turnLogs.length} nước đi)`);
+      } catch (err) {
+        console.warn('[GameEngine] Lỗi lưu Match Replay thường:', err.message);
+      }
     }
 
     this.gameResult = {
@@ -1560,6 +1724,7 @@ class OnlineGame {
       rankings: finalRankings,
       isRanked: this.isRanked,
       mode: this.mode,
+      matchId: this.lastMatchId || null,
     };
 
     this.io.to(this.roomCode).emit('game:finished', this.gameResult);
@@ -1604,6 +1769,7 @@ class OnlineGame {
       rankings: finalRankings,
       isRanked: this.isRanked,
       mode: this.mode,
+      matchId: this.lastMatchId || null,
     };
 
     this.io.to(this.roomCode).emit('game:finished', this.gameResult);

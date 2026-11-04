@@ -5,5 +5,6 @@ const matchController = require('../controllers/matchController');
 router.post('/record', matchController.recordMatch);
 router.get('/history', matchController.getMatchHistory);
 router.get('/my-history', matchController.getMyMatchHistory);
+router.get('/:id/replay', matchController.getMatchReplay);
 
 module.exports = router;

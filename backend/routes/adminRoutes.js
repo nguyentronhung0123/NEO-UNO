@@ -20,4 +20,8 @@ router.post('/user/clear-flag', adminController.clearUserFlag);
 // 3. Nhật ký kiểm toán an ninh (Security Audit Logs)
 router.get('/logs', adminController.getSecurityLogs);
 
+// 4. Quản lý Báo cáo Tố cáo (SOC Reports - Task 3)
+router.get('/reports', adminController.getReportsList);
+router.post('/report/:id/resolve', adminController.resolveReport);
+
 module.exports = router;

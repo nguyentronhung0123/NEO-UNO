@@ -66,6 +66,10 @@ app.use('/api/admin', adminRoutes);
 const questRoutes = require('./routes/questRoutes');
 app.use('/api/quests', questRoutes);
 
+// 8. API Báo Cáo Vi Phạm & Tố Cáo (Player Reports - Task 3)
+const reportRoutes = require('./routes/reportRoutes');
+app.use('/api/reports', reportRoutes);
+
 // Bắt lỗi toàn cục chống crash server ngoài ý muốn
 process.on('uncaughtException', (err) => {
   console.error('[BE] ⚠️ Uncaught Exception:', err.message);

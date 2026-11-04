@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Match = require('../models/Match');
 const SecurityLog = require('../models/SecurityLog');
+const Report = require('../models/Report');
 
 /**
  * 1. TỔNG QUAN AN NINH HỆ THỐNG (DASHBOARD STATS)
@@ -12,6 +13,7 @@ exports.getDashboardStats = async (req, res) => {
     const bannedUsers = await User.countDocuments({ isBanned: true });
     const flaggedUsers = await User.countDocuments({ isFlagged: true });
     const totalMatches = await Match.countDocuments();
+    const pendingReports = await Report.countDocuments({ status: 'pending' });
 
     // Tổng hợp Vàng đang lưu thông và ELO trung bình thị trường
     const metrics = await User.aggregate([
@@ -62,6 +64,7 @@ exports.getDashboardStats = async (req, res) => {
         averageElo,
         highestElo,
         securityAlerts24h,
+        pendingReports,
         threatLevel,
       },
       recentLogs,
@@ -506,6 +509,145 @@ exports.getSecurityLogs = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi máy chủ khi truy vấn nhật ký an ninh!',
+    });
+  }
+};
+
+/**
+ * 4. LẤY DANH SÁCH BÁO CÁO TỐ CÁO (SOC REPORTS - Task 3)
+ * GET /api/admin/reports
+ */
+exports.getReportsList = async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(50, parseInt(req.query.limit) || 10);
+    const status = req.query.status; // all, pending, resolved_penalized, dismissed
+    const reason = req.query.reason;
+
+    const query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    if (reason && reason !== 'all') {
+      query.reason = reason;
+    }
+
+    const total = await Report.countDocuments(query);
+    const reports = await Report.find(query)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('reporter', 'nickname avatar email')
+      .populate('targetUser', 'nickname avatar elo coins isBanned isFlagged');
+
+    return res.status(200).json({
+      success: true,
+      reports,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (error) {
+    console.error('[Admin Get Reports Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tải danh sách tố cáo vi phạm!',
+    });
+  }
+};
+
+/**
+ * 5. XỬ LÝ PHIẾU TỐ CÁO (RESOLVE REPORT - Task 3)
+ * POST /api/admin/report/:id/resolve
+ */
+exports.resolveReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action, penaltyAmount, notes } = req.body; // action: 'none' | 'warning' | 'deduct_elo' | 'temp_ban' | 'perm_ban'
+
+    const report = await Report.findById(id);
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy phiếu tố cáo yêu cầu!',
+      });
+    }
+
+    const adminUser = req.user;
+    const targetUser = await User.findById(report.targetUser);
+
+    let newStatus = 'dismissed';
+    let penaltyInfo = '';
+
+    if (action === 'none') {
+      newStatus = 'dismissed';
+      penaltyInfo = 'Bác bỏ tố cáo (Không đủ bằng chứng)';
+    } else {
+      newStatus = 'resolved_penalized';
+      if (action === 'warning') {
+        penaltyInfo = 'Cảnh cáo tài khoản';
+        if (targetUser) {
+          targetUser.isFlagged = true;
+          await targetUser.save();
+        }
+      } else if (action === 'deduct_elo') {
+        const deductVal = Math.max(10, parseInt(penaltyAmount) || 50);
+        penaltyInfo = `Phạt trừ ${deductVal} ELO`;
+        if (targetUser) {
+          targetUser.elo = Math.max(0, targetUser.elo - deductVal);
+          targetUser.isFlagged = true;
+          await targetUser.save();
+        }
+      } else if (action === 'temp_ban' || action === 'perm_ban') {
+        penaltyInfo = action === 'temp_ban' ? 'Khóa tài khoản tạm thời' : 'Khóa tài khoản vĩnh viễn';
+        if (targetUser) {
+          targetUser.isBanned = true;
+          targetUser.banReason = notes || `Bị khóa do vi phạm: ${report.reason}`;
+          await targetUser.save();
+        }
+      }
+    }
+
+    report.status = newStatus;
+    report.resolution = {
+      action: action || 'none',
+      penaltyAmount: parseInt(penaltyAmount) || 0,
+      resolvedBy: adminUser.nickname || 'ADMIN_SOC',
+      resolvedAt: new Date(),
+      notes: notes || penaltyInfo,
+    };
+    await report.save();
+
+    // Ghi nhật ký kiểm toán an ninh
+    await SecurityLog.create({
+      userId: targetUser ? targetUser._id : null,
+      action: 'ADMIN_RESOLVE_REPORT',
+      severity: action === 'none' ? 'info' : 'warning',
+      details: {
+        reportId: report._id,
+        reporterName: report.reporterName,
+        targetUserName: report.targetUserName,
+        action,
+        penaltyAmount,
+        notes,
+      },
+      performedBy: adminUser.nickname || 'ADMIN_SOC',
+      ipAddress: req.ip || req.connection?.remoteAddress,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Đã xử lý tố cáo thành công! (${penaltyInfo})`,
+      report,
+    });
+  } catch (error) {
+    console.error('[Admin Resolve Report Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi xử lý phiếu tố cáo vi phạm!',
     });
   }
 };

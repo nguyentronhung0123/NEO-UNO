@@ -7,6 +7,8 @@ import { soundEngine } from '../utils/audioFx';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
 import AudioSettingsModal from '../components/AudioSettingsModal';
+import MatchReplayModal from '../components/MatchReplayModal';
+import ReportModal from '../components/ReportModal';
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -119,6 +121,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isAudioSettingsOpen, setIsAudioSettingsOpen] = useState(false);
+  const [isReplayOpen, setIsReplayOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState(null);
 
   // QUẢN LÝ NHẠC NỀN BÀN ĐẤU ONLINE (TASK 1 - TUẦN 4)
   useEffect(() => {
@@ -2448,10 +2452,42 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       </span>
                     )}
                     <span className="text-slate-400 font-mono text-[11px]">{r.cardsRemaining} lá</span>
+
+                    {/* Nút tố cáo đối thủ */}
+                    {!r.isBot && r.name !== currentUser?.nickname && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReportTarget({
+                            id: r.userId || r.name,
+                            name: r.name,
+                            matchId: gameResult.matchId,
+                            roomCode,
+                          });
+                        }}
+                        title={`Tố cáo người chơi ${r.name}`}
+                        className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer text-xs"
+                      >
+                        ⚠️
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Nút Xem lại ván đấu (Replay) nếu có matchId */}
+            {gameResult.matchId && (
+              <button
+                type="button"
+                onClick={() => setIsReplayOpen(true)}
+                className="w-full py-2.5 mb-2.5 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(0,210,255,0.25)] hover:scale-[1.01] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-base">play_circle</span>
+                <span>XEM LẠI VÁN ĐẤU (REPLAY)</span>
+              </button>
+            )}
 
             {/* Thanh đếm ngược 120s tự động quay về sảnh */}
             <div className="w-full mb-3 px-3.5 py-2 rounded-2xl bg-black/40 border border-white/10 flex flex-col gap-1.5 shadow-inner">
@@ -2532,6 +2568,28 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         isOpen={isAudioSettingsOpen}
         onClose={() => setIsAudioSettingsOpen(false)}
       />
+
+      {/* MODAL XEM LẠI TRẬN ĐẤU (TASK 3 - TUẦN 4) */}
+      {isReplayOpen && gameResult?.matchId && (
+        <MatchReplayModal
+          isOpen={isReplayOpen}
+          onClose={() => setIsReplayOpen(false)}
+          matchId={gameResult.matchId}
+          onOpenReport={(reportInfo) => setReportTarget(reportInfo)}
+        />
+      )}
+
+      {/* MODAL TỐ CÁO VI PHẠM (TASK 3 - TUẦN 4) */}
+      {reportTarget && (
+        <ReportModal
+          isOpen={Boolean(reportTarget)}
+          onClose={() => setReportTarget(null)}
+          targetUser={reportTarget}
+          matchId={reportTarget.matchId}
+          roomCode={reportTarget.roomCode}
+          evidenceTurn={reportTarget.evidenceTurn}
+        />
+      )}
     </main>
   );
 }

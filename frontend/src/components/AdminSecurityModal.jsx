@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { adminApi } from '../apis/adminApi';
+import MatchReplayModal from './MatchReplayModal';
 
 export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
-  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, users, logs
+  const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, users, logs, reports
 
   // 1. Dashboard State
   const [dashboardStats, setDashboardStats] = useState(null);
@@ -33,6 +34,22 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
   const [logSeverityFilter, setLogSeverityFilter] = useState('all');
   const [logActionFilter, setLogActionFilter] = useState('all');
   const [isLogsLoading, setIsLogsLoading] = useState(false);
+
+  // 4. Player Reports State (Task 3 - Tuần 4)
+  const [reportsList, setReportsList] = useState([]);
+  const [reportsPagination, setReportsPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+  const [reportStatusFilter, setReportStatusFilter] = useState('all');
+  const [reportReasonFilter, setReportReasonFilter] = useState('all');
+  const [isReportsLoading, setIsReportsLoading] = useState(false);
+
+  // Sub-modal Report Resolution State
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [resolveAction, setResolveAction] = useState('deduct_elo'); // 'none', 'warning', 'deduct_elo', 'temp_ban', 'perm_ban'
+  const [resolvePenaltyInput, setResolvePenaltyInput] = useState('50');
+  const [resolveNotesInput, setResolveNotesInput] = useState('');
+  const [isSubmittingResolve, setIsSubmittingResolve] = useState(false);
+  const [resolveMessage, setResolveMessage] = useState(null);
+  const [socReplayMatchId, setSocReplayMatchId] = useState(null);
 
   // Load Dashboard Data
   const loadDashboard = useCallback(async () => {
@@ -77,6 +94,22 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
     setIsLogsLoading(false);
   }, [logSeverityFilter, logActionFilter]);
 
+  // Load Reports Data (Task 3 - Tuần 4)
+  const loadReports = useCallback(async (page = 1) => {
+    setIsReportsLoading(true);
+    const res = await adminApi.getReports({
+      page,
+      limit: 10,
+      status: reportStatusFilter,
+      reason: reportReasonFilter,
+    });
+    if (res && res.success) {
+      setReportsList(res.reports || []);
+      setReportsPagination(res.pagination || { page: 1, totalPages: 1, total: 0 });
+    }
+    setIsReportsLoading(false);
+  }, [reportStatusFilter, reportReasonFilter]);
+
   useEffect(() => {
     if (!isOpen) return;
     if (activeTab === 'dashboard') {
@@ -85,8 +118,34 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
       loadUsers(1);
     } else if (activeTab === 'logs') {
       loadLogs(1);
+    } else if (activeTab === 'reports') {
+      loadReports(1);
     }
-  }, [isOpen, activeTab, loadDashboard, loadUsers, loadLogs]);
+  }, [isOpen, activeTab, loadDashboard, loadUsers, loadLogs, loadReports]);
+
+  // Xử lý Giải quyết Tố cáo Vi phạm (Task 3 - Tuần 4)
+  const handleConfirmResolve = async () => {
+    if (!selectedReport) return;
+    setIsSubmittingResolve(true);
+    setResolveMessage(null);
+    const res = await adminApi.resolveReport(selectedReport._id, {
+      action: resolveAction,
+      penaltyAmount: parseInt(resolvePenaltyInput) || 0,
+      notes: resolveNotesInput.trim(),
+    });
+    setIsSubmittingResolve(false);
+    if (res && res.success) {
+      setResolveMessage({ type: 'success', text: res.message });
+      setTimeout(() => {
+        setResolveMessage(null);
+        setSelectedReport(null);
+        loadReports(reportsPagination.page);
+        loadDashboard();
+      }, 1200);
+    } else {
+      setResolveMessage({ type: 'error', text: res?.message || 'Lỗi khi xử lý tố cáo!' });
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -270,6 +329,23 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
             <span className="material-symbols-outlined text-base">receipt_long</span>
             <span>Nhật Ký Kiểm Toán (Logs)</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('reports')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-xl font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+              activeTab === 'reports'
+                ? 'bg-[#151c30] text-rose-300 border-t-2 border-x border-rose-500 border-b-transparent shadow-[0_-5px_15px_rgba(244,63,94,0.15)]'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">report</span>
+            <span>Báo Cáo Tố Cáo</span>
+            {dashboardStats?.pendingReports > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold animate-pulse">
+                {dashboardStats.pendingReports}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* ================= TAB 1: TỔNG QUAN AN NINH ================= */}
@@ -282,9 +358,9 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
               </div>
             ) : (
               <>
-                {/* 6 Thẻ Metric Chính */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
-                  <div className="p-4 rounded-2xl bg-[#141b2e] border border-cyan-500/20 flex flex-col">
+                {/* 7 Thẻ Metric Chính (Bao gồm Tố cáo vi phạm) */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-[#141b2e] border border-cyan-500/20 flex flex-col">
                     <span className="text-[11px] font-medium text-slate-400">Tổng Người Chơi</span>
                     <span className="font-headline font-black text-2xl text-white mt-1">
                       {dashboardStats?.totalUsers ?? '--'}
@@ -292,7 +368,7 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
                     <span className="text-[10px] text-cyan-400 mt-1">Đã kích hoạt</span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#141b2e] border border-rose-500/30 flex flex-col">
+                  <div className="p-3.5 rounded-2xl bg-[#141b2e] border border-rose-500/30 flex flex-col">
                     <span className="text-[11px] font-medium text-slate-400">Tài Khoản Bị Khóa</span>
                     <span className="font-headline font-black text-2xl text-rose-400 mt-1">
                       {dashboardStats?.bannedUsers ?? 0}
@@ -300,7 +376,7 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
                     <span className="text-[10px] text-rose-300/80 mt-1">Vi phạm điều khoản</span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#141b2e] border border-amber-500/30 flex flex-col">
+                  <div className="p-3.5 rounded-2xl bg-[#141b2e] border border-amber-500/30 flex flex-col">
                     <span className="text-[11px] font-medium text-slate-400">Cờ Nghi Vấn (Flag)</span>
                     <span className="font-headline font-black text-2xl text-amber-400 mt-1">
                       {dashboardStats?.flaggedUsers ?? 0}
@@ -308,7 +384,21 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
                     <span className="text-[10px] text-amber-300/80 mt-1">Cảnh báo gian lận</span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#141b2e] border border-emerald-500/30 flex flex-col">
+                  <div
+                    onClick={() => setActiveTab('reports')}
+                    className="p-3.5 rounded-2xl bg-[#181324] border border-rose-500/50 hover:border-rose-400 flex flex-col cursor-pointer transition-all hover:scale-[1.02] shadow-[0_0_15px_rgba(244,63,94,0.15)]"
+                  >
+                    <span className="text-[11px] font-medium text-rose-300">Tố Cáo Chờ Duyệt</span>
+                    <span className="font-headline font-black text-2xl text-rose-400 mt-1 flex items-center gap-1.5">
+                      {dashboardStats?.pendingReports ?? 0}
+                      {(dashboardStats?.pendingReports || 0) > 0 && (
+                        <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      )}
+                    </span>
+                    <span className="text-[10px] text-rose-300/80 mt-1">Bấm để duyệt ngay ➔</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-[#141b2e] border border-emerald-500/30 flex flex-col">
                     <span className="text-[11px] font-medium text-slate-400">Vàng Lưu Thông</span>
                     <span className="font-headline font-black text-xl text-amber-300 mt-1 truncate">
                       🪙 {(dashboardStats?.totalCoinsInCirculation || 0).toLocaleString()}
@@ -316,7 +406,7 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
                     <span className="text-[10px] text-emerald-400 mt-1">Bảo vệ âm tiền</span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#141b2e] border border-indigo-500/30 flex flex-col">
+                  <div className="p-3.5 rounded-2xl bg-[#141b2e] border border-indigo-500/30 flex flex-col">
                     <span className="text-[11px] font-medium text-slate-400">ELO Trung Bình</span>
                     <span className="font-headline font-black text-2xl text-cyan-300 mt-1">
                       {dashboardStats?.averageElo || 1000}
@@ -326,7 +416,7 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
                     </span>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#141b2e] border border-purple-500/30 flex flex-col">
+                  <div className="p-3.5 rounded-2xl bg-[#141b2e] border border-purple-500/30 flex flex-col">
                     <span className="text-[11px] font-medium text-slate-400">Cảnh Báo (24h)</span>
                     <span className="font-headline font-black text-2xl text-purple-400 mt-1">
                       {dashboardStats?.securityAlerts24h ?? 0}
@@ -793,6 +883,220 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
           </div>
         )}
 
+        {/* ================= TAB 4: BÁO CÁO TỐ CÁO VI PHẠM (SOC REPORTS - TASK 3) ================= */}
+        {activeTab === 'reports' && (
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+            {/* Bộ lọc Reports */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-[#12182b] p-3 rounded-2xl border border-white/10 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-bold">Trạng Thái:</span>
+                  <select
+                    value={reportStatusFilter}
+                    onChange={(e) => setReportStatusFilter(e.target.value)}
+                    className="bg-[#182035] border border-white/10 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  >
+                    <option value="all">Tất Cả</option>
+                    <option value="pending">⏳ Chờ Thẩm Tra</option>
+                    <option value="resolved_penalized">⚖️ Đã Xử Phạt</option>
+                    <option value="dismissed">✕ Đã Bác Bỏ</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-bold">Lý Do:</span>
+                  <select
+                    value={reportReasonFilter}
+                    onChange={(e) => setReportReasonFilter(e.target.value)}
+                    className="bg-[#182035] border border-white/10 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-cyan-400 cursor-pointer"
+                  >
+                    <option value="all">Tất Cả Lý Do</option>
+                    <option value="afk_delay">⏱️ AFK / Câu Giờ</option>
+                    <option value="cheating_exploit">⚡ Nghi Vấn Gian Lận</option>
+                    <option value="toxic_chat">🤬 Xúc Phạm / Toxic</option>
+                    <option value="teaming">🤝 Thông Đồng</option>
+                    <option value="other">❓ Khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={() => loadReports(1)}
+                className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">refresh</span>
+                <span>Làm mới</span>
+              </button>
+            </div>
+
+            {/* Danh sách Reports */}
+            {isReportsLoading ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
+                <span className="material-symbols-outlined animate-spin text-3xl text-rose-500">sync</span>
+                <span>Đang tải danh sách phiếu tố cáo vi phạm...</span>
+              </div>
+            ) : reportsList.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-500 text-sm">
+                <span className="text-4xl mb-2">🛡️</span>
+                <span>Không có phiếu tố cáo nào phù hợp với bộ lọc.</span>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {reportsList.map((rep) => {
+                  const isPending = rep.status === 'pending';
+                  const isPenalized = rep.status === 'resolved_penalized';
+                  const statusBadge = isPending
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                    : isPenalized
+                    ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                    : 'bg-slate-500/20 text-slate-300 border-slate-500/40';
+
+                  const reasonLabel =
+                    rep.reason === 'afk_delay'
+                      ? '⏱️ AFK / Câu Giờ'
+                      : rep.reason === 'cheating_exploit'
+                      ? '⚡ Nghi Vấn Gian Lận'
+                      : rep.reason === 'toxic_chat'
+                      ? '🤬 Xúc Phạm / Toxic'
+                      : rep.reason === 'teaming'
+                      ? '🤝 Thông Đồng'
+                      : '❓ Lý Do Khác';
+
+                  return (
+                    <div
+                      key={rep._id}
+                      className={`p-4 rounded-2xl border transition-all text-xs ${
+                        isPending
+                          ? 'bg-[#151a2d] border-rose-500/40 shadow-[0_0_20px_rgba(244,63,94,0.1)]'
+                          : 'bg-[#101524] border-white/5'
+                      }`}
+                    >
+                      {/* Top Bar */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-white/5">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase border ${statusBadge}`}>
+                            {isPending ? '⏳ Chờ Xử Lý' : isPenalized ? '⚖️ Đã Xử Phạt' : '✕ Đã Bác Bỏ'}
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-white/5 text-gray-300 font-bold border border-white/10">
+                            {reasonLabel}
+                          </span>
+                          {rep.evidenceTurn && (
+                            <span className="px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 font-mono font-bold border border-purple-500/30">
+                              Lượt #{rep.evidenceTurn}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-[11px] text-slate-400">
+                          Mã phòng: <span className="font-mono text-cyan-400 font-bold">{rep.roomCode}</span> •{' '}
+                          {new Date(rep.createdAt).toLocaleString('vi-VN')}
+                        </div>
+                      </div>
+
+                      {/* Content: Reporter vs Target */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-3 border-b border-white/5">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-slate-400 font-bold">Người tố cáo:</span>
+                          <span className="font-bold text-cyan-300">{rep.reporterName}</span>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-slate-400 font-bold">Đối tượng bị tố cáo:</span>
+                          <span className="font-bold text-rose-400 flex items-center gap-1.5">
+                            <span>{rep.targetUserName}</span>
+                            {rep.targetUser?.isBanned && (
+                              <span className="px-1.5 py-0.2 rounded bg-rose-500 text-white text-[9px] font-bold">
+                                BANNED
+                              </span>
+                            )}
+                            {rep.targetUser?.isFlagged && (
+                              <span className="px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 text-[9px] font-bold">
+                                CỜ CẢNH BÁO
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="py-2.5">
+                        <span className="text-slate-400 font-bold block mb-1">Mô tả vi phạm:</span>
+                        <p className="text-slate-200 bg-black/30 p-2.5 rounded-xl border border-white/5 text-xs italic">
+                          "{rep.description || 'Không có mô tả chi tiết kèm theo.'}"
+                        </p>
+                      </div>
+
+                      {/* Resolution Result if not pending */}
+                      {!isPending && rep.resolution && (
+                        <div className="p-2.5 rounded-xl bg-black/40 border border-white/10 text-[11px] text-slate-300 mt-2">
+                          <span className="text-emerald-400 font-bold">✓ Kết quả thẩm định: </span>
+                          <span className="font-bold text-white">{rep.resolution.notes}</span>
+                          <span className="text-slate-500 ml-2">
+                            (Bởi: {rep.resolution.resolvedBy} • {rep.resolution.resolvedAt ? new Date(rep.resolution.resolvedAt).toLocaleTimeString('vi-VN') : ''})
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Actions Footer */}
+                      <div className="flex items-center justify-end gap-2.5 pt-3">
+                        {rep.matchId && (
+                          <button
+                            onClick={() => setSocReplayMatchId(rep.matchId)}
+                            className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,210,255,0.2)] cursor-pointer"
+                          >
+                            <span>▶️</span>
+                            <span>Mở Replay Xem Bằng Chứng</span>
+                          </button>
+                        )}
+
+                        {isPending && (
+                          <button
+                            onClick={() => {
+                              setSelectedReport(rep);
+                              setResolveAction('deduct_elo');
+                              setResolvePenaltyInput('50');
+                              setResolveNotesInput(`Phạt vi phạm quy tắc: ${rep.reason}`);
+                            }}
+                            className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-black tracking-wide shadow-[0_0_15px_rgba(244,63,94,0.4)] transition-all cursor-pointer flex items-center gap-1.5"
+                          >
+                            <span>⚖️</span>
+                            <span>Phán Quyết / Xử Phạt</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Reports Pagination */}
+            {reportsPagination.totalPages > 1 && (
+              <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs text-slate-400">
+                <span>Tổng cộng: {reportsPagination.total} phiếu tố cáo</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={reportsPagination.page <= 1}
+                    onClick={() => loadReports(reportsPagination.page - 1)}
+                    className="px-3 py-1 rounded bg-white/5 disabled:opacity-30 hover:bg-white/10 cursor-pointer"
+                  >
+                    Trước
+                  </button>
+                  <span className="font-mono">
+                    Trang {reportsPagination.page} / {reportsPagination.totalPages}
+                  </span>
+                  <button
+                    disabled={reportsPagination.page >= reportsPagination.totalPages}
+                    onClick={() => loadReports(reportsPagination.page + 1)}
+                    className="px-3 py-1 rounded bg-white/5 disabled:opacity-30 hover:bg-white/10 cursor-pointer"
+                  >
+                    Tiếp
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ================= SUB-MODAL ACTION HANDLERS ================= */}
         {selectedUser && actionType && (
           <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
@@ -995,6 +1299,170 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
 
             </div>
           </div>
+        )}
+
+        {/* ================= SUB-MODAL: XỬ LÝ PHIẾU TỐ CÁO ================= */}
+        {selectedReport && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-150">
+            <div className="w-full max-w-lg bg-[#13192c] border-2 border-rose-500/80 rounded-3xl p-6 shadow-[0_0_60px_rgba(244,63,94,0.4)] text-white space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <div className="flex items-center gap-2.5 text-rose-400">
+                  <span className="material-symbols-outlined text-2xl">gavel</span>
+                  <h4 className="font-headline font-black text-base text-white">
+                    Thẩm Định & Xử Phạt Vi Phạm
+                  </h4>
+                </div>
+                <button
+                  onClick={() => setSelectedReport(null)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white flex items-center justify-center cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {resolveMessage && (
+                <div
+                  className={`p-3 rounded-xl text-xs font-bold ${
+                    resolveMessage.type === 'success'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                      : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                  }`}
+                >
+                  {resolveMessage.text}
+                </div>
+              )}
+
+              <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-xs space-y-1">
+                <div>
+                  <span className="text-slate-400 font-bold">Người vi phạm:</span>{' '}
+                  <span className="text-rose-400 font-bold">{selectedReport.targetUserName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-bold">Người tố cáo:</span>{' '}
+                  <span className="text-cyan-300 font-bold">{selectedReport.reporterName}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-bold">Lý do:</span>{' '}
+                  <span className="text-amber-300">{selectedReport.reason}</span>
+                  {selectedReport.evidenceTurn && ` (Lượt #${selectedReport.evidenceTurn})`}
+                </div>
+              </div>
+
+              {/* Lựa chọn hình thức xử phạt */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-2 uppercase">
+                  Biện pháp chế tài:
+                </label>
+                <div className="space-y-1.5 text-xs">
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/10 bg-[#161d30] cursor-pointer hover:border-cyan-400">
+                    <input
+                      type="radio"
+                      name="resolveAction"
+                      value="deduct_elo"
+                      checked={resolveAction === 'deduct_elo'}
+                      onChange={(e) => setResolveAction(e.target.value)}
+                      className="accent-rose-500"
+                    />
+                    <span className="font-bold text-rose-300">Phạt trừ điểm xếp hạng (Trừ ELO)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/10 bg-[#161d30] cursor-pointer hover:border-cyan-400">
+                    <input
+                      type="radio"
+                      name="resolveAction"
+                      value="warning"
+                      checked={resolveAction === 'warning'}
+                      onChange={(e) => setResolveAction(e.target.value)}
+                      className="accent-amber-500"
+                    />
+                    <span className="font-bold text-amber-300">Cảnh cáo tài khoản (Gắn cờ kiểm soát)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/10 bg-[#161d30] cursor-pointer hover:border-cyan-400">
+                    <input
+                      type="radio"
+                      name="resolveAction"
+                      value="temp_ban"
+                      checked={resolveAction === 'temp_ban'}
+                      onChange={(e) => setResolveAction(e.target.value)}
+                      className="accent-red-500"
+                    />
+                    <span className="font-bold text-red-400">Khóa tài khoản tạm thời (Ban)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 p-2.5 rounded-xl border border-white/10 bg-[#161d30] cursor-pointer hover:border-cyan-400">
+                    <input
+                      type="radio"
+                      name="resolveAction"
+                      value="none"
+                      checked={resolveAction === 'none'}
+                      onChange={(e) => setResolveAction(e.target.value)}
+                      className="accent-slate-500"
+                    />
+                    <span className="font-bold text-slate-300">Bác bỏ tố cáo (Không đủ bằng chứng)</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Nếu chọn deduct_elo: nhập số điểm */}
+              {resolveAction === 'deduct_elo' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                    Số điểm ELO phạt trừ:
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="500"
+                    value={resolvePenaltyInput}
+                    onChange={(e) => setResolvePenaltyInput(e.target.value)}
+                    className="w-full bg-[#0d1220] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
+                  />
+                </div>
+              )}
+
+              {/* Ghi chú */}
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Ghi chú kết luận thẩm tra:
+                </label>
+                <textarea
+                  rows={2}
+                  value={resolveNotesInput}
+                  onChange={(e) => setResolveNotesInput(e.target.value)}
+                  placeholder="Ghi rõ lý do xử phạt để lưu vào nhật ký an ninh..."
+                  className="w-full bg-[#0d1220] border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-rose-400 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setSelectedReport(null)}
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-bold text-slate-300 cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingResolve}
+                  onClick={handleConfirmResolve}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-headline font-black text-xs uppercase cursor-pointer transition-all shadow-md active:scale-95"
+                >
+                  {isSubmittingResolve ? 'Đang xử lý...' : 'Xác Nhận Phán Quyết'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= MODAL XEM REPLAY TRONG SOC ================= */}
+        {socReplayMatchId && (
+          <MatchReplayModal
+            isOpen={Boolean(socReplayMatchId)}
+            onClose={() => setSocReplayMatchId(null)}
+            matchId={socReplayMatchId}
+          />
         )}
 
       </div>

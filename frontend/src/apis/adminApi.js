@@ -148,4 +148,37 @@ export const adminApi = {
       return { success: false, message: err.message };
     }
   },
+
+  // 9. Quản lý Báo cáo Tố cáo (SOC Reports - Task 3)
+  getReports: async ({ page = 1, limit = 10, status = 'all', reason = 'all' } = {}) => {
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        status,
+        reason,
+      });
+      const res = await fetch(`${API_BASE_URL}/admin/reports?${params.toString()}`, {
+        headers: authHeaders(),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('[Admin API Error - getReports]:', err.message);
+      return { success: false, message: err.message, reports: [] };
+    }
+  },
+
+  resolveReport: async (reportId, { action, penaltyAmount = 0, notes = '' } = {}) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/report/${reportId}/resolve`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ action, penaltyAmount, notes }),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('[Admin API Error - resolveReport]:', err.message);
+      return { success: false, message: err.message };
+    }
+  },
 };

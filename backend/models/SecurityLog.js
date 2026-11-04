@@ -20,6 +20,8 @@ const securityLogSchema = new mongoose.Schema(
         'ADMIN_BAN_USER',
         'ADMIN_UNBAN_USER',
         'ADMIN_ROLE_CHANGE',
+        'ADMIN_RESOLVE_REPORT',
+        'USER_SUBMIT_REPORT',
         'SUSPICIOUS_EXPLOIT_ATTEMPT',
         'RATE_LIMIT_EXCEEDED',
       ],

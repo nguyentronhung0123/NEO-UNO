@@ -74,4 +74,19 @@ export const matchApi = {
       return { success: false, leaderboard: [] };
     }
   },
+
+  getMatchReplay: async (matchId) => {
+    try {
+      const token = getStoredToken();
+      const res = await fetch(`${API_BASE_URL}/matches/${matchId}/replay`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('[Match Replay API Error]:', err.message);
+      return { success: false, message: err.message };
+    }
+  },
 };

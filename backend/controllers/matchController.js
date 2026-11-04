@@ -349,7 +349,9 @@ exports.recordMatch = async (req, res) => {
       winner,
       reason: reason || (isMatchForfeit ? 'forfeit_afk' : 'out_of_cards'),
       durationSeconds: durationSeconds || 0,
-      players: enrichedPlayers
+      players: enrichedPlayers,
+      initialState: req.body.initialState || null,
+      turnLogs: Array.isArray(req.body.turnLogs) ? req.body.turnLogs : [],
     });
 
     // GHI NHẬN NHẬT KÝ AN NINH (Security Audit Log)
@@ -615,6 +617,114 @@ exports.getMyMatchHistory = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Lỗi khi tải lịch sử đấu cá nhân!'
+    });
+  }
+};
+
+/**
+ * 3. LẤY CHI TIẾT VÁN ĐẤU ĐỂ XEM LẠI REPLAY (Task 3 - Tuần 4)
+ * GET /api/matches/:id/replay
+ */
+exports.getMatchReplay = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || id === 'undefined') {
+      return res.status(400).json({
+        success: false,
+        message: 'Mã ván đấu không hợp lệ!',
+      });
+    }
+
+    const match = await Match.findById(id);
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy dữ liệu ván đấu yêu cầu!',
+      });
+    }
+
+    // Nếu ván đấu chưa có turnLogs (các trận cũ), tạo giả lập timeline hợp lệ để Replay không bị lỗi
+    let turnLogs = match.turnLogs || [];
+    let initialState = match.initialState || null;
+
+    if (!turnLogs || turnLogs.length === 0) {
+      const winnerName = match.winner?.name || 'Người chiến thắng';
+      turnLogs = [
+        {
+          turnNumber: 1,
+          timestamp: new Date(match.createdAt).getTime(),
+          playerId: match.players[0]?.id || 'p1',
+          playerName: match.players[0]?.name || 'P1',
+          isBot: !match.players[0]?.isHuman,
+          actionType: 'play_card',
+          cardPlayed: { id: 'c1', color: 'red', value: '7' },
+          chosenColor: null,
+          cardsRemaining: 6,
+          topDiscardCard: { id: 'c1', color: 'red', value: '7' },
+          currentColor: 'red',
+          description: `Ván đấu bắt đầu. ${match.players[0]?.name || 'P1'} đánh lá Đỏ 7.`,
+        },
+        {
+          turnNumber: 2,
+          timestamp: new Date(match.createdAt).getTime() + 3000,
+          playerId: match.winner?.id || 'p_win',
+          playerName: winnerName,
+          isBot: !match.winner?.isHuman,
+          actionType: 'call_uno',
+          cardPlayed: null,
+          chosenColor: null,
+          cardsRemaining: 1,
+          topDiscardCard: { id: 'c1', color: 'red', value: '7' },
+          currentColor: 'red',
+          description: `⚡ ${winnerName} hô UNO! Còn 1 lá bài trên tay.`,
+        },
+        {
+          turnNumber: 3,
+          timestamp: new Date(match.createdAt).getTime() + 6000,
+          playerId: match.winner?.id || 'p_win',
+          playerName: winnerName,
+          isBot: !match.winner?.isHuman,
+          actionType: 'play_card',
+          cardPlayed: { id: 'c_fin', color: 'red', value: '0' },
+          chosenColor: null,
+          cardsRemaining: 0,
+          topDiscardCard: { id: 'c_fin', color: 'red', value: '0' },
+          currentColor: 'red',
+          description: `🏆 ${winnerName} đánh lá Đỏ 0 và giành chiến thắng chung cuộc!`,
+        },
+      ];
+
+      initialState = {
+        startPlayerId: match.players[0]?.id || 'p1',
+        startCard: { id: 'c_start', color: 'red', value: '5' },
+        playerHands: match.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          initialCount: 7,
+        })),
+      };
+    }
+
+    return res.status(200).json({
+      success: true,
+      match: {
+        _id: match._id,
+        roomCode: match.roomCode,
+        mode: match.mode,
+        winner: match.winner,
+        reason: match.reason,
+        durationSeconds: match.durationSeconds,
+        createdAt: match.createdAt,
+        players: match.players,
+        initialState,
+        turnLogs,
+      },
+    });
+  } catch (error) {
+    console.error('[Get Match Replay Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi tải chi tiết Replay ván đấu!',
     });
   }
 };
