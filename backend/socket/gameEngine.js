@@ -264,6 +264,11 @@ class OnlineGame {
     description = '',
     specialEffect = null,
   }) {
+    // Tối ưu dung lượng: Giới hạn tối đa 200 lượt đánh để bảo vệ CSDL luôn siêu nhẹ (< 15KB/trận)
+    if (this.turnLogs.length >= 200) {
+      return null;
+    }
+
     const logEntry = {
       turnNumber: this.turnLogs.length + 1,
       timestamp: Date.now(),

@@ -219,13 +219,26 @@ export default function MatchReplayModal({ isOpen, onClose, matchId, onOpenRepor
                         : 'bg-[#101625]/70 border-white/5'
                     }`}
                   >
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="text-xl">{p.avatar || '👤'}</div>
+                    <div className="flex items-center gap-2.5 mb-1">
+                      <div className="w-9 h-9 rounded-xl bg-slate-800/80 border border-white/15 flex items-center justify-center text-sm flex-shrink-0 overflow-hidden shadow-inner">
+                        {p.avatar && (p.avatar.startsWith('http') || p.avatar.startsWith('data:')) ? (
+                          <img
+                            src={p.avatar}
+                            alt={p.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <span>{p.avatar || '👤'}</span>
+                        )}
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-bold text-white truncate flex items-center gap-1">
-                          {p.name}
+                          <span className="truncate">{p.name}</span>
                           {p.isHuman === false && (
-                            <span className="text-[9px] px-1 rounded bg-purple-500/30 text-purple-300 font-mono">
+                            <span className="text-[9px] px-1 rounded bg-purple-500/30 text-purple-300 font-mono flex-shrink-0">
                               BOT
                             </span>
                           )}
