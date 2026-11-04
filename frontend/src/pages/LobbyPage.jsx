@@ -370,7 +370,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         </div>
 
         {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
-        <div className="flex items-center gap-2.5 relative" ref={profileMenuRef}>
+        <div className="flex items-center gap-2.5">
           
           {/* NÚT NHIỆM VỤ & THÀNH TỰU - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE */}
           <button
@@ -452,79 +452,80 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           )}
 
           {/* Profile Capsule (Bấm để mở Menu Tab / Mobile Bottom Sheet) */}
-          <div
-            onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-            className={`relative flex items-center gap-2 sm:gap-3 bg-[#131826]/90 hover:bg-[#1a2233] px-2.5 sm:px-3.5 py-1.5 rounded-full border transition-all cursor-pointer shadow-md select-none group shrink-0 ${
-              isProfileMenuOpen
-                ? 'border-cyan-400/80 shadow-[0_0_25px_rgba(0,210,255,0.35)]'
-                : 'border-outline-variant/30 hover:border-cyan-400/50'
-            }`}
-            title="Nhấn để mở Menu tính năng Hồ Sơ"
-          >
-            {/* Notification Badge cho Mobile khi các nút header bị ẩn */}
-            {(hasClaimableQuest || pendingRequestsCount > 0) && (
-              <span className="sm:hidden absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border border-[#131826] text-[8px] text-white font-mono font-bold items-center justify-center">
-                  {pendingRequestsCount > 0 ? pendingRequestsCount : '!'}
-                </span>
-              </span>
-            )}
-
-            <AvatarFrame
-              frameId={user?.equippedAvatarFrame || 'frame_default'}
-              size="sm"
-              className="flex-shrink-0"
+          <div className="relative" ref={profileMenuRef}>
+            <div
+              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+              className={`relative flex items-center gap-2 sm:gap-3 bg-[#131826]/90 hover:bg-[#1a2233] px-2.5 sm:px-3.5 py-1.5 rounded-full border transition-all cursor-pointer shadow-md select-none group shrink-0 ${
+                isProfileMenuOpen
+                  ? 'border-cyan-400/80 shadow-[0_0_25px_rgba(0,210,255,0.35)]'
+                  : 'border-outline-variant/30 hover:border-cyan-400/50'
+              }`}
+              title="Nhấn để mở Menu tính năng Hồ Sơ"
             >
-              <img
-                src={user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.nickname || 'Guest'}`}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-              />
-            </AvatarFrame>
-
-            <div className="flex flex-col text-left">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-xs sm:text-sm text-white max-w-[85px] sm:max-w-[130px] truncate group-hover:text-cyan-300 transition-colors">
-                  {user?.nickname || 'Khách Chơi Thử'}
+              {/* Notification Badge cho Mobile khi các nút header bị ẩn */}
+              {(hasClaimableQuest || pendingRequestsCount > 0) && (
+                <span className="sm:hidden absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border border-[#131826] text-[8px] text-white font-mono font-bold items-center justify-center">
+                    {pendingRequestsCount > 0 ? pendingRequestsCount : '!'}
+                  </span>
                 </span>
-                <span
-                  className={`text-[8px] px-1.5 py-0.2 rounded-sm uppercase font-black ${
-                    isGuest
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                      : 'bg-primary-container/20 text-primary-container'
-                  }`}
-                >
-                  {isGuest ? 'KHÁCH' : 'VIP'}
+              )}
+
+              <AvatarFrame
+                frameId={user?.equippedAvatarFrame || 'frame_default'}
+                size="sm"
+                className="flex-shrink-0"
+              >
+                <img
+                  src={user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.nickname || 'Guest'}`}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              </AvatarFrame>
+
+              <div className="flex flex-col text-left">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-xs sm:text-sm text-white max-w-[85px] sm:max-w-[130px] truncate group-hover:text-cyan-300 transition-colors">
+                    {user?.nickname || 'Khách Chơi Thử'}
+                  </span>
+                  <span
+                    className={`text-[8px] px-1.5 py-0.2 rounded-sm uppercase font-black ${
+                      isGuest
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : 'bg-primary-container/20 text-primary-container'
+                    }`}
+                  >
+                    {isGuest ? 'KHÁCH' : 'VIP'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {isGuest ? 'Chưa Xếp Hạng' : `${user?.elo || 1000} ELO • Lv.${user?.level || 1}`}
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-mono">
-                {isGuest ? 'Chưa Xếp Hạng' : `${user?.elo || 1000} ELO • Lv.${user?.level || 1}`}
+
+              <span
+                className={`material-symbols-outlined text-slate-400 text-sm transition-transform duration-200 ${
+                  isProfileMenuOpen ? 'rotate-180 text-cyan-400' : 'group-hover:text-cyan-300'
+                }`}
+              >
+                keyboard_arrow_down
               </span>
             </div>
 
-            <span
-              className={`material-symbols-outlined text-slate-400 text-sm transition-transform duration-200 ${
-                isProfileMenuOpen ? 'rotate-180 text-cyan-400' : 'group-hover:text-cyan-300'
-              }`}
-            >
-              keyboard_arrow_down
-            </span>
-          </div>
+            {/* ================= BACKDROP CHO MOBILE KHI MỞ PROFILE DRAWER ================= */}
+            {isProfileMenuOpen && (
+              <div
+                onClick={() => setIsProfileMenuOpen(false)}
+                className="fixed inset-0 bg-black/80 backdrop-blur-xs z-[95] md:hidden animate-fade-in"
+              />
+            )}
 
-          {/* ================= BACKDROP CHO MOBILE KHI MỞ PROFILE DRAWER ================= */}
-          {isProfileMenuOpen && (
-            <div
-              onClick={() => setIsProfileMenuOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-xs z-[95] md:hidden animate-fade-in"
-            />
-          )}
-
-          {/* ================= PROFILE DROPDOWN / MOBILE BOTTOM SHEET DRAWER ================= */}
-          {isProfileMenuOpen && (
-            <div
-              className="fixed inset-x-0 bottom-0 z-[100] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-[#0e1322] border-t-2 border-cyan-500/50 p-4 sm:p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200 md:static md:inset-auto md:max-h-[85vh] md:overflow-y-auto md:absolute md:top-full md:right-0 md:mt-2 md:w-96 md:rounded-3xl md:border md:border-cyan-500/40 md:shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(0,210,255,0.25)] md:animate-in md:fade-in md:zoom-in-95 text-left"
-            >
+            {/* ================= PROFILE DROPDOWN / MOBILE BOTTOM SHEET DRAWER ================= */}
+            {isProfileMenuOpen && (
+              <div
+                className="fixed inset-x-0 bottom-0 z-[100] max-h-[85vh] overflow-y-auto rounded-t-3xl bg-[#0e1322] border-t-2 border-cyan-500/50 p-4 sm:p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.95)] animate-in slide-in-from-bottom duration-200 md:absolute md:top-full md:right-0 md:bottom-auto md:left-auto md:mt-2 md:w-96 md:rounded-3xl md:border md:border-cyan-500/40 md:shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(0,210,255,0.25)] md:animate-in md:fade-in md:zoom-in-95 text-left"
+              >
               {/* THANH VUỐT KÉO & NÚT ĐÓNG CHO DI ĐỘNG (MOBILE DRAG PILL) */}
               <div className="flex md:hidden items-center justify-between pb-3 mb-3 border-b border-white/10">
                 <div className="flex items-center gap-2">
@@ -890,6 +891,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               </div>
             </div>
           )}
+          </div>
         </div>
       </header>
 
