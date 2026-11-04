@@ -1176,7 +1176,33 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         onClose={() => setIsSetupOpen(false)}
         onStartMatch={(config) => {
           setIsSetupOpen(false);
-          onJoinOfflineMatch(config);
+          const socket = getSocket();
+          // Nếu đã đăng nhập: Khởi tạo phòng đấu với Bot trên Server để bạn bè có thể xem trực tiếp (Spectator Mode)
+          if (socket && user && onJoinOnlineMatch) {
+            socket.emit('room:create', { user }, (res) => {
+              if (res?.success && res.room) {
+                const roomCode = res.room.code;
+                let botsToAdd = config.botCount || 1;
+                const addBotsAndStart = () => {
+                  if (botsToAdd > 0) {
+                    socket.emit('room:add_bot', { code: roomCode }, () => {
+                      botsToAdd--;
+                      addBotsAndStart();
+                    });
+                  } else {
+                    socket.emit('room:start_game', { code: roomCode }, () => {
+                      onJoinOnlineMatch({ code: roomCode });
+                    });
+                  }
+                };
+                addBotsAndStart();
+                return;
+              }
+              onJoinOfflineMatch(config);
+            });
+          } else {
+            onJoinOfflineMatch(config);
+          }
         }}
       />
 

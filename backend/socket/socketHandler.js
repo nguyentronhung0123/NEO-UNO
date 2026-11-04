@@ -28,10 +28,10 @@ function setupSocketIO(io) {
       }
     });
 
-    socket.on('user:set_status', ({ userId, status }) => {
+    socket.on('user:set_status', ({ userId, status, roomCode }) => {
       try {
         if (userId) {
-          userPresence.setUserStatus(userId, status, io);
+          userPresence.setUserStatus(userId, status, io, roomCode);
         }
       } catch (err) {
         console.error('[Presence] Lỗi cập nhật trạng thái user:', err);

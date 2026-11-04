@@ -44,11 +44,11 @@ export default function MessengerDrawer({
       fetchConversations();
     };
 
-    const handleStatusChange = ({ userId, status }) => {
+    const handleStatusChange = ({ userId, status, roomCode }) => {
       setFriends((prev) =>
         prev.map((f) =>
           String(f._id) === String(userId)
-            ? { ...f, status, isOnline: status !== 'offline' }
+            ? { ...f, status, isOnline: status !== 'offline', roomCode: roomCode || f.roomCode }
             : f
         )
       );

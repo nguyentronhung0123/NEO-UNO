@@ -58,14 +58,21 @@ class UserPresence {
   setUserStatus(userId, status, io = null, roomCode = null) {
     if (!userId) return;
     const uid = String(userId);
-    const meta = this.userMeta.get(uid);
-    if (meta) {
+    let meta = this.userMeta.get(uid);
+    if (!meta) {
+      meta = {
+        status,
+        roomCode,
+        lastActive: Date.now(),
+      };
+      this.userMeta.set(uid, meta);
+    } else {
       meta.status = status;
       meta.roomCode = roomCode || (status === 'in_game' ? meta.roomCode : null);
       meta.lastActive = Date.now();
-      if (io) {
-        this.broadcastPresenceChange(uid, status, io, meta.roomCode);
-      }
+    }
+    if (io) {
+      this.broadcastPresenceChange(uid, status, io, meta.roomCode);
     }
   }
 

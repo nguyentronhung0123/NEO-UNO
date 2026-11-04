@@ -701,11 +701,20 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         });
       } else {
         socket.emit('game:get_state', { code: activeCode, userId: myUserId, playerName: myName });
+        if (myUserId) {
+          socket.emit('user:set_status', { userId: myUserId, status: 'in_game', roomCode: activeCode });
+        }
       }
     }
 
     return () => {
       if (!socket) return;
+      if (!isSpectator && activeCode) {
+        const myUserId = getMyUserId();
+        if (myUserId) {
+          socket.emit('user:set_status', { userId: myUserId, status: 'online' });
+        }
+      }
       socket.off('game:state_sync', handleStateSync);
       socket.off('game:timer_tick', handleTimerTick);
       socket.off('game:dealing_tick', handleDealingTick);

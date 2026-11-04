@@ -85,7 +85,7 @@ export default function FriendsModal({
       showToast(`🎉 ${accepter?.nickname || 'Người chơi'} đã chấp nhận kết bạn!`, 'success');
     };
 
-    const handleStatusChange = ({ userId, status }) => {
+    const handleStatusChange = ({ userId, status, roomCode }) => {
       setFriends((prev) =>
         prev.map((f) => {
           if (String(f._id) === String(userId)) {
@@ -93,6 +93,7 @@ export default function FriendsModal({
               ...f,
               isOnline: status !== 'offline',
               status,
+              roomCode: roomCode || f.roomCode,
             };
           }
           return f;

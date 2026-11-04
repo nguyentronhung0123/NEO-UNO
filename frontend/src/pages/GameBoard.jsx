@@ -8,6 +8,7 @@ import MatchHistoryModal from '../components/MatchHistoryModal';
 import { initGameState, calculateHandPoints, getMaxCardPoint } from '../utils/gameLogic.js';
 import { shuffleDeck } from '../utils/deck.js';
 import { soundEngine } from '../utils/audioFx.js';
+import { getSocket } from '../services/socket.js';
 import { matchApi } from '../apis/matchApi.js';
 import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch } from '../utils/activeMatchStorage.js';
 import EmoteWheel from '../components/EmoteWheel';
@@ -182,6 +183,20 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
   const winnerRef = useRef(winner);
   winnerRef.current = winner;
+
+  // Đồng bộ trạng thái In-Game cho Bạn bè khi đang chơi
+  useEffect(() => {
+    const socket = getSocket();
+    const uId = user?._id || user?.id;
+    if (socket && uId) {
+      socket.emit('user:set_status', { userId: uId, status: 'in_game' });
+    }
+    return () => {
+      if (socket && uId) {
+        socket.emit('user:set_status', { userId: uId, status: 'online' });
+      }
+    };
+  }, [user?._id, user?.id]);
 
   const unoPenalizedRef = useRef(false);
   const unoHandledRef = useRef(false);
