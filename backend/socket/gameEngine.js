@@ -4,6 +4,7 @@
 const User = require('../models/User');
 const Match = require('../models/Match');
 const PlayerStats = require('../models/PlayerStats');
+const userPresence = require('./userPresence');
 const {
   getBotAttackEmote,
   getBotPenaltyEmote,
@@ -218,6 +219,7 @@ class OnlineGame {
     this.matchTimeRemaining = 300;
     this.status = 'in_game';
     this.winner = null;
+    this.spectators = []; // Danh sách khán giả đang xem trực tiếp (Task 2 - Tuần 4)
 
     // Giai đoạn phát bài đầu trận (3 giây)
     this.isDealing = true;
@@ -1527,6 +1529,13 @@ class OnlineGame {
     this.winner = winnerPlayer;
     this.stopTimers();
 
+    // Cập nhật lại trạng thái người chơi về 'online' (Task 2: Presence sync)
+    this.players.forEach((p) => {
+      if (p.userId && !p.isBot) {
+        userPresence.setUserStatus(p.userId, 'online', this.io, null);
+      }
+    });
+
     // Sắp xếp thứ hạng: Đảm bảo winnerPlayer luôn ở vị trí số 1 (rank 1)
     const otherPlayers = this.players.filter((p) => p.seatIndex !== winnerPlayer.seatIndex);
     otherPlayers.sort((a, b) => a.hand.length - b.hand.length);
@@ -1637,6 +1646,7 @@ class OnlineGame {
       myIsBotTakeover: !!player.isBotTakeover,
       myEquippedCardSkin: player.equippedCardSkin || 'skin_classic',
       myEquippedAvatarFrame: player.equippedAvatarFrame || 'frame_default',
+      spectatorCount: this.getSpectatorCount(),
       players: this.players.map((other) => ({
         seatIndex: other.seatIndex,
         userId: other.userId,
@@ -1816,16 +1826,120 @@ class OnlineGame {
     }
   }
 
-  // Gửi trạng thái bảo mật (chỉ gửi bài riêng của từng người)
-  broadcastState() {
-    console.log(`[GameEngine] broadcastState cho phòng ${this.roomCode}, số người: ${this.players.length}`);
+  // =========================================================================
+  // CHẾ ĐỘ KHÁN GIẢ XEM TRỰC TIẾP (TASK 2 - TUẦN 4)
+  // =========================================================================
+  addSpectator(socketId, user) {
+    if (!this.spectators) this.spectators = [];
+    const specData = {
+      socketId,
+      userId: user?.id || user?._id || `guest_${socketId}`,
+      name: user?.nickname || user?.name || user?.username || 'Khán Giả',
+      avatar: user?.avatar || 'avatar_1',
+      joinedAt: Date.now(),
+    };
+    const existingIdx = this.spectators.findIndex(
+      (s) => s.socketId === socketId || (s.userId && s.userId === specData.userId)
+    );
+    if (existingIdx !== -1) {
+      this.spectators[existingIdx] = specData;
+    } else {
+      this.spectators.push(specData);
+    }
+    return specData;
+  }
 
+  removeSpectator(socketId) {
+    if (!this.spectators) return null;
+    const idx = this.spectators.findIndex((s) => s.socketId === socketId);
+    if (idx !== -1) {
+      return this.spectators.splice(idx, 1)[0];
+    }
+    return null;
+  }
+
+  getSpectatorCount() {
+    return this.spectators ? this.spectators.length : 0;
+  }
+
+  getClientStateForSpectator() {
+    const topCard = this.discardPile[this.discardPile.length - 1];
+    return {
+      roomCode: this.roomCode,
+      status: this.status,
+      gameResult: this.gameResult || null,
+      isRanked: this.isRanked,
+      isDealing: this.isDealing,
+      dealingCountdown: this.dealingCountdown,
+      isTransitioning: this.isTransitioning,
+      turnNumber: this.turnNumber || 1,
+      drawPileCount: this.drawPile.length,
+      drawnCountInTurn: this.drawnCountInTurn,
+      topCard,
+      activeColor: this.activeColor,
+      currentTurnIndex: this.currentTurnIndex,
+      turnDirection: this.turnDirection,
+      drawTwoStack: this.drawTwoStack,
+      turnTimeRemaining: this.turnTimeRemaining,
+      matchTimeRemaining: this.matchTimeRemaining,
+      // BẢO MẬT FOG OF WAR (ANTI-CHEAT): Ẩn hoàn toàn bài tẩy của người chơi
+      isSpectator: true,
+      mySeatIndex: -1,
+      myHand: [],
+      myIsBotTakeover: false,
+      myEquippedCardSkin: 'skin_classic',
+      myEquippedAvatarFrame: 'frame_default',
+      spectatorCount: this.getSpectatorCount(),
+      spectators: (this.spectators || []).map((s) => ({
+        name: s.name,
+        avatar: s.avatar,
+        userId: s.userId,
+      })),
+      players: this.players.map((other) => ({
+        seatIndex: other.seatIndex,
+        userId: other.userId,
+        name: other.name,
+        avatar: other.avatar,
+        equippedCardSkin: other.equippedCardSkin || 'skin_classic',
+        equippedAvatarFrame: other.equippedAvatarFrame || 'frame_default',
+        isHost: other.isHost,
+        isBot: other.isBot,
+        handCount: other.hand.length,
+        isTurn: other.seatIndex === this.currentTurnIndex,
+        unoCalled: other.unoCalled,
+        isAfk: other.isAfk,
+        afkTurnsCount: other.afkTurnsCount || 0,
+        isBotTakeover: !!other.isBotTakeover,
+        isDisconnected: !!other.isDisconnected,
+        disconnectRemaining: other.disconnectedAt
+          ? Math.max(0, 60 - Math.floor((Date.now() - other.disconnectedAt) / 1000))
+          : null,
+        forfeited: !!other.forfeited,
+      })),
+    };
+  }
+
+  // Gửi trạng thái bảo mật (chỉ gửi bài riêng của từng người & gửi sanitized state cho khán giả)
+  broadcastState() {
+    console.log(`[GameEngine] broadcastState cho phòng ${this.roomCode}, số người: ${this.players.length}, số khán giả: ${this.getSpectatorCount()}`);
+
+    // 1. Gửi cho các người chơi trên bàn
     this.players.forEach((p) => {
       if (!p.isBot && p.socketId) {
         const clientState = this.getClientStateForPlayer(p);
         this.io.to(p.socketId).emit('game:state_sync', clientState);
       }
     });
+
+    // 2. Gửi cho toàn bộ khán giả đang xem trực tiếp (Task 2)
+    if (this.spectators && this.spectators.length > 0) {
+      const spectatorState = this.getClientStateForSpectator();
+      this.spectators.forEach((s) => {
+        if (s.socketId) {
+          this.io.to(s.socketId).emit('game:state_sync', spectatorState);
+        }
+      });
+    }
   }
 }
 
@@ -1839,6 +1953,17 @@ function startOnlineMatch(room, io) {
 
   const game = new OnlineGame(room, io);
   activeGames.set(room.code, game);
+
+  // Cập nhật trạng thái người chơi sang 'in_game' kèm mã phòng cho bạn bè theo dõi/xem trận (Task 2)
+  if (room && Array.isArray(room.players)) {
+    room.players.forEach((p) => {
+      const uId = p.userId || p.id || p._id;
+      if (uId && !p.isBot) {
+        userPresence.setUserStatus(uId, 'in_game', io, room.code);
+      }
+    });
+  }
+
   return game;
 }
 

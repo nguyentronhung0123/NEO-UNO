@@ -17,11 +17,13 @@ exports.getFriends = async (req, res) => {
       const uid = String(f._id);
       const isOnline = userPresence.isUserOnline(uid);
       const status = userPresence.getUserStatus(uid);
+      const roomCode = userPresence.getUserRoomCode(uid);
 
       return {
         ...f,
         isOnline,
         status,
+        roomCode,
       };
     });
 

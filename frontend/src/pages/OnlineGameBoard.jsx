@@ -68,6 +68,9 @@ function renderPlayerAvatar(avatar, isBot = false, isActive = false, size = 'w-9
 export default function OnlineGameBoard({ room, user, onBack }) {
   const socket = getSocket();
 
+  // Xác định Chế độ Khán giả Xem Trực Tiếp (Task 2 - Tuần 4)
+  const isSpectator = Boolean(room?.isSpectator);
+
   // Trạng thái trận đấu nhận từ Socket Server
   const [gameState, setGameState] = useState(null);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
@@ -246,12 +249,20 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     setTimeout(() => setShockwaveActive(false), 650);
   }, []);
 
-  // Xác định hướng ghế của từng người chơi tương đối so với bạn
+  // Xác định hướng ghế của từng người chơi tương đối so với bạn (Hỗ trợ Chế độ Khán giả)
   const getDirectionForSeat = useCallback((seatIndex) => {
     const cur = gameStateRef.current;
     if (!cur || !cur.players) return 'top';
-    const mySeat = cur.mySeatIndex ?? 0;
+    const isSpec = cur.isSpectator || cur.mySeatIndex === -1;
     const total = cur.players.length;
+
+    if (isSpec) {
+      if (total === 2) return seatIndex === 0 ? 'left' : 'right';
+      if (total === 3) return seatIndex === 0 ? 'left' : seatIndex === 1 ? 'top' : 'right';
+      return seatIndex === 0 ? 'bottom' : seatIndex === 1 ? 'right' : seatIndex === 2 ? 'top' : 'left';
+    }
+
+    const mySeat = cur.mySeatIndex ?? 0;
     const diff = (seatIndex - mySeat + total) % total;
 
     if (diff === 0) return 'bottom';
@@ -656,6 +667,14 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       }, 3400);
     };
 
+    // Cập nhật số lượng khán giả xem trực tiếp (Task 2)
+    const handleSpectatorUpdate = ({ spectatorCount, message }) => {
+      setGameState((prev) => (prev ? { ...prev, spectatorCount } : prev));
+      if (message) {
+        handlersRef.current.triggerActionFx('skip', '👁️ KHÁN GIẢ', message);
+      }
+    };
+
     if (!socket) return;
 
     socket.on('game:state_sync', handleStateSync);
@@ -669,12 +688,20 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     socket.on('game:receive_emote', handleReceiveEmote);
     socket.on('game:afk_takeover_started', handleAfkTakeoverStarted);
     socket.on('game:afk_takeover_ended', handleAfkTakeoverEnded);
+    socket.on('spectator:update', handleSpectatorUpdate);
 
     const activeCode = room?.code;
     if (activeCode) {
       const myUserId = getMyUserId();
-      const myName = user?.nickname || user?.name || localStorage.getItem('neo_player_name') || 'Bạn';
-      socket.emit('game:get_state', { code: activeCode, userId: myUserId, playerName: myName });
+      const myName = user?.nickname || user?.name || localStorage.getItem('neo_player_name') || (room?.isSpectator ? 'Khán Giả' : 'Bạn');
+      if (room?.isSpectator) {
+        socket.emit('spectator:join', {
+          code: activeCode,
+          user: { id: myUserId, nickname: myName, avatar: user?.avatar },
+        });
+      } else {
+        socket.emit('game:get_state', { code: activeCode, userId: myUserId, playerName: myName });
+      }
     }
 
     return () => {
@@ -690,6 +717,10 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       socket.off('game:receive_emote', handleReceiveEmote);
       socket.off('game:afk_takeover_started', handleAfkTakeoverStarted);
       socket.off('game:afk_takeover_ended', handleAfkTakeoverEnded);
+      socket.off('spectator:update', handleSpectatorUpdate);
+      if (room?.isSpectator && activeCode) {
+        socket.emit('spectator:leave', { code: activeCode });
+      }
       if (avatarFxTimerRef.current) clearTimeout(avatarFxTimerRef.current);
       if (cardActionLockTimeoutRef.current) clearTimeout(cardActionLockTimeoutRef.current);
     };
@@ -970,10 +1001,36 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     });
   };
 
-  // Sắp xếp các đối thủ theo các vị trí tương đối (Top, Left, Right)
-  const { topOpponent, leftOpponent, rightOpponent } = useMemo(() => {
+  // Sắp xếp các đối thủ theo các vị trí tương đối (Top, Left, Right, Bottom cho Spectator)
+  const { topOpponent, leftOpponent, rightOpponent, bottomSpectatorPlayer } = useMemo(() => {
     if (!gameState || !Array.isArray(gameState.players)) {
-      return { topOpponent: null, leftOpponent: null, rightOpponent: null };
+      return { topOpponent: null, leftOpponent: null, rightOpponent: null, bottomSpectatorPlayer: null };
+    }
+
+    if (isSpectator) {
+      const pls = gameState.players;
+      if (pls.length === 2) {
+        return {
+          leftOpponent: pls[0] || null,
+          rightOpponent: pls[1] || null,
+          topOpponent: null,
+          bottomSpectatorPlayer: null,
+        };
+      } else if (pls.length === 3) {
+        return {
+          leftOpponent: pls[0] || null,
+          topOpponent: pls[1] || null,
+          rightOpponent: pls[2] || null,
+          bottomSpectatorPlayer: null,
+        };
+      } else {
+        return {
+          leftOpponent: pls[3] || null,
+          topOpponent: pls[2] || null,
+          rightOpponent: pls[1] || null,
+          bottomSpectatorPlayer: pls[0] || null,
+        };
+      }
     }
 
     const mySeat = gameState.mySeatIndex ?? 0;
@@ -987,17 +1044,18 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     }
 
     if (opponents.length === 1) {
-      return { topOpponent: opponents[0], leftOpponent: null, rightOpponent: null };
+      return { topOpponent: opponents[0], leftOpponent: null, rightOpponent: null, bottomSpectatorPlayer: null };
     } else if (opponents.length === 2) {
-      return { rightOpponent: opponents[0], leftOpponent: opponents[1], topOpponent: null };
+      return { rightOpponent: opponents[0], leftOpponent: opponents[1], topOpponent: null, bottomSpectatorPlayer: null };
     } else {
       return {
         rightOpponent: opponents[0] || null,
         topOpponent: opponents[1] || null,
         leftOpponent: opponents[2] || null,
+        bottomSpectatorPlayer: null,
       };
     }
-  }, [gameState]);
+  }, [gameState, isSpectator]);
 
   // Tọa độ 4 cung mũi tên vòng cung bao quanh bàn đấu (CHUẨN 60 FPS)
   const orbitPaths = useMemo(() => {
@@ -1212,7 +1270,15 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               </span>
             </div>
 
-            {(room?.isRanked || gameState?.isRanked) ? (
+            {isSpectator ? (
+              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-purple-900/80 via-indigo-950/90 to-purple-900/80 border border-purple-400 text-purple-200 text-xs font-black tracking-wider uppercase shadow-[0_0_20px_rgba(168,85,247,0.5)] animate-pulse">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                </span>
+                <span>LIVE • {gameState?.spectatorCount || 1} Khán giả</span>
+              </div>
+            ) : (room?.isRanked || gameState?.isRanked) ? (
               <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[10px] font-black tracking-wider uppercase shadow-[0_0_15px_rgba(251,191,36,0.3)] animate-pulse">
                 <span className="material-symbols-outlined text-xs text-amber-400">military_tech</span>
                 <span>ĐẤU XẾP HẠNG (RANK)</span>
@@ -1763,192 +1829,273 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
         </div>
 
-        {/* ================= 4. BOTTOM SECTION: BẠN (P1 - PLAYER HAND & HUD GIỐNG 100% GAMEBOARD.JSX) ================= */}
+        {/* ================= 4. BOTTOM SECTION: BẠN HOẶC THANH ĐIỀU KHIỂN KHÁN GIẢ (TASK 2) ================= */}
         <div className="w-full flex flex-col items-center gap-2 pt-1 z-20">
-          {/* Player Hand - TRÊN */}
-          <div
-            className={`flex items-end justify-center -space-x-3 md:-space-x-5 hover:-space-x-1 transition-all duration-300 px-4 py-2 overflow-x-auto max-w-full min-h-[140px] rounded-3xl ${
-              isMyTurn
-                ? 'bg-primary-container/10 border-2 border-primary-container/40 shadow-[0_0_35px_rgba(0,210,255,0.25)]'
-                : ''
-            }`}
-          >
-            {displayedPlayerHand.map((card, index) => {
-              const isSelectedWild = colorPickerOpen && pendingWildCard?.id === card.id;
-              const isOtherCardWhilePicking = colorPickerOpen && pendingWildCard?.id !== card.id;
-              const isPlayable = isCardPlayable(card);
-              const isShaking = shakingCardId === card.id;
-              const isNewlyDealt = isDealing && index === displayedPlayerHand.length - 1;
-
-              return (
-                <div
-                  key={card.id || `player_card_${index}`}
-                  onClick={() => {
-                    if (isCardActionLockedRef.current || isCardActionLocked) return;
-                    if (isOtherCardWhilePicking) {
-                      setColorPickerOpen(false);
-                      setPendingWildCard(null);
-                      setTimeout(() => handlePlayCardClick(card), 50);
-                    } else if (isSelectedWild) {
-                      setColorPickerOpen(false);
-                      setPendingWildCard(null);
-                    } else {
-                      handlePlayCardClick(card);
-                    }
-                  }}
-                  onTouchStart={(e) => {
-                    if (!isPlayable || isCardActionLockedRef.current || isCardActionLocked) return;
-                    const touch = e.touches[0];
-                    touchStartPosRef.current = {
-                      x: touch.clientX,
-                      y: touch.clientY,
-                      time: Date.now(),
-                    };
-                    setSwipingCardId(card.id);
-                    setSwipeDeltaY(0);
-                  }}
-                  onTouchMove={(e) => {
-                    if (swipingCardId !== card.id) return;
-                    const touch = e.touches[0];
-                    const deltaY = touch.clientY - touchStartPosRef.current.y;
-                    if (deltaY < 0) {
-                      setSwipeDeltaY(deltaY);
-                    } else {
-                      setSwipeDeltaY(0);
-                    }
-                  }}
-                  onTouchEnd={() => {
-                    if (swipingCardId !== card.id) return;
-                    const swipedDistance = -swipeDeltaY;
-                    setSwipingCardId(null);
-                    setSwipeDeltaY(0);
-
-                    // Nếu vuốt lên từ 40px trở lên: ĐÁNH BÀI NGAY! (Task 7: Swipe to Play)
-                    if (swipedDistance >= 40) {
-                      if (isCardActionLockedRef.current || isCardActionLocked) return;
-                      if (isOtherCardWhilePicking) {
-                        setColorPickerOpen(false);
-                        setPendingWildCard(null);
-                        setTimeout(() => handlePlayCardClick(card), 50);
-                      } else if (isSelectedWild) {
-                        setColorPickerOpen(false);
-                        setPendingWildCard(null);
-                      } else {
-                        handlePlayCardClick(card);
-                      }
-                    }
-                  }}
-                  style={
-                    swipingCardId === card.id && swipeDeltaY < 0
-                      ? {
-                          transform: `translateY(${Math.max(-90, swipeDeltaY)}px) scale(1.12)`,
-                          zIndex: 60,
-                          boxShadow: '0 0 35px rgba(0, 210, 255, 0.95)',
-                          transition: 'none',
-                        }
-                      : undefined
-                  }
-                  className={`touch-card transform transition-all duration-200 shrink-0 transform-gpu select-none ${
-                    swipingCardId === card.id && swipeDeltaY < 0
-                      ? 'is-dragging ring-4 ring-cyan-300'
-                      : isNewlyDealt
-                      ? 'animate-deal-to-player'
-                      : isSelectedWild
-                      ? '-translate-y-7 scale-110 z-40 ring-4 ring-primary-container rounded-2xl shadow-[0_0_30px_rgba(0,210,255,0.8)] cursor-pointer'
-                      : isOtherCardWhilePicking
-                      ? 'opacity-40 hover:opacity-80 scale-95 transition-opacity cursor-pointer'
-                      : !isMyTurn || gameState?.isDealing || isDealing || isShuffling || isCardActionLockedRef.current || isCardActionLocked
-                      ? 'opacity-40 grayscale-[40%] pointer-events-none'
-                      : isPlayable
-                      ? 'hover:-translate-y-5 hover:scale-105 hover:shadow-2xl hover:z-50 cursor-pointer ring-2 ring-primary-container/90 rounded-2xl shadow-[0_0_20px_rgba(0,210,255,0.6)]'
-                      : 'opacity-40 grayscale-[40%] cursor-not-allowed'
-                  } ${isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
-                >
-                  <UnoCard
-                    color={card.color}
-                    value={card.value}
-                    skinId={gameState?.myEquippedCardSkin || user?.equippedCardSkin || 'skin_classic'}
-                  />
+          {isSpectator ? (
+            <div className="w-full max-w-2xl flex flex-col items-center gap-2.5 pb-2">
+              {bottomSpectatorPlayer && (
+                <div className="mb-0.5">
+                  {renderSidePlayer(bottomSpectatorPlayer, 'bottom')}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Player HUD - DƯỚI */}
-          <div
-            className={`w-full max-w-xl flex items-center justify-between px-5 py-2.5 rounded-full backdrop-blur-md shadow-md relative transition-all duration-300 transform-gpu ${
-              isMyTurn
-                ? 'bg-gradient-to-r from-primary-container/30 via-cyan-950/90 to-primary-container/30 border-2 border-primary-container ring-4 ring-primary-container/70 shadow-[0_0_45px_rgba(0,210,255,0.7)] scale-102 animate-player-spotlight'
-                : 'bg-surface-container-low/90 border border-white/10 opacity-80'
-            }`}
-          >
-            {/* Banner nổi bật khi đến lượt bạn */}
-            {isMyTurn && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-primary-container text-black font-headline font-black text-[10px] uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.8)] animate-pulse whitespace-nowrap z-30">
-                <span className="material-symbols-outlined text-xs">play_circle</span>
-                <span>✨ LƯỢT ĐÁNH CỦA BẠN ({gameState?.turnTimeRemaining}s)</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2.5 relative">
-              {renderAvatarFxBadge(gameState?.mySeatIndex)}
-              <div className="relative">
-                {renderPlayerAvatar(
-                  myPlayer?.avatar || user?.avatar,
-                  false,
-                  isMyTurn,
-                  'w-9 h-9 sm:w-10 sm:h-10',
-                  gameState?.myEquippedAvatarFrame || user?.equippedAvatarFrame
-                )}
-                <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-slate-900 border border-cyan-400 text-[8px] font-mono font-bold text-cyan-300">
-                  P{((gameState?.mySeatIndex ?? 0) + 1)}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                <span
-                  className={`text-xs font-bold leading-tight ${
-                    isMyTurn ? 'text-primary-container font-black' : 'text-white'
-                  }`}
-                >
-                  {myDisplayName} (Bạn)
-                </span>
-                <span className="text-[10px] text-slate-400">
-                  {displayedPlayerHand.length} lá trên tay
-                </span>
-                {renderPlayerStatusBadge(myPlayer)}
-              </div>
-            </div>
-
-            {isMyTurn &&
-              (gameState?.drawnCountInTurn || 0) > 0 &&
-              !gameState?.isDealing &&
-              !isDealing &&
-              !isShuffling && (
-                <button
-                  onClick={handlePassTurnClick}
-                  className="px-3.5 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/40 border border-amber-400/50 text-amber-300 text-xs font-bold transition-colors cursor-pointer animate-pulse"
-                  title="Bấm để kết thúc lượt nếu không muốn đánh lá bài nào"
-                >
-                  Bỏ Lượt ↷
-                </button>
               )}
 
-            <div className="flex items-center gap-3">
-              <div
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border transition-colors ${
-                  (gameState?.turnTimeRemaining || 15) <= 5
-                    ? 'bg-rose-950/80 border-rose-500 text-rose-300 animate-pulse'
-                    : isMyTurn
-                    ? 'bg-primary-container/25 border-primary-container text-primary-container font-black shadow-[0_0_15px_rgba(0,210,255,0.5)]'
-                    : 'bg-white/5 border-white/10 text-slate-400'
-                }`}
-                title="Thời gian lượt đánh (15s)"
-              >
-                <span className="material-symbols-outlined text-sm">schedule</span>
-                <span>{gameState?.turnTimeRemaining || 15}s</span>
+              {/* SPECTATOR HUD & CHEER CONTROL BAR */}
+              <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-950/95 via-slate-900/95 to-indigo-950/95 border-2 border-purple-500/50 backdrop-blur-xl shadow-[0_0_40px_rgba(168,85,247,0.35)]">
+                {/* Thông tin live & Fog of War */}
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-500/25 border border-purple-400 text-purple-200 font-headline font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                      <span>👁️ KHÁN GIẢ LIVE</span>
+                      <span className="text-white/60">•</span>
+                      <span>{gameState?.spectatorCount || 1} Đang Xem</span>
+                    </span>
+                  </div>
+
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-emerald-400 font-mono bg-emerald-950/60 border border-emerald-500/40 px-2 py-0.5 rounded-full">
+                    <span>🛡️ Fog of War</span>
+                  </span>
+                </div>
+
+                {/* Các nút Cổ vũ Emoji nhanh */}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-slate-400 hidden md:inline">Cổ vũ:</span>
+                  {[
+                    { icon: '👏', label: 'Vỗ tay', sound: 'cheer' },
+                    { icon: '🔥', label: 'Cháy quá', sound: 'clap' },
+                    { icon: '😱', label: 'Ối dồi ôi', sound: 'gasp' },
+                    { icon: '🎉', label: 'Chúc mừng', sound: 'firework' },
+                    { icon: '💯', label: 'Quá đỉnh', sound: 'cheer' },
+                  ].map((cheer, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() =>
+                        handleSendEmote({
+                          emote: {
+                            id: `cheer_${idx}`,
+                            icon: cheer.icon,
+                            label: cheer.label,
+                            type: 'emoji',
+                            sound: cheer.sound,
+                          },
+                        })
+                      }
+                      className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 transition-all flex items-center justify-center text-sm cursor-pointer shadow-sm hover:scale-110"
+                      title={`Gửi biểu cảm ${cheer.label}`}
+                    >
+                      {cheer.icon}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Nút Rời Xem Trận */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (socket && (room?.code || gameState?.roomCode)) {
+                      socket.emit('spectator:leave', { code: room?.code || gameState?.roomCode });
+                    }
+                    onBack();
+                  }}
+                  className="px-3.5 py-1.5 rounded-full bg-rose-600/30 hover:bg-rose-600/60 border border-rose-500/50 text-rose-200 text-xs font-headline font-bold transition-all flex items-center gap-1.5 cursor-pointer hover:shadow-[0_0_15px_rgba(244,63,94,0.4)] whitespace-nowrap"
+                >
+                  <span className="material-symbols-outlined text-sm">logout</span>
+                  <span>Rời Xem</span>
+                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Player Hand - TRÊN */}
+              <div
+                className={`flex items-end justify-center -space-x-3 md:-space-x-5 hover:-space-x-1 transition-all duration-300 px-4 py-2 overflow-x-auto max-w-full min-h-[140px] rounded-3xl ${
+                  isMyTurn
+                    ? 'bg-primary-container/10 border-2 border-primary-container/40 shadow-[0_0_35px_rgba(0,210,255,0.25)]'
+                    : ''
+                }`}
+              >
+                {displayedPlayerHand.map((card, index) => {
+                  const isSelectedWild = colorPickerOpen && pendingWildCard?.id === card.id;
+                  const isOtherCardWhilePicking = colorPickerOpen && pendingWildCard?.id !== card.id;
+                  const isPlayable = isCardPlayable(card);
+                  const isShaking = shakingCardId === card.id;
+                  const isNewlyDealt = isDealing && index === displayedPlayerHand.length - 1;
+
+                  return (
+                    <div
+                      key={card.id || `player_card_${index}`}
+                      onClick={() => {
+                        if (isCardActionLockedRef.current || isCardActionLocked) return;
+                        if (isOtherCardWhilePicking) {
+                          setColorPickerOpen(false);
+                          setPendingWildCard(null);
+                          setTimeout(() => handlePlayCardClick(card), 50);
+                        } else if (isSelectedWild) {
+                          setColorPickerOpen(false);
+                          setPendingWildCard(null);
+                        } else {
+                          handlePlayCardClick(card);
+                        }
+                      }}
+                      onTouchStart={(e) => {
+                        if (!isPlayable || isCardActionLockedRef.current || isCardActionLocked) return;
+                        const touch = e.touches[0];
+                        touchStartPosRef.current = {
+                          x: touch.clientX,
+                          y: touch.clientY,
+                          time: Date.now(),
+                        };
+                        setSwipingCardId(card.id);
+                        setSwipeDeltaY(0);
+                      }}
+                      onTouchMove={(e) => {
+                        if (swipingCardId !== card.id) return;
+                        const touch = e.touches[0];
+                        const deltaY = touch.clientY - touchStartPosRef.current.y;
+                        if (deltaY < 0) {
+                          setSwipeDeltaY(deltaY);
+                        } else {
+                          setSwipeDeltaY(0);
+                        }
+                      }}
+                      onTouchEnd={() => {
+                        if (swipingCardId !== card.id) return;
+                        const swipedDistance = -swipeDeltaY;
+                        setSwipingCardId(null);
+                        setSwipeDeltaY(0);
+
+                        // Nếu vuốt lên từ 40px trở lên: ĐÁNH BÀI NGAY! (Task 7: Swipe to Play)
+                        if (swipedDistance >= 40) {
+                          if (isCardActionLockedRef.current || isCardActionLocked) return;
+                          if (isOtherCardWhilePicking) {
+                            setColorPickerOpen(false);
+                            setPendingWildCard(null);
+                            setTimeout(() => handlePlayCardClick(card), 50);
+                          } else if (isSelectedWild) {
+                            setColorPickerOpen(false);
+                            setPendingWildCard(null);
+                          } else {
+                            handlePlayCardClick(card);
+                          }
+                        }
+                      }}
+                      style={
+                        swipingCardId === card.id && swipeDeltaY < 0
+                          ? {
+                              transform: `translateY(${Math.max(-90, swipeDeltaY)}px) scale(1.12)`,
+                              zIndex: 60,
+                              boxShadow: '0 0 35px rgba(0, 210, 255, 0.95)',
+                              transition: 'none',
+                            }
+                          : undefined
+                      }
+                      className={`touch-card transform transition-all duration-200 shrink-0 transform-gpu select-none ${
+                        swipingCardId === card.id && swipeDeltaY < 0
+                          ? 'is-dragging ring-4 ring-cyan-300'
+                          : isNewlyDealt
+                          ? 'animate-deal-to-player'
+                          : isSelectedWild
+                          ? '-translate-y-7 scale-110 z-40 ring-4 ring-primary-container rounded-2xl shadow-[0_0_30px_rgba(0,210,255,0.8)] cursor-pointer'
+                          : isOtherCardWhilePicking
+                          ? 'opacity-40 hover:opacity-80 scale-95 transition-opacity cursor-pointer'
+                          : !isMyTurn || gameState?.isDealing || isDealing || isShuffling || isCardActionLockedRef.current || isCardActionLocked
+                          ? 'opacity-40 grayscale-[40%] pointer-events-none'
+                          : isPlayable
+                          ? 'hover:-translate-y-5 hover:scale-105 hover:shadow-2xl hover:z-50 cursor-pointer ring-2 ring-primary-container/90 rounded-2xl shadow-[0_0_20px_rgba(0,210,255,0.6)]'
+                          : 'opacity-40 grayscale-[40%] cursor-not-allowed'
+                      } ${isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''}`}
+                    >
+                      <UnoCard
+                        color={card.color}
+                        value={card.value}
+                        skinId={gameState?.myEquippedCardSkin || user?.equippedCardSkin || 'skin_classic'}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Player HUD - DƯỚI */}
+              <div
+                className={`w-full max-w-xl flex items-center justify-between px-5 py-2.5 rounded-full backdrop-blur-md shadow-md relative transition-all duration-300 transform-gpu ${
+                  isMyTurn
+                    ? 'bg-gradient-to-r from-primary-container/30 via-cyan-950/90 to-primary-container/30 border-2 border-primary-container ring-4 ring-primary-container/70 shadow-[0_0_45px_rgba(0,210,255,0.7)] scale-102 animate-player-spotlight'
+                    : 'bg-surface-container-low/90 border border-white/10 opacity-80'
+                }`}
+              >
+                {/* Banner nổi bật khi đến lượt bạn */}
+                {isMyTurn && (
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-primary-container text-black font-headline font-black text-[10px] uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.8)] animate-pulse whitespace-nowrap z-30">
+                    <span className="material-symbols-outlined text-xs">play_circle</span>
+                    <span>✨ LƯỢT ĐÁNH CỦA BẠN ({gameState?.turnTimeRemaining}s)</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2.5 relative">
+                  {renderAvatarFxBadge(gameState?.mySeatIndex)}
+                  <div className="relative">
+                    {renderPlayerAvatar(
+                      myPlayer?.avatar || user?.avatar,
+                      false,
+                      isMyTurn,
+                      'w-9 h-9 sm:w-10 sm:h-10',
+                      gameState?.myEquippedAvatarFrame || user?.equippedAvatarFrame
+                    )}
+                    <span className="absolute -bottom-1 -right-1 px-1.5 py-0.2 rounded-full bg-slate-900 border border-cyan-400 text-[8px] font-mono font-bold text-cyan-300">
+                      P{((gameState?.mySeatIndex ?? 0) + 1)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span
+                      className={`text-xs font-bold leading-tight ${
+                        isMyTurn ? 'text-primary-container font-black' : 'text-white'
+                      }`}
+                    >
+                      {myDisplayName} (Bạn)
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      {displayedPlayerHand.length} lá trên tay
+                    </span>
+                    {renderPlayerStatusBadge(myPlayer)}
+                  </div>
+                </div>
+
+                {isMyTurn &&
+                  (gameState?.drawnCountInTurn || 0) > 0 &&
+                  !gameState?.isDealing &&
+                  !isDealing &&
+                  !isShuffling && (
+                    <button
+                      onClick={handlePassTurnClick}
+                      className="px-3.5 py-1 rounded-full bg-amber-500/20 hover:bg-amber-500/40 border border-amber-400/50 text-amber-300 text-xs font-bold transition-colors cursor-pointer animate-pulse"
+                      title="Bấm để kết thúc lượt nếu không muốn đánh lá bài nào"
+                    >
+                      Bỏ Lượt ↷
+                    </button>
+                  )}
+
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border transition-colors ${
+                      (gameState?.turnTimeRemaining || 15) <= 5
+                        ? 'bg-rose-950/80 border-rose-500 text-rose-300 animate-pulse'
+                        : isMyTurn
+                        ? 'bg-primary-container/25 border-primary-container text-primary-container font-black shadow-[0_0_15px_rgba(0,210,255,0.5)]'
+                        : 'bg-white/5 border-white/10 text-slate-400'
+                    }`}
+                    title="Thời gian lượt đánh (15s)"
+                  >
+                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    <span>{gameState?.turnTimeRemaining || 15}s</span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
       </div>
@@ -1963,101 +2110,102 @@ export default function OnlineGameBoard({ room, user, onBack }) {
           disabled={gameState?.isDealing || isDealing || isShuffling}
         />
 
-        {(() => {
-          const handCount = displayedPlayerHand.length;
-          const hasCalledUno = myPlayer?.unoCalled || false;
-          const canCallUno =
-            handCount <= 2 && handCount > 0 && !hasCalledUno && !gameState?.isDealing && !isDealing && !isShuffling;
+        {!isSpectator &&
+          (() => {
+            const handCount = displayedPlayerHand.length;
+            const hasCalledUno = myPlayer?.unoCalled || false;
+            const canCallUno =
+              handCount <= 2 && handCount > 0 && !hasCalledUno && !gameState?.isDealing && !isDealing && !isShuffling;
 
-          // Kiểm tra xem có đối thủ nào (kể cả Bot) còn đúng 1 lá mà CHƯA hô UNO không (BẮT UNO)
-          const forgotOpponent = (gameState?.players || []).find(
-            (p) => p.seatIndex !== gameState?.mySeatIndex && p.handCount === 1 && !p.unoCalled
-          );
-          const canCatchUno = Boolean(forgotOpponent) && !canCallUno && !gameState?.isDealing && !isDealing && !isShuffling;
+            // Kiểm tra xem có đối thủ nào (kể cả Bot) còn đúng 1 lá mà CHƯA hô UNO không (BẮT UNO)
+            const forgotOpponent = (gameState?.players || []).find(
+              (p) => p.seatIndex !== gameState?.mySeatIndex && p.handCount === 1 && !p.unoCalled
+            );
+            const canCatchUno = Boolean(forgotOpponent) && !canCallUno && !gameState?.isDealing && !isDealing && !isShuffling;
 
-          const isOverTwoCards = handCount > 2;
+            const isOverTwoCards = handCount > 2;
 
-          return (
-            <button
-              onClick={handleCallUnoClick}
-              disabled={!canCallUno && !hasCalledUno && !canCatchUno}
-              className={`relative group flex flex-col items-center justify-center transition-all duration-300 rounded-full select-none transform-gpu ${
-                canCallUno
-                  ? handCount === 1
-                    ? 'w-22 h-22 sm:w-26 sm:h-26 bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 border-4 border-white shadow-[0_0_50px_rgba(244,63,94,0.95)] ring-4 ring-yellow-400 hover:scale-110 active:scale-95 animate-bounce cursor-pointer'
-                    : 'w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 border-3 border-white shadow-[0_0_35px_rgba(245,158,11,0.85)] ring-2 ring-yellow-300 hover:scale-105 active:scale-95 cursor-pointer'
-                  : canCatchUno
-                  ? 'w-22 h-22 sm:w-26 sm:h-26 bg-gradient-to-tr from-purple-600 via-rose-600 to-amber-400 border-4 border-yellow-300 shadow-[0_0_55px_rgba(234,179,8,0.9)] ring-4 ring-amber-400 hover:scale-110 active:scale-95 animate-pulse cursor-pointer'
-                  : hasCalledUno
-                  ? 'w-18 h-18 sm:w-20 sm:h-20 bg-emerald-600/90 border-2 border-emerald-300 text-white shadow-[0_0_25px_rgba(16,185,129,0.7)] opacity-90 cursor-default'
-                  : 'w-18 h-18 sm:w-20 sm:h-20 bg-surface-container-high/40 border border-white/10 text-slate-500 opacity-30 cursor-not-allowed'
-              }`}
-              title={
-                canCatchUno
-                  ? `BẮT QUẢ TANG! ${forgotOpponent.name} còn 1 lá mà chưa hô UNO! Bấm ngay để phạt 2 lá bài!`
-                  : hasCalledUno
-                  ? 'Bạn đã báo UNO thành công!'
-                  : handCount === 1
-                  ? 'BÁO UNO NGAY! (Còn đúng 1 lá bài trên tay)'
-                  : handCount === 2
-                  ? 'BÁO TRƯỚC UNO! (Chuẩn bị đánh lá áp chót)'
-                  : `Không thể báo UNO khi còn ${handCount} lá bài (Chỉ khả dụng khi còn 1 hoặc 2 lá)`
-              }
-            >
-              {canCallUno && (
-                <span className="absolute -top-3 px-2 py-0.5 rounded-full bg-yellow-400 text-black font-black text-[9px] uppercase tracking-tighter shadow-md animate-pulse whitespace-nowrap">
-                  {handCount === 1 ? 'BẤM NGAY!' : 'BÁO TRƯỚC'}
-                </span>
-              )}
-
-              {canCatchUno && (
-                <span className="absolute -top-3 px-2 py-0.5 rounded-full bg-amber-300 text-black font-black text-[9px] uppercase tracking-tighter shadow-md animate-bounce whitespace-nowrap">
-                  🎯 BẮT PHẠT!
-                </span>
-              )}
-
-              <span
-                className={`font-headline font-black italic tracking-tighter drop-shadow-lg ${
-                  canCallUno || canCatchUno
-                    ? 'text-2xl sm:text-3xl text-white'
+            return (
+              <button
+                onClick={handleCallUnoClick}
+                disabled={!canCallUno && !hasCalledUno && !canCatchUno}
+                className={`relative group flex flex-col items-center justify-center transition-all duration-300 rounded-full select-none transform-gpu ${
+                  canCallUno
+                    ? handCount === 1
+                      ? 'w-22 h-22 sm:w-26 sm:h-26 bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 border-4 border-white shadow-[0_0_50px_rgba(244,63,94,0.95)] ring-4 ring-yellow-400 hover:scale-110 active:scale-95 animate-bounce cursor-pointer'
+                      : 'w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 border-3 border-white shadow-[0_0_35px_rgba(245,158,11,0.85)] ring-2 ring-yellow-300 hover:scale-105 active:scale-95 cursor-pointer'
+                    : canCatchUno
+                    ? 'w-22 h-22 sm:w-26 sm:h-26 bg-gradient-to-tr from-purple-600 via-rose-600 to-amber-400 border-4 border-yellow-300 shadow-[0_0_55px_rgba(234,179,8,0.9)] ring-4 ring-amber-400 hover:scale-110 active:scale-95 animate-pulse cursor-pointer'
                     : hasCalledUno
-                    ? 'text-lg sm:text-xl text-emerald-100'
-                    : 'text-base sm:text-lg text-slate-500'
+                    ? 'w-18 h-18 sm:w-20 sm:h-20 bg-emerald-600/90 border-2 border-emerald-300 text-white shadow-[0_0_25px_rgba(16,185,129,0.7)] opacity-90 cursor-default'
+                    : 'w-18 h-18 sm:w-20 sm:h-20 bg-surface-container-high/40 border border-white/10 text-slate-500 opacity-30 cursor-not-allowed'
                 }`}
-              >
-                {canCatchUno ? 'BẮT!' : 'UNO'}
-              </span>
-
-              <span
-                className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wider ${
+                title={
                   canCatchUno
-                    ? 'text-amber-200'
+                    ? `BẮT QUẢ TANG! ${forgotOpponent.name} còn 1 lá mà chưa hô UNO! Bấm ngay để phạt 2 lá bài!`
                     : hasCalledUno
-                    ? 'text-emerald-200'
-                    : canCallUno
-                    ? 'text-white/90'
-                    : 'text-slate-500'
-                }`}
+                    ? 'Bạn đã báo UNO thành công!'
+                    : handCount === 1
+                    ? 'BÁO UNO NGAY! (Còn đúng 1 lá bài trên tay)'
+                    : handCount === 2
+                    ? 'BÁO TRƯỚC UNO! (Chuẩn bị đánh lá áp chót)'
+                    : `Không thể báo UNO khi còn ${handCount} lá bài (Chỉ khả dụng khi còn 1 hoặc 2 lá)`
+                }
               >
-                {canCatchUno
-                  ? 'PHẠT 2 LÁ'
-                  : hasCalledUno
-                  ? '✓ ĐÃ BÁO'
-                  : canCallUno
-                  ? handCount === 1
-                    ? 'BÁO UNO'
-                    : 'BÁO TRƯỚC'
-                  : 'KHÓA'}
-              </span>
+                {canCallUno && (
+                  <span className="absolute -top-3 px-2 py-0.5 rounded-full bg-yellow-400 text-black font-black text-[9px] uppercase tracking-tighter shadow-md animate-pulse whitespace-nowrap">
+                    {handCount === 1 ? 'BẤM NGAY!' : 'BÁO TRƯỚC'}
+                  </span>
+                )}
 
-              {isOverTwoCards && !canCatchUno && (
-                <span className="absolute -bottom-2 px-1.5 py-0.2 rounded-full bg-black/80 border border-white/10 text-[8px] text-slate-400 font-mono">
-                  {handCount} lá
+                {canCatchUno && (
+                  <span className="absolute -top-3 px-2 py-0.5 rounded-full bg-amber-300 text-black font-black text-[9px] uppercase tracking-tighter shadow-md animate-bounce whitespace-nowrap">
+                    🎯 BẮT PHẠT!
+                  </span>
+                )}
+
+                <span
+                  className={`font-headline font-black italic tracking-tighter drop-shadow-lg ${
+                    canCallUno || canCatchUno
+                      ? 'text-2xl sm:text-3xl text-white'
+                      : hasCalledUno
+                      ? 'text-lg sm:text-xl text-emerald-100'
+                      : 'text-base sm:text-lg text-slate-500'
+                  }`}
+                >
+                  {canCatchUno ? 'BẮT!' : 'UNO'}
                 </span>
-              )}
-            </button>
-          );
-        })()}
+
+                <span
+                  className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wider ${
+                    canCatchUno
+                      ? 'text-amber-200'
+                      : hasCalledUno
+                      ? 'text-emerald-200'
+                      : canCallUno
+                      ? 'text-white/90'
+                      : 'text-slate-500'
+                  }`}
+                >
+                  {canCatchUno
+                    ? 'PHẠT 2 LÁ'
+                    : hasCalledUno
+                    ? '✓ ĐÃ BÁO'
+                    : canCallUno
+                    ? handCount === 1
+                      ? 'BÁO UNO'
+                      : 'BÁO TRƯỚC'
+                    : 'KHÓA'}
+                </span>
+
+                {isOverTwoCards && !canCatchUno && (
+                  <span className="absolute -bottom-2 px-1.5 py-0.2 rounded-full bg-black/80 border border-white/10 text-[8px] text-slate-400 font-mono">
+                    {handCount} lá
+                  </span>
+                )}
+              </button>
+            );
+          })()}
       </div>
 
       {/* ================= MODAL CHỌN MÀU (WILD COLOR PICKER - NỀN TRONG SUỐT NHÌN BÀI) ================= */}

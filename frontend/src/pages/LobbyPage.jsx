@@ -1439,6 +1439,15 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         onOpenAuth={onOpenAuth}
         onOpenChat={(friend) => setActiveChatFriend(friend)}
         onCreateAndInvite={(friend) => handleCreateRoomAndInvite(friend)}
+        onSpectateFriend={(friend) => {
+          setIsFriendsOpen(false);
+          const targetCode = friend.roomCode || friend.currentRoomCode;
+          if (targetCode && onJoinOnlineMatch) {
+            onJoinOnlineMatch({ code: targetCode, isSpectator: true });
+          } else {
+            alert(`Bạn bè ${friend.nickname} đang trong trận nhưng chưa xác định được mã phòng! Hãy thử nhập mã phòng trực tiếp.`);
+          }
+        }}
       />
 
       {/* KHUNG CHAT TRỰC TIẾP BẠN BÈ 1-1 (TASK 2) */}

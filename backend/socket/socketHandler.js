@@ -327,13 +327,25 @@ function setupSocketIO(io) {
       }
     });
 
-    // LẤY TRẠNG THÁI VÁN ĐẤU HIỆN TẠI (HỖ TRỢ RECONNECT F5)
+    // LẤY TRẠNG THÁI VÁN ĐẤU HIỆN TẠI (HỖ TRỢ RECONNECT F5 & SPECTATOR)
     socket.on('game:get_state', ({ code, userId, playerName }) => {
       try {
         console.log(`[Socket] 🔄 game:get_state nhận từ ${playerName} (socket: ${socket.id}, room: ${code})`);
         const game = gameEngine.getActiveGame(code);
         if (game) {
           socket.join(game.roomCode);
+
+          // 1. Kiểm tra nếu socket là Khán giả xem trực tiếp (Task 2)
+          const isSpectator = game.spectators && game.spectators.some(
+            (s) => s.socketId === socket.id || (userId && s.userId === userId)
+          );
+          if (isSpectator) {
+            console.log(`[Socket] 👁️ Gửi game:state_sync (Chế độ Khán giả - Fog of War) cho ${playerName || socket.id} phòng ${code}`);
+            socket.emit('game:state_sync', game.getClientStateForSpectator());
+            return;
+          }
+
+          // 2. Người chơi trong bàn
           let p = game.reconnectPlayer(socket.id, userId, playerName);
           if (!p) {
             p = game.players.find((pl) => pl.socketId === socket.id);
@@ -427,18 +439,26 @@ function setupSocketIO(io) {
 
         let senderSeatIndex = null;
         let senderName = 'Người chơi';
+        let isSpectator = false;
 
         if (game) {
           const senderPlayer = game.players.find((p) => p.socketId === socket.id);
           if (senderPlayer) {
             senderSeatIndex = senderPlayer.seatIndex;
             senderName = senderPlayer.name;
+          } else {
+            const spec = game.spectators?.find((s) => s.socketId === socket.id);
+            if (spec) {
+              senderName = spec.name;
+              isSpectator = true;
+            }
           }
         }
 
         io.to(cleanCode).emit('game:receive_emote', {
           senderSeatIndex,
           senderName,
+          isSpectator,
           emote, // { id, label, icon, type: 'text' | 'emoji' | 'projectile', sound }
           targetSeatIndex: targetSeatIndex !== undefined ? targetSeatIndex : null,
           timestamp: Date.now(),
@@ -535,6 +555,69 @@ function setupSocketIO(io) {
       }
     });
 
+    // 6.9. CHẾ ĐỘ KHÁN GIẢ XEM TRỰC TIẾP (TASK 2 - TUẦN 4)
+    socket.on('spectator:join', ({ code, user }, callback) => {
+      try {
+        if (!code) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Mã phòng không hợp lệ!' });
+          return;
+        }
+        const cleanCode = code.toUpperCase().trim();
+        const game = gameEngine.getActiveGame(cleanCode);
+        if (!game) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Trận đấu không tồn tại hoặc đã kết thúc!' });
+          return;
+        }
+
+        socket.join(game.roomCode);
+        const spec = game.addSpectator(socket.id, user);
+
+        // Gửi state đồng bộ với Fog of War bảo mật ngay cho khán giả
+        socket.emit('game:state_sync', game.getClientStateForSpectator());
+
+        // Thông báo cập nhật số lượng khán giả cho toàn phòng
+        io.to(game.roomCode).emit('spectator:update', {
+          spectatorCount: game.getSpectatorCount(),
+          message: `👁️ ${spec.name} đã vào xem trận đấu!`,
+          joinedSpectator: spec,
+        });
+
+        console.log(`[Spectator] 👁️ ${spec.name} (${socket.id}) đang xem phòng [${cleanCode}] - Tổng: ${game.getSpectatorCount()} khán giả`);
+        if (typeof callback === 'function') {
+          callback({
+            success: true,
+            roomCode: game.roomCode,
+            spectatorCount: game.getSpectatorCount(),
+          });
+        }
+      } catch (err) {
+        console.error('[Spectator] Lỗi khi tham gia xem trận:', err);
+        if (typeof callback === 'function') callback({ success: false, message: 'Lỗi máy chủ khi vào xem trận!' });
+      }
+    });
+
+    socket.on('spectator:leave', ({ code }, callback) => {
+      try {
+        if (!code) {
+          if (typeof callback === 'function') callback({ success: false });
+          return;
+        }
+        const cleanCode = code.toUpperCase().trim();
+        const game = gameEngine.getActiveGame(cleanCode);
+        if (game) {
+          game.removeSpectator(socket.id);
+          socket.leave(game.roomCode);
+          io.to(game.roomCode).emit('spectator:update', {
+            spectatorCount: game.getSpectatorCount(),
+          });
+          console.log(`[Spectator] 👁️ Khán giả (${socket.id}) đã rời phòng [${cleanCode}] - Còn lại: ${game.getSpectatorCount()} khán giả`);
+        }
+        if (typeof callback === 'function') callback({ success: true });
+      } catch (err) {
+        console.error('[Spectator] Lỗi khi rời xem trận:', err);
+      }
+    });
+
     // 7. RỜI PHÒNG THỦ CÔNG
     socket.on('room:leave', async (callback) => {
       try {
@@ -566,6 +649,17 @@ function setupSocketIO(io) {
     socket.on('disconnect', () => {
       console.log(`[Socket] ❌ Người chơi ngắt kết nối: ${socket.id}`);
       try {
+        // Dọn dẹp nếu socket đang là khán giả trong bất kỳ trận đấu nào (Task 2)
+        for (const [code, game] of gameEngine.activeGames.entries()) {
+          if (game.spectators && game.spectators.some((s) => s.socketId === socket.id)) {
+            game.removeSpectator(socket.id);
+            io.to(game.roomCode).emit('spectator:update', {
+              spectatorCount: game.getSpectatorCount(),
+            });
+            console.log(`[Spectator] ❌ Khán giả ${socket.id} ngắt kết nối khỏi phòng [${code}]`);
+          }
+        }
+
         // Hủy theo dõi danh tính Online Presence
         userPresence.unregisterSocket(socket.id, io);
 

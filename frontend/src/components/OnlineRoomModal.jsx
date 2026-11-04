@@ -381,15 +381,34 @@ export default function OnlineRoomModal({
                   />
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleJoinRoom}
-                  disabled={isLoading || !inputCode.trim()}
-                  className="w-full py-3.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(245,158,11,0.35)] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined text-lg">login</span>
-                  <span>{isLoading ? 'ĐANG VÀO...' : 'THAM GIA PHÒNG'}</span>
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleJoinRoom}
+                    disabled={isLoading || !inputCode.trim()}
+                    className="w-full py-3 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(245,158,11,0.35)] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <span className="material-symbols-outlined text-base">login</span>
+                    <span>{isLoading ? 'ĐANG VÀO...' : 'THAM GIA PHÒNG'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const code = inputCode.trim().toUpperCase();
+                      if (!code) return;
+                      if (onStartOnlineMatch) {
+                        onStartOnlineMatch({ code, isSpectator: true });
+                      }
+                    }}
+                    disabled={isLoading || !inputCode.trim()}
+                    className="w-full py-2.5 rounded-full bg-gradient-to-r from-purple-600/80 to-indigo-600/80 hover:from-purple-500 hover:to-indigo-500 border border-purple-400/50 text-white font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:brightness-110 active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    title="Vào xem trực tiếp trận đấu với tư cách khán giả (Task 2)"
+                  >
+                    <span className="material-symbols-outlined text-base">visibility</span>
+                    <span>👁️ XEM TRỰC TIẾP (SPECTATE)</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -55,17 +55,24 @@ class UserPresence {
     return uid;
   }
 
-  setUserStatus(userId, status, io = null) {
+  setUserStatus(userId, status, io = null, roomCode = null) {
     if (!userId) return;
     const uid = String(userId);
     const meta = this.userMeta.get(uid);
     if (meta) {
       meta.status = status;
+      meta.roomCode = roomCode || (status === 'in_game' ? meta.roomCode : null);
       meta.lastActive = Date.now();
       if (io) {
-        this.broadcastPresenceChange(uid, status, io);
+        this.broadcastPresenceChange(uid, status, io, meta.roomCode);
       }
     }
+  }
+
+  getUserRoomCode(userId) {
+    if (!userId) return null;
+    const uid = String(userId);
+    return this.userMeta.get(uid)?.roomCode || null;
   }
 
   isUserOnline(userId) {
@@ -98,17 +105,19 @@ class UserPresence {
       result[uid] = {
         isOnline,
         status: isOnline ? (meta?.status || 'online') : 'offline',
+        roomCode: isOnline ? (meta?.roomCode || null) : null,
         lastActive: meta?.lastActive || null,
       };
     }
     return result;
   }
 
-  broadcastPresenceChange(userId, status, io) {
+  broadcastPresenceChange(userId, status, io, roomCode = null) {
     if (!io) return;
     io.emit('friend:status_change', {
       userId: String(userId),
       status,
+      roomCode: roomCode || this.getUserRoomCode(userId),
       timestamp: Date.now(),
     });
   }

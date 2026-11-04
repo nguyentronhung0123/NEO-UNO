@@ -12,6 +12,7 @@ export default function FriendsModal({
   onCreateAndInvite = null,
   onOpenAuth = null,
   onOpenChat = null,
+  onSpectateFriend = null,
 }) {
   const [activeTab, setActiveTab] = useState('friends'); // 'friends' | 'requests' | 'search'
   const [friends, setFriends] = useState([]);
@@ -506,16 +507,33 @@ export default function FriendsModal({
                               </button>
 
                               {f.isOnline ? (
-                                <button
-                                  onClick={() => handleInviteFriend(f)}
-                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-white font-headline font-bold text-xs flex items-center gap-1 shadow-[0_0_15px_rgba(0,210,255,0.3)] transition-all cursor-pointer"
-                                  title="Mời bạn bè vào phòng đấu"
-                                >
-                                  <span className="material-symbols-outlined text-sm">
-                                    sports_esports
-                                  </span>
-                                  <span className="hidden sm:inline">Mời Đấu</span>
-                                </button>
+                                f.status === 'in_game' ? (
+                                  <button
+                                    onClick={() => {
+                                      if (onSpectateFriend) {
+                                        onSpectateFriend(f);
+                                      } else {
+                                        showToast(`Bạn bè đang trong trận đấu!`, 'info');
+                                      }
+                                    }}
+                                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white font-headline font-bold text-xs flex items-center gap-1 shadow-[0_0_15px_rgba(168,85,247,0.4)] transition-all cursor-pointer animate-pulse"
+                                    title="Xem trực tiếp trận đấu của bạn bè (Chế độ Khán giả)"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">visibility</span>
+                                    <span>Xem Trận</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleInviteFriend(f)}
+                                    className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-110 text-white font-headline font-bold text-xs flex items-center gap-1 shadow-[0_0_15px_rgba(0,210,255,0.3)] transition-all cursor-pointer"
+                                    title="Mời bạn bè vào phòng đấu"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">
+                                      sports_esports
+                                    </span>
+                                    <span className="hidden sm:inline">Mời Đấu</span>
+                                  </button>
+                                )
                               ) : (
                                 <span className="text-[11px] text-slate-500 font-medium px-1.5 py-1">
                                   Offline
