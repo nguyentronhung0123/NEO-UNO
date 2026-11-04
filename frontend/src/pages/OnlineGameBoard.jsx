@@ -6,6 +6,7 @@ import { getSocket } from '../services/socket';
 import { soundEngine } from '../utils/audioFx';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
+import AudioSettingsModal from '../components/AudioSettingsModal';
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -114,6 +115,16 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const [autoReturnCountdown, setAutoReturnCountdown] = useState(120);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isAudioSettingsOpen, setIsAudioSettingsOpen] = useState(false);
+
+  // QUẢN LÝ NHẠC NỀN BÀN ĐẤU ONLINE (TASK 1 - TUẦN 4)
+  useEffect(() => {
+    soundEngine.init();
+    soundEngine.playBattleBGM();
+    return () => {
+      soundEngine.stopBGM(false);
+    };
+  }, []);
 
   // Danh sách các biểu cảm đang hiển thị trên bàn đấu (Task 3)
   const [activeEmotes, setActiveEmotes] = useState([]);
@@ -1250,6 +1261,18 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 {soundEnabled ? 'volume_up' : 'volume_off'}
               </span>
             </button>
+
+            {/* NÚT BỘ TRỘN ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
+            <button
+              onClick={() => {
+                soundEngine.playCardSlide();
+                setIsAudioSettingsOpen(true);
+              }}
+              className="p-1.5 rounded-full border border-white/15 bg-white/5 hover:bg-white/15 text-slate-300 hover:text-cyan-300 transition-all cursor-pointer shadow-md"
+              title="Cài đặt Âm thanh & Nhạc nền BGM"
+            >
+              <span className="material-symbols-outlined text-base">tune</span>
+            </button>
           </div>
         </div>
 
@@ -2346,6 +2369,12 @@ export default function OnlineGameBoard({ room, user, onBack }) {
           </div>
         </div>
       )}
+
+      {/* MODAL CÀI ĐẶT ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
+      <AudioSettingsModal
+        isOpen={isAudioSettingsOpen}
+        onClose={() => setIsAudioSettingsOpen(false)}
+      />
     </main>
   );
 }

@@ -12,6 +12,7 @@ import { matchApi } from '../apis/matchApi.js';
 import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch } from '../utils/activeMatchStorage.js';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
+import AudioSettingsModal from '../components/AudioSettingsModal';
 import {
   getBotAttackEmote,
   getBotPenaltyEmote,
@@ -77,6 +78,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
   // ÂM THANH
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isAudioSettingsOpen, setIsAudioSettingsOpen] = useState(false);
 
   // HIỆU ỨNG XÁO BÀI & CHIA BÀI
   const [isShuffling, setIsShuffling] = useState(() => !restoredMatchState);
@@ -740,12 +742,15 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
   // KHỞI TẠO BÀN ĐẤU KHI VÀO PHÒNG (NẾU CÓ RESTORE THÌ NẠP LẠI, NẾU KHÔNG THÌ CHIA MỚI)
   useEffect(() => {
+    soundEngine.init();
+    soundEngine.playBattleBGM();
     if (restoredMatchState) {
       restoreMatch(restoredMatchState);
     } else {
       startShuffleAndDeal();
     }
     return () => {
+      soundEngine.stopBGM(false);
       if (shuffleTimerRef.current) clearTimeout(shuffleTimerRef.current);
       if (dealIntervalRef.current) clearInterval(dealIntervalRef.current);
       if (starterFlipTimerRef.current) clearTimeout(starterFlipTimerRef.current);
@@ -1117,7 +1122,11 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     const interval = setInterval(() => {
       setTurnTimer((prev) => {
         if (prev <= 1) return 0;
-        return prev - 1;
+        const next = prev - 1;
+        if (next <= 5 && next > 0 && currentTurnIndex === 0) {
+          soundEngine.playTickTock(next % 2 === 0);
+        }
+        return next;
       });
     }, 1000);
 
@@ -2089,6 +2098,18 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
               <span className="material-symbols-outlined text-base">
                 {soundEnabled ? 'volume_up' : 'volume_off'}
               </span>
+            </button>
+
+            {/* NÚT BỘ TRỘN ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
+            <button
+              onClick={() => {
+                soundEngine.playCardSlide();
+                setIsAudioSettingsOpen(true);
+              }}
+              className="p-1.5 rounded-full border border-white/15 bg-white/5 hover:bg-white/15 text-slate-300 hover:text-cyan-300 transition-all cursor-pointer shadow-md"
+              title="Cài đặt Âm thanh & Nhạc nền BGM"
+            >
+              <span className="material-symbols-outlined text-base">tune</span>
             </button>
           </div>
         </div>
@@ -3162,6 +3183,12 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       <MatchHistoryModal
         isOpen={showHistory}
         onClose={() => setShowHistory(false)}
+      />
+
+      {/* MODAL CÀI ĐẶT ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
+      <AudioSettingsModal
+        isOpen={isAudioSettingsOpen}
+        onClose={() => setIsAudioSettingsOpen(false)}
       />
     </main>
   );

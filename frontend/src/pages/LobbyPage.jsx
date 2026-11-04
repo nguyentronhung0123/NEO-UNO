@@ -14,6 +14,8 @@ import MatchInviteNotification from '../components/MatchInviteNotification';
 import ShopModal from '../components/ShopModal';
 import AdminSecurityModal from '../components/AdminSecurityModal';
 import QuestModal from '../components/QuestModal';
+import AudioSettingsModal from '../components/AudioSettingsModal';
+import { soundEngine } from '../utils/audioFx';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
@@ -35,6 +37,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isAudioSettingsOpen, setIsAudioSettingsOpen] = useState(false);
+  const [audioSettings, setAudioSettings] = useState(() => soundEngine.getSettings());
 
   // HỆ THỐNG BẠN BÈ & LỜI MỜI ĐẤU (TASK 2)
   const [isFriendsOpen, setIsFriendsOpen] = useState(false);
@@ -57,6 +61,36 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [forfeitToast, setForfeitToast] = useState(null);
 
   const profileMenuRef = useRef(null);
+
+  // QUẢN LÝ NHẠC NỀN BGM & ÂM THANH SẢNH (TASK 1 - TUẦN 4)
+  useEffect(() => {
+    const unsub = soundEngine.subscribe((newSettings) => {
+      setAudioSettings(newSettings);
+    });
+
+    // Kích hoạt BGM Sảnh (Chillwave) ngay khi có tương tác đầu tiên của người dùng
+    const handleFirstInteraction = () => {
+      soundEngine.init();
+      const current = soundEngine.getSettings();
+      if (!current.currentTrack && current.bgmEnabled && !current.isMuted) {
+        soundEngine.playLobbyBGM();
+      }
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+    };
+
+    window.addEventListener('click', handleFirstInteraction);
+    window.addEventListener('keydown', handleFirstInteraction);
+    window.addEventListener('touchstart', handleFirstInteraction);
+
+    return () => {
+      unsub();
+      window.removeEventListener('click', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+      window.removeEventListener('touchstart', handleFirstInteraction);
+    };
+  }, []);
 
   // PHÁT HIỆN TRẬN ĐẤU ONLINE DỞ DANG ĐỂ RECONNECT (TASK 4)
   useEffect(() => {
@@ -367,6 +401,24 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]">
                 {pendingRequestsCount}
               </span>
+            )}
+          </button>
+
+          {/* NÚT CÀI ĐẶT ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
+          <button
+            onClick={() => {
+              soundEngine.playCardSlide();
+              setIsAudioSettingsOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-slate-200 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group shrink-0 hover:scale-105 active:scale-95"
+            title="Bộ trộn âm thanh đa kênh & Nhạc nền Cyberpunk"
+          >
+            <span className={`material-symbols-outlined text-base ${audioSettings.isMuted ? 'text-rose-400' : 'text-cyan-400 group-hover:scale-110'} transition-transform`}>
+              {audioSettings.isMuted ? 'volume_off' : 'tune'}
+            </span>
+            <span className="hidden lg:inline">Âm Thanh</span>
+            {audioSettings.bgmEnabled && !audioSettings.isMuted && audioSettings.currentTrack && (
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             )}
           </button>
 
@@ -743,6 +795,36 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-slate-400 group-hover:text-sky-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 5: Cài Đặt Âm Thanh & BGM Mixer (Task 1 - Tuần 4) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      soundEngine.playCardSlide();
+                      setIsAudioSettingsOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-cyan-500/15 border border-white/5 hover:border-cyan-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        🎚️
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+                          <span>Cài Đặt Âm Thanh & BGM</span>
+                          {audioSettings.bgmEnabled && !audioSettings.isMuted && audioSettings.currentTrack && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {audioSettings.isMuted ? 'Đang tắt tiếng' : `Master: ${Math.round(audioSettings.masterVolume * 100)}% • BGM: ${Math.round(audioSettings.bgmVolume * 100)}%`}
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all text-sm">
                       chevron_right
                     </span>
                   </button>
@@ -1452,6 +1534,12 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         }}
         user={user}
         onUpdateUser={updateUser}
+      />
+
+      {/* MODAL CÀI ĐẶT ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
+      <AudioSettingsModal
+        isOpen={isAudioSettingsOpen}
+        onClose={() => setIsAudioSettingsOpen(false)}
       />
 
       {/* KHỐI NÚT NỔI GÓC DƯỚI PHẢI (CỬA HÀNG + CHAT MESSENGER NẰM CÙNG KHỐI) */}
