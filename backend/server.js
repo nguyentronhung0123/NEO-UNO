@@ -3,24 +3,57 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const compression = require('compression');
 const connectDB = require('./config/db');
 const migrateExistingUsers = require('./utils/migrateUsers');
 const setupSocketIO = require('./socket/socketHandler');
+const {
+  helmetShield,
+  serverCloaking,
+  noSqlInjectionShield,
+  globalApiLimiter,
+  authLimiter,
+  transactionLimiter,
+  adminLimiter,
+  honeypotTripwire,
+  safeErrorHandler,
+} = require('./middleware/securityShield');
 
 const app = express();
 const server = http.createServer(app);
 
+// Ẩn hoàn toàn dấu vết công nghệ Express
+app.disable('x-powered-by');
+
 const io = new Server(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST'],
+  },
 });
 
 const PORT = process.env.PORT || 5001;
 
-app.use(cors());
-app.use(express.json());
+// ============================================================================
+// BỨC TƯỜNG THÉP BẢO MẬT & TỐI ƯU TẢI TRỌNG MẠNG (TASK 5 - TUẦN 4)
+// ============================================================================
+app.use(serverCloaking); // Ẩn danh Server, cấm Robot index API nhạy cảm
+app.use(helmetShield); // HTTP Headers phòng thủ: CSP, HSTS, NoSniff, Clickjacking
+app.use(compression()); // Nén dữ liệu mạng Gzip/Brotli giảm 60-80% băng thông
+app.use(honeypotTripwire); // Cạm bẫy dò quét lỗ hổng .env, wp-admin, sql
+
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json({ limit: '64kb' })); // Chặn payload JSON khổng lồ chống cạn kiệt RAM
+app.use(express.urlencoded({ extended: true, limit: '64kb' }));
+app.use(noSqlInjectionShield); // Lọc sạch toán tử NoSQL Injection ($gt, $ne, $where)
+
+// Phân tầng Rate-Limiting phòng vệ Brute-force & DDoS
+app.use('/api', globalApiLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/shop/buy', transactionLimiter);
+app.use('/api/matches/record', transactionLimiter);
+app.use('/api/admin', adminLimiter);
 
 // Gắn io vào express app để các REST controller có thể phát sự kiện realtime
 app.set('io', io);
@@ -69,6 +102,17 @@ app.use('/api/quests', questRoutes);
 // 8. API Báo Cáo Vi Phạm & Tố Cáo (Player Reports - Task 3)
 const reportRoutes = require('./routes/reportRoutes');
 app.use('/api/reports', reportRoutes);
+
+// Chặn 404 an toàn cho mọi endpoint không xác định (ẩn hoàn toàn HTML/công nghệ server)
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Tài nguyên hoặc đường dẫn API không tồn tại trên hệ thống bảo mật NEO-UNO!',
+  });
+});
+
+// Bộ lọc bắt lỗi toàn cục an toàn (không bao giờ để lộ stack trace ra ngoài)
+app.use(safeErrorHandler);
 
 // Bắt lỗi toàn cục chống crash server ngoài ý muốn
 process.on('uncaughtException', (err) => {

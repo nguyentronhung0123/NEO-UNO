@@ -24,6 +24,8 @@ const securityLogSchema = new mongoose.Schema(
         'USER_SUBMIT_REPORT',
         'SUSPICIOUS_EXPLOIT_ATTEMPT',
         'RATE_LIMIT_EXCEEDED',
+        'HONEYPOT_ATTACK_DETECTED',
+        'NOSQL_INJECTION_BLOCKED',
       ],
       index: true,
     },
