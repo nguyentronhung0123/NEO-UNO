@@ -661,7 +661,9 @@ exports.getServerMetrics = async (req, res) => {
     const mem = process.memoryUsage();
     const io = req.app.get('io');
     const { getGameEngineMetrics } = require('../socket/gameEngine');
+    const roomManager = require('../socket/roomManager');
     const gameMetrics = getGameEngineMetrics ? getGameEngineMetrics() : { totalRooms: 0, activeMatches: 0, totalSpectators: 0 };
+    const totalRoomsCount = Math.max(roomManager?.rooms?.size || 0, gameMetrics.totalRooms || 0);
 
     const activeSockets = io?.engine?.clientsCount || 0;
     const uptimeSeconds = Math.floor(process.uptime());
@@ -677,7 +679,7 @@ exports.getServerMetrics = async (req, res) => {
       },
       sockets: {
         connectedClients: activeSockets,
-        activeRooms: gameMetrics.totalRooms,
+        activeRooms: totalRoomsCount,
         activeMatches: gameMetrics.activeMatches,
         totalSpectators: gameMetrics.totalSpectators,
       },

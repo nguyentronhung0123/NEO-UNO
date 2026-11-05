@@ -30,6 +30,7 @@ const args = process.argv.slice(2).reduce((acc, cur) => {
 }, {});
 
 const NUM_CLIENTS = parseInt(args.clients, 10) || 50;
+const HOLD_SECONDS = parseInt(args.hold, 10) || 0;
 const PORT = parseInt(args.port, 10) || 5001;
 const HOST = args.host || `http://localhost:${PORT}`;
 const JWT_SECRET = process.env.JWT_SECRET || 'neo_uno_super_secret_jwt_key_2026_xyz';
@@ -243,6 +244,9 @@ async function runStressBenchmark() {
     });
     telemetry.categoryLatencies.roomJoin.push(joinRes.rtt);
 
+    // Guest bấm Sẵn Sàng (bắt buộc để chủ phòng bắt đầu trận)
+    await emitWithAck(guest.socket, 'room:toggle_ready', { code: roomCode });
+
     // Host bắt đầu trận đấu
     const startRes = await emitWithAck(host.socket, 'room:start_game', { code: roomCode });
     telemetry.categoryLatencies.roomStart.push(startRes.rtt);
@@ -354,6 +358,30 @@ async function runStressBenchmark() {
   // BƯỚC 4: THU THẬP METRICS TẠI ĐỈNH TẢI (PEAK TELEMETRY)
   // --------------------------------------------------------------------------
   const peakMetrics = await fetchServerMetrics(adminToken);
+
+  // Giữ tải để người dùng có thể quan sát trực tiếp trên giao diện Web SOC Dashboard
+  if (HOLD_SECONDS > 0) {
+    console.log(`\n⏸️ [LIVE MONITORING] Đang duy trì toàn bộ ${NUM_CLIENTS} clients, ${numRooms} phòng và ${spectatorCount} khán giả trong ${HOLD_SECONDS}s...`);
+    console.log(`   👉 Hãy nhìn vào màn hình Web "GIÁM SÁT HIỆU NĂNG & TẢI MÁY CHỦ" để xem các số liệu nhảy múa trực tiếp!`);
+    
+    let elapsed = 0;
+    while (elapsed < HOLD_SECONDS) {
+      // Bắn emote ngẫu nhiên giữ nhịp tim hoạt động
+      const randomClient = clientSockets[Math.floor(Math.random() * clientSockets.length)];
+      const randomRoom = rooms[Math.floor(Math.random() * rooms.length)];
+      if (randomClient && randomRoom) {
+        randomClient.socket.emit('game:send_emote', {
+          code: randomRoom.roomCode,
+          emote: { id: 'uno', label: 'UNO', icon: '🃏', type: 'text' },
+          targetSeatIndex: 0,
+        });
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+      elapsed++;
+      process.stdout.write(`\r   ⏳ Đang giữ phòng trực tiếp: còn ${HOLD_SECONDS - elapsed}s...`);
+    }
+    console.log('\n   ✅ Kết thúc thời gian quan sát trực tiếp!');
+  }
 
   // --------------------------------------------------------------------------
   // BƯỚC 5: DỌN DẸP & NGẮT KẾT NỐI AN TOÀN (TEARDOWN)

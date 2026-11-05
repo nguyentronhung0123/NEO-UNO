@@ -53,8 +53,8 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
   const [socReplayMatchId, setSocReplayMatchId] = useState(null);
 
   // Load Dashboard Data & Real-time Metrics (Task 4)
-  const loadDashboard = useCallback(async () => {
-    setIsStatsLoading(true);
+  const loadDashboard = useCallback(async (isSilent = false) => {
+    if (!isSilent) setIsStatsLoading(true);
     try {
       const [statsRes, metricsRes] = await Promise.all([
         adminApi.getDashboardStats(),
@@ -70,7 +70,7 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
     } catch (err) {
       console.warn('[AdminSecurityModal] loadDashboard error:', err);
     } finally {
-      setIsStatsLoading(false);
+      if (!isSilent) setIsStatsLoading(false);
     }
   }, []);
 
@@ -125,7 +125,11 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
   useEffect(() => {
     if (!isOpen) return;
     if (activeTab === 'dashboard') {
-      loadDashboard();
+      loadDashboard(false);
+      const interval = setInterval(() => {
+        loadDashboard(true);
+      }, 2000);
+      return () => clearInterval(interval);
     } else if (activeTab === 'users') {
       loadUsers(1);
     } else if (activeTab === 'logs') {
