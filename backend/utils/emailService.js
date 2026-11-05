@@ -116,6 +116,12 @@ function createOtpEmailHtml(otp, nickname = 'Đấu thủ') {
  * Gửi Email chứa mã OTP khôi phục mật khẩu
  */
 async function sendOtpEmail({ to, otp, nickname = 'Đấu thủ' }) {
+  // Nếu là email kiểm thử nội bộ (.test), không bắn mail thật để tránh Google gửi thư báo không tìm thấy địa chỉ
+  if (to.endsWith('.test') || to.endsWith('.example')) {
+    console.log(`[EmailService] 🧪 Bỏ qua gửi SMTP cho email kiểm thử nội bộ: ${to} (Mã OTP: ${otp})`);
+    return { success: true, mode: 'simulator', otp };
+  }
+
   if (transporter) {
     try {
       const info = await transporter.sendMail({
