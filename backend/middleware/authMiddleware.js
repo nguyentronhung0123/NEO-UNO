@@ -52,17 +52,45 @@ const requireAuth = async (req, res, next) => {
 };
 
 /**
- * Middleware phân quyền Admin cấp cao (Chỉ dành cho quản trị viên)
+ * Middleware phân quyền Admin cấp cao (Tàng hình bảo mật 100% với người không có quyền)
+ * Bất kỳ truy cập nào không có Token Admin hợp lệ đều nhận HTTP 404 (Không tồn tại),
+ * triệt để giấu kín toàn bộ hệ thống API Quản trị khỏi tầm ngắm của hacker và máy quét.
  */
 const requireAdmin = async (req, res, next) => {
-  await requireAuth(req, res, () => {
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(404).json({
+      success: false,
+      message: 'Đường dẫn API không tồn tại trên hệ thống máy chủ an toàn NEO-UNO!',
+    });
+  }
+
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, JWT_SECRET, async (err, decoded) => {
+    if (err || !decoded?.id) {
+      return res.status(404).json({
         success: false,
-        message: 'TRUY CẬP BỊ TỪ CHỐI: Yêu cầu quyền Quản trị viên (Admin) cấp cao!',
+        message: 'Đường dẫn API không tồn tại trên hệ thống máy chủ an toàn NEO-UNO!',
       });
     }
-    next();
+
+    try {
+      const user = await User.findById(decoded.id);
+      if (!user || user.role !== 'admin' || user.isBanned) {
+        return res.status(404).json({
+          success: false,
+          message: 'Đường dẫn API không tồn tại trên hệ thống máy chủ an toàn NEO-UNO!',
+        });
+      }
+
+      req.user = user;
+      next();
+    } catch {
+      return res.status(404).json({
+        success: false,
+        message: 'Đường dẫn API không tồn tại trên hệ thống máy chủ an toàn NEO-UNO!',
+      });
+    }
   });
 };
 

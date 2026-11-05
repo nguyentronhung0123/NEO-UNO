@@ -1,26 +1,29 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense, lazy } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import UnoCard from '../components/UnoCard';
-import CardShowcaseModal from '../features/deckTest/components/CardShowcaseModal';
-import MatchSetupModal from '../components/MatchSetupModal';
-import LeaderboardModal, { getRankTier } from '../components/LeaderboardModal';
-import MatchHistoryModal from '../components/MatchHistoryModal';
-import OnlineRoomModal from '../components/OnlineRoomModal';
-import MatchmakingModal from '../components/MatchmakingModal';
-import FriendsModal from '../components/FriendsModal';
 import FriendChatBox from '../components/FriendChatBox';
 import MessengerDrawer from '../components/MessengerDrawer';
 import MatchInviteNotification from '../components/MatchInviteNotification';
-import ShopModal from '../components/ShopModal';
-import AdminSecurityModal from '../components/AdminSecurityModal';
-import QuestModal from '../components/QuestModal';
-import AudioSettingsModal from '../components/AudioSettingsModal';
 import { soundEngine } from '../utils/audioFx';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
 import { questApi } from '../apis/questApi';
 import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
+import { getRankTier } from '../utils/rankTiers';
+
+// Tối ưu Tải Trang & Tối Ưu Src: Code-Splitting Modal động (Lazy-Loaded Modals)
+const CardShowcaseModal = lazy(() => import('../features/deckTest/components/CardShowcaseModal'));
+const MatchSetupModal = lazy(() => import('../components/MatchSetupModal'));
+const LeaderboardModal = lazy(() => import('../components/LeaderboardModal'));
+const MatchHistoryModal = lazy(() => import('../components/MatchHistoryModal'));
+const OnlineRoomModal = lazy(() => import('../components/OnlineRoomModal'));
+const MatchmakingModal = lazy(() => import('../components/MatchmakingModal'));
+const FriendsModal = lazy(() => import('../components/FriendsModal'));
+const ShopModal = lazy(() => import('../components/ShopModal'));
+const AdminSecurityModal = lazy(() => import('../components/AdminSecurityModal'));
+const QuestModal = lazy(() => import('../components/QuestModal'));
+const AudioSettingsModal = lazy(() => import('../components/AudioSettingsModal'));
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
   const { user, logout, updateUser } = useAuth();
@@ -1165,61 +1168,77 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       )}
 
       {/* Modal Kiểm Thử Bộ Bài UNO Task 1 */}
-      <CardShowcaseModal
-        isOpen={isShowcaseOpen}
-        onClose={() => setIsShowcaseOpen(false)}
-      />
+      {isShowcaseOpen && (
+        <Suspense fallback={null}>
+          <CardShowcaseModal
+            isOpen={isShowcaseOpen}
+            onClose={() => setIsShowcaseOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Modal Thiết Lập Bàn Đấu (Chọn số Bot & Thời gian 5 phút) */}
-      <MatchSetupModal
-        isOpen={isSetupOpen}
-        onClose={() => setIsSetupOpen(false)}
-        onStartMatch={(config) => {
-          setIsSetupOpen(false);
-          const socket = getSocket();
-          // Nếu đã đăng nhập: Khởi tạo phòng đấu với Bot trên Server để bạn bè có thể xem trực tiếp (Spectator Mode)
-          if (socket && user && onJoinOnlineMatch) {
-            socket.emit('room:create', { user }, (res) => {
-              if (res?.success && res.room) {
-                const roomCode = res.room.code;
-                let botsToAdd = config.botCount || 1;
-                const addBotsAndStart = () => {
-                  if (botsToAdd > 0) {
-                    socket.emit('room:add_bot', { code: roomCode }, () => {
-                      botsToAdd--;
-                      addBotsAndStart();
-                    });
-                  } else {
-                    socket.emit('room:start_game', { code: roomCode }, () => {
-                      onJoinOnlineMatch({ code: roomCode });
-                    });
+      {isSetupOpen && (
+        <Suspense fallback={null}>
+          <MatchSetupModal
+            isOpen={isSetupOpen}
+            onClose={() => setIsSetupOpen(false)}
+            onStartMatch={(config) => {
+              setIsSetupOpen(false);
+              const socket = getSocket();
+              // Nếu đã đăng nhập: Khởi tạo phòng đấu với Bot trên Server để bạn bè có thể xem trực tiếp (Spectator Mode)
+              if (socket && user && onJoinOnlineMatch) {
+                socket.emit('room:create', { user }, (res) => {
+                  if (res?.success && res.room) {
+                    const roomCode = res.room.code;
+                    let botsToAdd = config.botCount || 1;
+                    const addBotsAndStart = () => {
+                      if (botsToAdd > 0) {
+                        socket.emit('room:add_bot', { code: roomCode }, () => {
+                          botsToAdd--;
+                          addBotsAndStart();
+                        });
+                      } else {
+                        socket.emit('room:start_game', { code: roomCode }, () => {
+                          onJoinOnlineMatch({ code: roomCode });
+                        });
+                      }
+                    };
+                    addBotsAndStart();
+                    return;
                   }
-                };
-                addBotsAndStart();
-                return;
+                  onJoinOfflineMatch(config);
+                });
+              } else {
+                onJoinOfflineMatch(config);
               }
-              onJoinOfflineMatch(config);
-            });
-          } else {
-            onJoinOfflineMatch(config);
-          }
-        }}
-      />
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Modal Bảng Vinh Danh Cao Thủ (MongoDB Cloud) */}
-      <LeaderboardModal
-        isOpen={isLeaderboardOpen}
-        onClose={() => setIsLeaderboardOpen(false)}
-        onOpenAuth={onOpenAuth}
-      />
+      {isLeaderboardOpen && (
+        <Suspense fallback={null}>
+          <LeaderboardModal
+            isOpen={isLeaderboardOpen}
+            onClose={() => setIsLeaderboardOpen(false)}
+            onOpenAuth={onOpenAuth}
+          />
+        </Suspense>
+      )}
 
       {/* Modal Lịch Sử Đấu Trường (MongoDB Cloud) */}
-      <MatchHistoryModal
-        isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
-        onOpenAuth={onOpenAuth}
-        onPlayNow={() => setIsSetupOpen(true)}
-      />
+      {isHistoryOpen && (
+        <Suspense fallback={null}>
+          <MatchHistoryModal
+            isOpen={isHistoryOpen}
+            onClose={() => setIsHistoryOpen(false)}
+            onOpenAuth={onOpenAuth}
+            onPlayNow={() => setIsSetupOpen(true)}
+          />
+        </Suspense>
+      )}
 
       {/* ================= MODAL PHÁT HIỆN TRẬN ĐẤU DỞ DANG (TIẾP TỤC CHƠI / AFK) ================= */}
       {rejoinMatch && (
@@ -1414,67 +1433,79 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       )}
 
       {/* MODAL PHÒNG CHƠI ONLINE MULTIPLAYER VỚI BẠN BÈ */}
-      <OnlineRoomModal
-        isOpen={isOnlineRoomOpen}
-        onClose={() => {
-          setIsOnlineRoomOpen(false);
-          setTargetRoomCode(null);
-          setOnlineInitialRoom(null);
-          setFriendsRoomCode(null);
-        }}
-        user={user}
-        targetRoomCode={targetRoomCode}
-        initialRoom={onlineInitialRoom}
-        onClearInitialRoom={() => setOnlineInitialRoom(null)}
-        onClearTargetRoomCode={() => setTargetRoomCode(null)}
-        onOpenFriends={(code) => handleOpenFriends(code)}
-        onStartOnlineMatch={(room) => {
-          setIsOnlineRoomOpen(false);
-          if (onJoinOnlineMatch) {
-            onJoinOnlineMatch(room);
-          } else {
-            alert(`🎮 Phòng ${room.code}: Tất cả đã sẵn sàng! Đang chuẩn bị chuyển vào bàn đấu thời gian thực...`);
-          }
-        }}
-      />
+      {isOnlineRoomOpen && (
+        <Suspense fallback={null}>
+          <OnlineRoomModal
+            isOpen={isOnlineRoomOpen}
+            onClose={() => {
+              setIsOnlineRoomOpen(false);
+              setTargetRoomCode(null);
+              setOnlineInitialRoom(null);
+              setFriendsRoomCode(null);
+            }}
+            user={user}
+            targetRoomCode={targetRoomCode}
+            initialRoom={onlineInitialRoom}
+            onClearInitialRoom={() => setOnlineInitialRoom(null)}
+            onClearTargetRoomCode={() => setTargetRoomCode(null)}
+            onOpenFriends={(code) => handleOpenFriends(code)}
+            onStartOnlineMatch={(room) => {
+              setIsOnlineRoomOpen(false);
+              if (onJoinOnlineMatch) {
+                onJoinOnlineMatch(room);
+              } else {
+                alert(`🎮 Phòng ${room.code}: Tất cả đã sẵn sàng! Đang chuẩn bị chuyển vào bàn đấu thời gian thực...`);
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* MODAL GHÉP TRẬN NHANH TỰ ĐỘNG (RADAR MATCHMAKING) */}
-      <MatchmakingModal
-        isOpen={isMatchmakingOpen}
-        onClose={() => setIsMatchmakingOpen(false)}
-        user={user}
-        initialMode={matchmakingMode}
-        onStartOnlineMatch={(room) => {
-          setIsMatchmakingOpen(false);
-          if (onJoinOnlineMatch) {
-            onJoinOnlineMatch(room);
-          }
-        }}
-      />
+      {isMatchmakingOpen && (
+        <Suspense fallback={null}>
+          <MatchmakingModal
+            isOpen={isMatchmakingOpen}
+            onClose={() => setIsMatchmakingOpen(false)}
+            user={user}
+            initialMode={matchmakingMode}
+            onStartOnlineMatch={(room) => {
+              setIsMatchmakingOpen(false);
+              if (onJoinOnlineMatch) {
+                onJoinOnlineMatch(room);
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* MODAL HỆ THỐNG BẠN BÈ & LỜI MỜI ĐẤU (TASK 2) */}
-      <FriendsModal
-        isOpen={isFriendsOpen}
-        onClose={() => {
-          setIsFriendsOpen(false);
-          setFriendsRoomCode(null);
-        }}
-        user={user}
-        socket={getSocket()}
-        currentRoomCode={friendsRoomCode}
-        onOpenAuth={onOpenAuth}
-        onOpenChat={(friend) => setActiveChatFriend(friend)}
-        onCreateAndInvite={(friend) => handleCreateRoomAndInvite(friend)}
-        onSpectateFriend={(friend) => {
-          setIsFriendsOpen(false);
-          const targetCode = friend.roomCode || friend.currentRoomCode;
-          if (targetCode && onJoinOnlineMatch) {
-            onJoinOnlineMatch({ code: targetCode, isSpectator: true });
-          } else {
-            alert(`Bạn bè ${friend.nickname} đang trong trận nhưng chưa xác định được mã phòng! Hãy thử nhập mã phòng trực tiếp.`);
-          }
-        }}
-      />
+      {isFriendsOpen && (
+        <Suspense fallback={null}>
+          <FriendsModal
+            isOpen={isFriendsOpen}
+            onClose={() => {
+              setIsFriendsOpen(false);
+              setFriendsRoomCode(null);
+            }}
+            user={user}
+            socket={getSocket()}
+            currentRoomCode={friendsRoomCode}
+            onOpenAuth={onOpenAuth}
+            onOpenChat={(friend) => setActiveChatFriend(friend)}
+            onCreateAndInvite={(friend) => handleCreateRoomAndInvite(friend)}
+            onSpectateFriend={(friend) => {
+              setIsFriendsOpen(false);
+              const targetCode = friend.roomCode || friend.currentRoomCode;
+              if (targetCode && onJoinOnlineMatch) {
+                onJoinOnlineMatch({ code: targetCode, isSpectator: true });
+              } else {
+                alert(`Bạn bè ${friend.nickname} đang trong trận nhưng chưa xác định được mã phòng! Hãy thử nhập mã phòng trực tiếp.`);
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* KHUNG CHAT TRỰC TIẾP BẠN BÈ 1-1 (TASK 2) */}
       {activeChatFriend && (
@@ -1546,38 +1577,54 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       )}
 
       {/* MODAL CỬA HÀNG SKIN & KHUNG AVATAR (TASK 5) */}
-      <ShopModal
-        isOpen={isShopOpen}
-        onClose={() => setIsShopOpen(false)}
-        user={user}
-        onUpdateUser={updateUser}
-      />
+      {isShopOpen && (
+        <Suspense fallback={null}>
+          <ShopModal
+            isOpen={isShopOpen}
+            onClose={() => setIsShopOpen(false)}
+            user={user}
+            onUpdateUser={updateUser}
+          />
+        </Suspense>
+      )}
 
       {/* MODAL TRUNG TÂM QUẢN TRỊ BẢO MẬT & CHỐNG GIAN LẬN (ADMIN SOC) */}
-      <AdminSecurityModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        currentUser={user}
-      />
+      {isAdminModalOpen && (
+        <Suspense fallback={null}>
+          <AdminSecurityModal
+            isOpen={isAdminModalOpen}
+            onClose={() => setIsAdminModalOpen(false)}
+            currentUser={user}
+          />
+        </Suspense>
+      )}
 
       {/* MODAL NHIỆM VỤ HẰNG NGÀY & THÀNH TỰU DANH HIỆU (TASK 6) */}
-      <QuestModal
-        isOpen={isQuestOpen}
-        onClose={() => {
-          setIsQuestOpen(false);
-          questApi.getDailyQuests().then((res) => {
-            setHasClaimableQuest(Boolean(res?.stats?.hasClaimableReward));
-          });
-        }}
-        user={user}
-        onUpdateUser={updateUser}
-      />
+      {isQuestOpen && (
+        <Suspense fallback={null}>
+          <QuestModal
+            isOpen={isQuestOpen}
+            onClose={() => {
+              setIsQuestOpen(false);
+              questApi.getDailyQuests().then((res) => {
+                setHasClaimableQuest(Boolean(res?.stats?.hasClaimableReward));
+              });
+            }}
+            user={user}
+            onUpdateUser={updateUser}
+          />
+        </Suspense>
+      )}
 
       {/* MODAL CÀI ĐẶT ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
-      <AudioSettingsModal
-        isOpen={isAudioSettingsOpen}
-        onClose={() => setIsAudioSettingsOpen(false)}
-      />
+      {isAudioSettingsOpen && (
+        <Suspense fallback={null}>
+          <AudioSettingsModal
+            isOpen={isAudioSettingsOpen}
+            onClose={() => setIsAudioSettingsOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* KHỐI NÚT NỔI GÓC DƯỚI PHẢI (CỬA HÀNG + CHAT MESSENGER NẰM CÙNG KHỐI) */}
       <MessengerDrawer

@@ -71,6 +71,27 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Cạm bẫy Honeypot cho các đường dẫn quản trị hacker hay rà quét tự động
+const FAKE_ADMIN_TRAPS = ['/admin', '/administrator', '/api/v1/admin', '/api/secret', '/api/config', '/api/v1/users/all'];
+FAKE_ADMIN_TRAPS.forEach((trapPath) => {
+  app.all(trapPath, (req, res) => {
+    console.error(`[HONEYPOT FAKE ADMIN] 🚨 Phát hiện dò quét đường dẫn quản trị giả mạo: [${trapPath}] từ IP: ${req.ip}`);
+    const SecurityLog = require('./models/SecurityLog');
+    SecurityLog.create({
+      action: 'HONEYPOT_ATTACK_DETECTED',
+      severity: 'critical',
+      details: { attackPath: trapPath, method: req.method, ip: req.ip },
+      performedBy: 'HONEYPOT_ADMIN_TRAP',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || 'Unknown Scanner',
+    }).catch(() => {});
+    return res.status(404).json({
+      success: false,
+      message: 'Đường dẫn API không tồn tại trên hệ thống máy chủ an toàn NEO-UNO!',
+    });
+  });
+});
+
 // 1. API Xác thực Auth
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);

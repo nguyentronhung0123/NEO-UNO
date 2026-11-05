@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
-import AuthPage from './pages/AuthPage';
 import LobbyPage from './pages/LobbyPage';
-import GameBoard from './pages/GameBoard';
-import OnlineGameBoard from './pages/OnlineGameBoard';
-import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import GameRulesPage from './pages/GameRulesPage';
 import { clearActiveMatch } from './utils/activeMatchStorage.js';
+
+// Tối ưu Tải Trang: Code-Splitting các màn hình game nặng bằng React.lazy (Task 5)
+const AuthPage = lazy(() => import('./pages/AuthPage'));
+const GameBoard = lazy(() => import('./pages/GameBoard'));
+const OnlineGameBoard = lazy(() => import('./pages/OnlineGameBoard'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
+const GameRulesPage = lazy(() => import('./pages/GameRulesPage'));
+
+// Fallback Loading Cyberpunk mượt mà siêu nhẹ
+function ScreenLoader() {
+  return (
+    <div className="min-h-screen bg-[#0b0e17] flex flex-col items-center justify-center text-cyan-400 gap-3 font-mono">
+      <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+      <span className="text-xs tracking-wider uppercase text-slate-300">Đang tải đấu trường NEO-UNO...</span>
+    </div>
+  );
+}
 
 // [GIỮ NGUYÊN 100% CODE CỦA BẠN]
 function GameArenaPreview({ onBack }) {
@@ -130,58 +142,68 @@ function MainApp() {
 
   if (currentScreen === 'auth') {
     return (
-      <AuthPage
-        onEnterGameWithBot={() => setCurrentScreen('lobby')}
-        onForgotPassword={() => setCurrentScreen('forgot_password')}
-        onBackToLobby={() => setCurrentScreen('lobby')}
-      />
+      <Suspense fallback={<ScreenLoader />}>
+        <AuthPage
+          onEnterGameWithBot={() => setCurrentScreen('lobby')}
+          onForgotPassword={() => setCurrentScreen('forgot_password')}
+          onBackToLobby={() => setCurrentScreen('lobby')}
+        />
+      </Suspense>
     );
   }
 
   if (currentScreen === 'forgot_password') {
     return (
-      <ForgotPasswordPage
-        onBackToLogin={() => setCurrentScreen('auth')}
-        onSuccessLogin={() => setCurrentScreen('auth')}
-      />
+      <Suspense fallback={<ScreenLoader />}>
+        <ForgotPasswordPage
+          onBackToLogin={() => setCurrentScreen('auth')}
+          onSuccessLogin={() => setCurrentScreen('auth')}
+        />
+      </Suspense>
     );
   }
 
   if (currentScreen === 'rules') {
     return (
-      <GameRulesPage
-        onBackToLobby={() => setCurrentScreen('lobby')}
-        onStartMatch={() => handleStartGame()}
-      />
+      <Suspense fallback={<ScreenLoader />}>
+        <GameRulesPage
+          onBackToLobby={() => setCurrentScreen('lobby')}
+          onStartMatch={() => handleStartGame()}
+        />
+      </Suspense>
     );
   }
 
   if (currentScreen === 'game') {
     return (
-      <GameBoard
-        matchConfig={matchConfig}
-        restoredMatchState={restoredMatchState}
-        onBack={() => {
-          setRestoredMatchState(null);
-          setCurrentScreen('lobby');
-        }}
-      />
+      <Suspense fallback={<ScreenLoader />}>
+        <GameBoard
+          matchConfig={matchConfig}
+          restoredMatchState={restoredMatchState}
+          onBack={() => {
+            setRestoredMatchState(null);
+            setCurrentScreen('lobby');
+          }}
+        />
+      </Suspense>
     );
   }
 
   if (currentScreen === 'online_game') {
     return (
-      <OnlineGameBoard
-        room={onlineRoom}
-        user={user}
-        onBack={() => {
-          try {
-            sessionStorage.removeItem('neo_online_room');
-          } catch {}
-          setOnlineRoom(null);
-          setCurrentScreen('lobby');
-        }}
-      />
+      <Suspense fallback={<ScreenLoader />}>
+        <OnlineGameBoard
+          room={onlineRoom}
+          user={user}
+          onBack={() => {
+            try {
+              sessionStorage.removeItem('neo_online_room');
+            } catch {}
+            setOnlineRoom(null);
+            setCurrentScreen('lobby');
+          }}
+        />
+      </Suspense>
     );
   }
 
