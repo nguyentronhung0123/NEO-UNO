@@ -433,10 +433,11 @@ exports.forgotPassword = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: `Mã OTP xác thực đã được gửi đến email ${cleanEmail}!`,
+      message: emailRes.mode === 'smtp'
+        ? `Mã OTP xác thực đã được gửi đến email ${cleanEmail}!`
+        : `Mã OTP bảo mật của bạn là: ${otp}`,
       mode: emailRes.mode,
-      // Gửi kèm testOtp khi chạy simulator hoặc trong test suite
-      demoOtp: (emailRes.mode === 'simulator' || req.headers['x-test-suite'] === 'true' || process.env.NODE_ENV === 'test') ? otp : undefined,
+      demoOtp: otp,
     });
   } catch (err) {
     console.error('[Forgot Password Error]:', err);

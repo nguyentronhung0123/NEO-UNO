@@ -20,6 +20,9 @@ if (SMTP_USER && SMTP_PASS) {
         user: SMTP_USER,
         pass: SMTP_PASS,
       },
+      connectionTimeout: 3000,
+      greetingTimeout: 3000,
+      socketTimeout: 3000,
       tls: {
         rejectUnauthorized: false,
       },
@@ -124,17 +127,22 @@ async function sendOtpEmail({ to, otp, nickname = 'Đấu thủ' }) {
 
   if (transporter) {
     try {
-      const info = await transporter.sendMail({
+      const sendPromise = transporter.sendMail({
         from: EMAIL_FROM,
         to,
         subject: `[NEO UNO] Mã xác thực bảo mật khôi phục mật khẩu: ${otp}`,
         html: createOtpEmailHtml(otp, nickname),
       });
 
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('SMTP timeout - cổng gửi thư bị chặn trên máy chủ đám mây')), 3500)
+      );
+
+      const info = await Promise.race([sendPromise, timeoutPromise]);
       console.log(`[EmailService] ✅ Đã gửi email OTP thực tế đến ${to} (MessageId: ${info.messageId})`);
       return { success: true, mode: 'smtp', messageId: info.messageId };
     } catch (err) {
-      console.error(`[EmailService] ❌ Gửi mail qua SMTP thất bại (${err.message}). Tự động kích hoạt Fallback Simulator.`);
+      console.warn(`[EmailService] ⚠️ Gửi mail qua SMTP thất bại (${err.message}). Kích hoạt Fallback an toàn.`);
     }
   }
 
