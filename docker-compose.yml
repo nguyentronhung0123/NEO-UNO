@@ -1,0 +1,52 @@
+# ============================================================================
+# NEO-UNO ORCHESTRATION: DOCKER COMPOSE MULTI-CONTAINER ARCHITECTURE
+# ============================================================================
+services:
+  # 1. Dịch vụ Máy chủ Backend & Socket.io Engine
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: neo-uno-backend
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - NODE_ENV=production
+      - MONGODB_URI=mongodb+srv://nguyentronghung11102019_db_user:hung0123@jaytee2k4.tsab6tz.mongodb.net/neo_uno?retryWrites=true&w=majority
+      - JWT_SECRET=neo_uno_super_secret_jwt_key_2026_xyz
+    networks:
+      - neo-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # 2. Dịch vụ Giao diện Người dùng Web Frontend (Nginx Alpine)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: neo-uno-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - neo-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+# Mạng ảo cách ly an toàn giữa các Container
+networks:
+  neo-network:
+    driver: bridge
