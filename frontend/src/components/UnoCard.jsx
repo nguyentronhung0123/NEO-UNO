@@ -7,7 +7,6 @@ import { useAuth } from '../hooks/useAuth';
  * =========================================================================
  */
 
-// Icon bí ngô mini cho góc số Halloween
 function MiniPumpkinSvg({ className = 'w-3 h-3 text-amber-400' }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24">
@@ -16,7 +15,6 @@ function MiniPumpkinSvg({ className = 'w-3 h-3 text-amber-400' }) {
   );
 }
 
-// Icon răng nanh ma cà rồng cho góc lá Rút 2
 function VampireFangsCornerSvg({ className = 'w-3.5 h-2 text-rose-400' }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 20 12">
@@ -25,7 +23,6 @@ function VampireFangsCornerSvg({ className = 'w-3.5 h-2 text-rose-400' }) {
   );
 }
 
-// Icon cấm ma thuật cho góc lá Bỏ Lượt
 function ProhibitionSkipCornerSvg({ className = 'w-3.5 h-3.5 text-emerald-400' }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -35,7 +32,6 @@ function ProhibitionSkipCornerSvg({ className = 'w-3.5 h-3.5 text-emerald-400' }
   );
 }
 
-// Icon mũi tên linh hồn cho góc lá Đổi Chiều
 function GhostReverseCornerSvg({ className = 'w-3.5 h-3.5 text-cyan-300' }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -45,24 +41,17 @@ function GhostReverseCornerSvg({ className = 'w-3.5 h-3.5 text-cyan-300' }) {
   );
 }
 
-/**
- * Helper render trung tâm cho Bộ Skin Halloween (Pure SVG từ bản thiết kế)
- */
 function renderHalloweenCenter(value, color) {
   switch (value) {
     case 'skip':
-      // Witch Cauldron Skip (Nồi độc phù thủy sủi bọt)
       return (
         <div className="flex flex-col items-center justify-center">
           <svg className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_#22c55e]" fill="none" viewBox="0 0 100 100">
-            {/* Witch Hat */}
             <path d="M50 8 L32 30 L68 30 Z" fill="#6ee7b7" />
             <ellipse cx="50" cy="30" fill="#a7f3d0" rx="24" ry="4" />
-            {/* Cauldron Bubbles */}
             <circle cx="42" cy="38" fill="#86efac" opacity="0.8" r="4" />
             <circle cx="58" cy="36" fill="#4ade80" opacity="0.9" r="5" />
             <circle cx="50" cy="42" fill="#bbf7d0" r="3" />
-            {/* Cauldron Body */}
             <path d="M26 48 C26 44 74 44 74 48 C74 72 65 82 50 82 C35 82 26 72 26 48 Z" fill="#14532d" stroke="#4ade80" strokeWidth="2.5" />
             <ellipse cx="50" cy="48" fill="#22c55e" rx="24" ry="5" />
             <circle cx="46" cy="48" fill="#022c22" r="1.5" />
@@ -74,17 +63,14 @@ function renderHalloweenCenter(value, color) {
       );
 
     case 'reverse':
-      // Twin Spiraling Spirits Reverse (Song hồn ma trơi đảo chiều)
       return (
         <div className="flex flex-col items-center justify-center">
           <svg className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_#38bdf8]" fill="none" viewBox="0 0 100 100">
-            {/* Ghost 1 */}
             <path d="M30 35 C30 20 48 18 48 30 C48 40 40 44 44 48 C42 46 38 48 36 46 C34 48 32 46 30 48 Z" fill="#e0f2fe" opacity="0.95" />
             <circle cx="37" cy="27" fill="#0c4a6e" r="2" />
             <circle cx="43" cy="27" fill="#0c4a6e" r="2" />
             <path d="M48 24 Q65 20 72 35" stroke="#7dd3fc" strokeLinecap="round" strokeWidth="3.5" />
             <polygon fill="#38bdf8" points="75,32 72,40 65,34" />
-            {/* Ghost 2 */}
             <path d="M70 65 C70 80 52 82 52 70 C52 60 60 56 56 52 C58 54 62 52 64 54 C66 52 68 54 70 52 Z" fill="#bae6fd" opacity="0.95" />
             <circle cx="63" cy="73" fill="#0c4a6e" r="2" />
             <circle cx="57" cy="73" fill="#0c4a6e" r="2" />
@@ -96,13 +82,10 @@ function renderHalloweenCenter(value, color) {
       );
 
     case 'draw_two':
-      // Vampire Fangs Draw Two (Cánh dơi & Răng nanh ma cà rồng rút 2)
       return (
         <div className="flex flex-col items-center justify-center">
           <svg className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_#f43f5e]" fill="none" viewBox="0 0 100 100">
-            {/* Bat Wings */}
             <path d="M50 36 C55 22 75 16 92 28 C84 38 88 50 82 56 C74 50 68 54 62 48 C56 52 52 46 50 48 C48 46 44 52 38 48 C32 54 26 50 18 56 C12 50 16 38 8 28 C25 16 45 22 50 36 Z" fill="#991b1b" stroke="#fda4af" strokeWidth="1.5" />
-            {/* Ruby Gem */}
             <polygon fill="#f43f5e" points="50,42 58,54 50,66 42,54" />
             <text fill="#ffe4e6" fontFamily="'Sora', sans-serif" fontSize="24" fontWeight="900" stroke="#e11d48" strokeWidth="1" textAnchor="middle" x="50" y="86">+2</text>
           </svg>
@@ -111,7 +94,6 @@ function renderHalloweenCenter(value, color) {
       );
 
     case 'wild':
-      // Haunted Castle Wild (Lâu đài ma ám dưới trăng tròn)
       return (
         <div className="flex flex-col items-center justify-center">
           <svg className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_#c084fc]" fill="none" viewBox="0 0 100 100">
@@ -142,7 +124,6 @@ function renderHalloweenCenter(value, color) {
       );
 
     case '7':
-      // Jack-o'-lantern 7 (Khuôn mặt bí ngô ma quái chạm khắc từ tài liệu tham khảo)
       return (
         <div className="flex flex-col items-center justify-center">
           <svg className="w-10 h-10 sm:w-11 sm:h-11 drop-shadow-[0_0_10px_#fbbf24]" fill="none" viewBox="0 0 100 100">
@@ -160,7 +141,6 @@ function renderHalloweenCenter(value, color) {
       );
 
     default:
-      // Các lá số Halloween thông thường (0..9)
       return (
         <div className="relative flex flex-col items-center justify-center">
           <div className="absolute inset-0 flex items-center justify-center opacity-30 pointer-events-none">
@@ -318,6 +298,190 @@ const HALLOWEEN_COLOR_CONFIGS = {
 };
 
 /**
+ * Cấu hình style và màu nền cho Skin CYBERPUNK 2077
+ */
+const CYBERPUNK_COLOR_CONFIGS = {
+  red: {
+    bg: 'bg-gradient-to-br from-rose-500 via-pink-600 to-[#120010]',
+    innerBg: 'bg-gradient-to-b from-[#180210] via-black to-[#0c0008]',
+    border: 'border-pink-500/70',
+    shadow: 'shadow-[0_4px_20px_rgba(236,72,153,0.55)] hover:shadow-[0_8px_30px_rgba(236,72,153,0.85)]',
+    textColor: 'text-pink-300',
+    badge: 'CYBER',
+  },
+  blue: {
+    bg: 'bg-gradient-to-br from-cyan-400 via-sky-600 to-[#020b18]',
+    innerBg: 'bg-gradient-to-b from-[#020e24] via-black to-[#010814]',
+    border: 'border-cyan-400/80',
+    shadow: 'shadow-[0_4px_20px_rgba(6,182,212,0.6)] hover:shadow-[0_8px_30px_rgba(6,182,212,0.9)]',
+    textColor: 'text-cyan-300',
+    badge: 'CYBER',
+  },
+  green: {
+    bg: 'bg-gradient-to-br from-lime-400 via-emerald-600 to-[#021408]',
+    innerBg: 'bg-gradient-to-b from-[#021808] via-black to-[#010c04]',
+    border: 'border-lime-400/70',
+    shadow: 'shadow-[0_4px_20px_rgba(132,204,22,0.55)] hover:shadow-[0_8px_30px_rgba(132,204,22,0.85)]',
+    textColor: 'text-lime-300',
+    badge: 'CYBER',
+  },
+  yellow: {
+    bg: 'bg-gradient-to-br from-yellow-300 via-amber-500 to-[#1a1202]',
+    innerBg: 'bg-gradient-to-b from-[#1a1202] via-black to-[#0e0a01]',
+    border: 'border-amber-400/80',
+    shadow: 'shadow-[0_4px_20px_rgba(245,158,11,0.55)] hover:shadow-[0_8px_30px_rgba(245,158,11,0.85)]',
+    textColor: 'text-amber-300',
+    badge: 'CYBER',
+  },
+  wild: {
+    bg: 'bg-gradient-to-br from-cyan-400 via-fuchsia-600 to-[#15021a]',
+    innerBg: 'bg-gradient-to-b from-[#180026] via-black to-[#080010]',
+    border: 'border-cyan-300/80',
+    shadow: 'shadow-[0_4px_24px_rgba(0,210,255,0.7)] hover:shadow-[0_8px_35px_rgba(0,210,255,0.95)]',
+    textColor: 'text-cyan-200',
+    badge: 'MATRIX',
+  },
+};
+
+/**
+ * Cấu hình style và màu nền cho Skin GALAXY (Thiên Hà Tím)
+ */
+const GALAXY_COLOR_CONFIGS = {
+  red: {
+    bg: 'bg-gradient-to-br from-rose-500 via-purple-900 to-[#0d0112]',
+    innerBg: 'bg-gradient-to-b from-[#160220] via-black to-[#07000d]',
+    border: 'border-rose-400/70',
+    shadow: 'shadow-[0_4px_20px_rgba(244,63,94,0.55)] hover:shadow-[0_8px_30px_rgba(244,63,94,0.85)]',
+    textColor: 'text-rose-300',
+    badge: 'NEBULA',
+  },
+  blue: {
+    bg: 'bg-gradient-to-br from-indigo-400 via-blue-800 to-[#03061c]',
+    innerBg: 'bg-gradient-to-b from-[#060a28] via-black to-[#020412]',
+    border: 'border-indigo-400/70',
+    shadow: 'shadow-[0_4px_20px_rgba(129,140,248,0.55)] hover:shadow-[0_8px_30px_rgba(129,140,248,0.85)]',
+    textColor: 'text-indigo-200',
+    badge: 'NEBULA',
+  },
+  green: {
+    bg: 'bg-gradient-to-br from-teal-400 via-emerald-800 to-[#01140e]',
+    innerBg: 'bg-gradient-to-b from-[#021a12] via-black to-[#010c08]',
+    border: 'border-teal-400/70',
+    shadow: 'shadow-[0_4px_20px_rgba(45,212,191,0.55)] hover:shadow-[0_8px_30px_rgba(45,212,191,0.85)]',
+    textColor: 'text-teal-200',
+    badge: 'AURORA',
+  },
+  yellow: {
+    bg: 'bg-gradient-to-br from-amber-300 via-orange-800 to-[#170802]',
+    innerBg: 'bg-gradient-to-b from-[#1a0a02] via-black to-[#0d0401]',
+    border: 'border-amber-400/70',
+    shadow: 'shadow-[0_4px_20px_rgba(251,191,36,0.55)] hover:shadow-[0_8px_30px_rgba(251,191,36,0.85)]',
+    textColor: 'text-amber-200',
+    badge: 'STARFIRE',
+  },
+  wild: {
+    bg: 'bg-gradient-to-br from-purple-500 via-indigo-700 to-[#050014]',
+    innerBg: 'bg-gradient-to-b from-[#13032d] via-black to-[#050012]',
+    border: 'border-purple-400/80',
+    shadow: 'shadow-[0_4px_24px_rgba(168,85,247,0.7)] hover:shadow-[0_8px_35px_rgba(192,132,252,0.95)]',
+    textColor: 'text-purple-200',
+    badge: 'COSMIC',
+  },
+};
+
+/**
+ * Cấu hình style và màu nền cho Skin HỎA LONG (Dragon Fire)
+ */
+const DRAGON_COLOR_CONFIGS = {
+  red: {
+    bg: 'bg-gradient-to-br from-red-600 via-orange-600 to-[#1c0303]',
+    innerBg: 'bg-gradient-to-b from-[#250404] via-black to-[#100101]',
+    border: 'border-orange-500/80',
+    shadow: 'shadow-[0_4px_22px_rgba(249,115,22,0.65)] hover:shadow-[0_8px_32px_rgba(249,115,22,0.9)]',
+    textColor: 'text-amber-300',
+    badge: 'HỎA LONG',
+  },
+  blue: {
+    bg: 'bg-gradient-to-br from-blue-500 via-sky-600 to-[#020b18]',
+    innerBg: 'bg-gradient-to-b from-[#021028] via-black to-[#010814]',
+    border: 'border-sky-400/80',
+    shadow: 'shadow-[0_4px_22px_rgba(14,165,233,0.65)] hover:shadow-[0_8px_32px_rgba(14,165,233,0.9)]',
+    textColor: 'text-sky-300',
+    badge: 'HỎA LONG',
+  },
+  green: {
+    bg: 'bg-gradient-to-br from-emerald-500 via-green-600 to-[#021405]',
+    innerBg: 'bg-gradient-to-b from-[#021a08] via-black to-[#010c04]',
+    border: 'border-emerald-400/80',
+    shadow: 'shadow-[0_4px_22px_rgba(16,185,129,0.65)] hover:shadow-[0_8px_32px_rgba(16,185,129,0.9)]',
+    textColor: 'text-emerald-300',
+    badge: 'HỎA LONG',
+  },
+  yellow: {
+    bg: 'bg-gradient-to-br from-amber-400 via-orange-500 to-[#1a0802]',
+    innerBg: 'bg-gradient-to-b from-[#1e0a02] via-black to-[#0f0401]',
+    border: 'border-amber-400/80',
+    shadow: 'shadow-[0_4px_22px_rgba(245,158,11,0.65)] hover:shadow-[0_8px_32px_rgba(245,158,11,0.9)]',
+    textColor: 'text-amber-300',
+    badge: 'HỎA LONG',
+  },
+  wild: {
+    bg: 'bg-gradient-to-br from-red-600 via-orange-600 to-[#120000]',
+    innerBg: 'bg-gradient-to-b from-[#240404] via-black to-[#100000]',
+    border: 'border-orange-500/90',
+    shadow: 'shadow-[0_4px_25px_rgba(234,88,12,0.8)] hover:shadow-[0_8px_35px_rgba(234,88,12,1)]',
+    textColor: 'text-amber-200',
+    badge: 'INFERNO',
+  },
+};
+
+/**
+ * Cấu hình style và màu nền cho Skin HOÀNG GIA MẠ VÀNG 24K (Gold Luxury)
+ */
+const GOLD_COLOR_CONFIGS = {
+  red: {
+    bg: 'bg-gradient-to-br from-red-600 via-rose-800 to-[#1a0408]',
+    innerBg: 'bg-gradient-to-b from-[#1e050a] via-black to-[#0e0204]',
+    border: 'border-amber-300/80',
+    shadow: 'shadow-[0_4px_22px_rgba(251,191,36,0.65)] hover:shadow-[0_8px_32px_rgba(251,191,36,0.9)]',
+    textColor: 'text-amber-200',
+    badge: '24K ROYAL',
+  },
+  blue: {
+    bg: 'bg-gradient-to-br from-blue-600 via-indigo-800 to-[#04081a]',
+    innerBg: 'bg-gradient-to-b from-[#050a22] via-black to-[#020412]',
+    border: 'border-amber-300/80',
+    shadow: 'shadow-[0_4px_22px_rgba(251,191,36,0.65)] hover:shadow-[0_8px_32px_rgba(251,191,36,0.9)]',
+    textColor: 'text-amber-200',
+    badge: '24K ROYAL',
+  },
+  green: {
+    bg: 'bg-gradient-to-br from-emerald-600 via-teal-800 to-[#041a0d]',
+    innerBg: 'bg-gradient-to-b from-[#052010] via-black to-[#020e06]',
+    border: 'border-amber-300/80',
+    shadow: 'shadow-[0_4px_22px_rgba(251,191,36,0.65)] hover:shadow-[0_8px_32px_rgba(251,191,36,0.9)]',
+    textColor: 'text-amber-200',
+    badge: '24K ROYAL',
+  },
+  yellow: {
+    bg: 'bg-gradient-to-br from-yellow-300 via-amber-500 to-[#221602]',
+    innerBg: 'bg-gradient-to-b from-[#1c1202] via-black to-[#0e0901]',
+    border: 'border-amber-300/90',
+    shadow: 'shadow-[0_4px_24px_rgba(251,191,36,0.75)] hover:shadow-[0_8px_35px_rgba(251,191,36,0.95)]',
+    textColor: 'text-amber-300',
+    badge: '24K ROYAL',
+  },
+  wild: {
+    bg: 'bg-gradient-to-br from-yellow-300 via-amber-500 to-[#2b1f05]',
+    innerBg: 'bg-gradient-to-b from-[#201503] via-black to-[#100a01]',
+    border: 'border-amber-200/90',
+    shadow: 'shadow-[0_4px_28px_rgba(251,191,36,0.85)] hover:shadow-[0_8px_40px_rgba(251,191,36,1)]',
+    textColor: 'text-amber-200',
+    badge: '24K SOVEREIGN',
+  },
+};
+
+/**
  * Cấu hình style và màu nền cho Skin CLASSIC mặc định
  */
 const CLASSIC_COLOR_CONFIGS = {
@@ -365,15 +529,6 @@ const CLASSIC_COLOR_CONFIGS = {
 
 /**
  * Component UnoCard - Hiển thị lá bài chuẩn UNO với hỗ trợ Theme Skin bài trên tay (Task 5)
- *
- * @param {Object} props
- * @param {'red'|'blue'|'green'|'yellow'|'wild'} props.color - Màu sắc của lá bài
- * @param {string} props.value - Giá trị: '0'..'9', 'skip', 'reverse', 'draw_two', 'wild', 'wild_draw_four'
- * @param {string} [props.skinId] - Mã Skin bài ('skin_classic', 'skin_halloween', 'skin_cyberpunk', v.v.)
- * @param {Function} [props.onClick] - Xử lý khi click vào lá bài
- * @param {string} [props.className] - Class bổ sung tùy biến
- * @param {boolean} [props.disabled] - Trạng thái vô hiệu hóa
- * @param {boolean} [props.selected] - Trạng thái đang được chọn
  */
 function UnoCard({
   color = 'red',
@@ -384,7 +539,6 @@ function UnoCard({
   disabled = false,
   selected = false,
 }) {
-  // Lấy skinId an toàn từ AuthContext nếu props không truyền
   let userEquippedSkin = 'skin_classic';
   try {
     const auth = useAuth();
@@ -396,12 +550,11 @@ function UnoCard({
   const activeSkin = skinId || userEquippedSkin || 'skin_classic';
 
   // =========================================================================
-  // PHONG CÁCH 1: HALLOWEEN SPOOKY 2026 (Chuẩn thiết kế từ File Word)
+  // 1. SKIN HALLOWEEN
   // =========================================================================
   if (activeSkin === 'skin_halloween') {
     const hTheme = HALLOWEEN_COLOR_CONFIGS[color] || HALLOWEEN_COLOR_CONFIGS.red;
 
-    // Helper render góc trên & góc dưới cho Halloween
     const renderHalloweenCorner = () => {
       switch (value) {
         case 'skip':
@@ -467,20 +620,10 @@ function UnoCard({
         `}
         title={`[Halloween Spooky] Lá bài UNO ${color.toUpperCase()} - ${value}`}
       >
-        {/* Lớp khung viền sâu bên trong (Inner Deep Container) */}
         <div className={`relative w-full h-full rounded-[14px] ${hTheme.innerBg} overflow-hidden flex flex-col justify-between p-1.5 border border-white/10`}>
-          
-          {/* Subtle Atmospheric Web SVG Pattern in Background */}
-          <svg className="absolute inset-0 w-full h-full opacity-15 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0,0 Q60,20 120,0 M0,0 Q30,50 0,100 M120,0 Q90,50 120,100 M60,0 L60,100" fill="none" stroke={hTheme.strokeColor} strokeWidth="1" />
-          </svg>
-
-          {/* Góc trên bên trái */}
           <div className="flex items-center justify-start z-10 pl-0.5 pt-0.5">
             {renderHalloweenCorner()}
           </div>
-
-          {/* Trung tâm: Elip nghiêng -12° Halloween với SVGs độc quyền */}
           <div className="absolute inset-1.5 flex items-center justify-center overflow-hidden pointer-events-none">
             <div className={`w-[86%] h-[78%] rounded-full -rotate-12 flex items-center justify-center ${hTheme.ovalBg}`}>
               <div className={`w-full h-full rounded-full ${hTheme.innerOval} flex items-center justify-center overflow-hidden relative p-1`}>
@@ -490,8 +633,6 @@ function UnoCard({
               </div>
             </div>
           </div>
-
-          {/* Góc dưới bên phải (Xoay 180 độ) */}
           <div className="flex items-center justify-end z-10 pr-0.5 pb-0.5 rotate-180">
             {renderHalloweenCorner()}
           </div>
@@ -501,7 +642,195 @@ function UnoCard({
   }
 
   // =========================================================================
-  // PHONG CÁCH 2: MẶC ĐỊNH (Classic Neo-Glassmorphism)
+  // 2. SKIN CYBERPUNK 2077
+  // =========================================================================
+  if (activeSkin === 'skin_cyberpunk') {
+    const cTheme = CYBERPUNK_COLOR_CONFIGS[color] || CYBERPUNK_COLOR_CONFIGS.red;
+    return (
+      <div
+        onClick={!disabled && onClick ? onClick : undefined}
+        className={`
+          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          border-2 ${cTheme.border} ${cTheme.bg} ${cTheme.shadow}
+          transition-all duration-200 ease-out transform-gpu
+          ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
+          ${selected ? 'ring-4 ring-cyan-400 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(0,210,255,0.9)]' : ''}
+          ${className}
+        `}
+        title={`[Cyberpunk 2077] Lá bài UNO ${color.toUpperCase()} - ${value}`}
+      >
+        <div className={`relative w-full h-full rounded-[14px] ${cTheme.innerBg} overflow-hidden flex flex-col justify-between p-1.5 border border-cyan-400/30`}>
+          <div className="flex flex-col items-center self-start leading-none z-10 pl-0.5 pt-0.5">
+            <span className={`font-mono font-black text-xs sm:text-sm ${cTheme.textColor}`}>
+              {value === 'skip' ? '⊘' : value === 'reverse' ? '⇄' : value === 'draw_two' ? '+2' : value === 'wild' ? 'W' : value === 'wild_draw_four' ? '+4' : value}
+            </span>
+            <span className="text-[6px] font-mono text-cyan-400 font-bold uppercase mt-0.5">CYBER</span>
+          </div>
+
+          <div className="absolute inset-1.5 flex items-center justify-center overflow-hidden pointer-events-none">
+            <div className="w-[86%] h-[78%] rounded-full -rotate-12 flex items-center justify-center bg-gradient-to-tr from-cyan-400 via-fuchsia-500 to-sky-300 p-0.5 shadow-[0_0_15px_rgba(6,182,212,0.7)]">
+              <div className="w-full h-full rounded-full bg-[#020b18] flex items-center justify-center overflow-hidden relative">
+                <div className="rotate-12 flex items-center justify-center text-cyan-300">
+                  {renderClassicContent(value, false)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center self-end leading-none rotate-180 z-10 pr-0.5 pb-0.5">
+            <span className={`font-mono font-black text-xs sm:text-sm ${cTheme.textColor}`}>
+              {value === 'skip' ? '⊘' : value === 'reverse' ? '⇄' : value === 'draw_two' ? '+2' : value === 'wild' ? 'W' : value === 'wild_draw_four' ? '+4' : value}
+            </span>
+            <span className="text-[6px] font-mono text-cyan-400 font-bold uppercase mt-0.5">CYBER</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 3. SKIN GALAXY (Thiên Hà Tím)
+  // =========================================================================
+  if (activeSkin === 'skin_galaxy') {
+    const gTheme = GALAXY_COLOR_CONFIGS[color] || GALAXY_COLOR_CONFIGS.red;
+    return (
+      <div
+        onClick={!disabled && onClick ? onClick : undefined}
+        className={`
+          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          border-2 ${gTheme.border} ${gTheme.bg} ${gTheme.shadow}
+          transition-all duration-200 ease-out transform-gpu
+          ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
+          ${selected ? 'ring-4 ring-purple-400 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(168,85,247,0.9)]' : ''}
+          ${className}
+        `}
+        title={`[Galaxy] Lá bài UNO ${color.toUpperCase()} - ${value}`}
+      >
+        <div className={`relative w-full h-full rounded-[14px] ${gTheme.innerBg} overflow-hidden flex flex-col justify-between p-1.5 border border-purple-400/30`}>
+          <div className="flex flex-col items-center self-start leading-none z-10 pl-0.5 pt-0.5">
+            <span className={`font-headline font-black text-xs sm:text-sm ${gTheme.textColor}`}>
+              {value === 'skip' ? '⊘' : value === 'reverse' ? '⇄' : value === 'draw_two' ? '+2' : value === 'wild' ? 'W' : value === 'wild_draw_four' ? '+4' : value}
+            </span>
+            <span className="text-[7px] mt-0.5">✨</span>
+          </div>
+
+          <div className="absolute inset-1.5 flex items-center justify-center overflow-hidden pointer-events-none">
+            <div className="w-[86%] h-[78%] rounded-full -rotate-12 flex items-center justify-center bg-gradient-to-tr from-purple-500 via-indigo-400 to-pink-400 p-0.5 shadow-[0_0_15px_rgba(192,132,252,0.7)]">
+              <div className="w-full h-full rounded-full bg-[#0e0424] flex items-center justify-center overflow-hidden relative">
+                <div className="rotate-12 flex items-center justify-center text-purple-200">
+                  {renderClassicContent(value, false)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center self-end leading-none rotate-180 z-10 pr-0.5 pb-0.5">
+            <span className={`font-headline font-black text-xs sm:text-sm ${gTheme.textColor}`}>
+              {value === 'skip' ? '⊘' : value === 'reverse' ? '⇄' : value === 'draw_two' ? '+2' : value === 'wild' ? 'W' : value === 'wild_draw_four' ? '+4' : value}
+            </span>
+            <span className="text-[7px] mt-0.5">✨</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 4. SKIN HỎA LONG (Dragon Fire)
+  // =========================================================================
+  if (activeSkin === 'skin_dragon_fire' || activeSkin === 'skin_dragon') {
+    const dTheme = DRAGON_COLOR_CONFIGS[color] || DRAGON_COLOR_CONFIGS.red;
+    return (
+      <div
+        onClick={!disabled && onClick ? onClick : undefined}
+        className={`
+          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          border-2 ${dTheme.border} ${dTheme.bg} ${dTheme.shadow}
+          transition-all duration-200 ease-out transform-gpu
+          ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
+          ${selected ? 'ring-4 ring-orange-500 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(249,115,22,0.9)]' : ''}
+          ${className}
+        `}
+        title={`[Hỏa Long] Lá bài UNO ${color.toUpperCase()} - ${value}`}
+      >
+        <div className={`relative w-full h-full rounded-[14px] ${dTheme.innerBg} overflow-hidden flex flex-col justify-between p-1.5 border border-orange-500/40`}>
+          <div className="flex flex-col items-center self-start leading-none z-10 pl-0.5 pt-0.5">
+            <span className={`font-headline font-black text-xs sm:text-sm ${dTheme.textColor}`}>
+              {value === 'skip' ? '⊘' : value === 'reverse' ? '⇄' : value === 'draw_two' ? '+2' : value === 'wild' ? 'W' : value === 'wild_draw_four' ? '+4' : value}
+            </span>
+            <span className="text-[7px] mt-0.5">🔥</span>
+          </div>
+
+          <div className="absolute inset-1.5 flex items-center justify-center overflow-hidden pointer-events-none">
+            <div className="w-[86%] h-[78%] rounded-full -rotate-12 flex items-center justify-center bg-gradient-to-tr from-red-600 via-orange-500 to-amber-400 p-0.5 shadow-[0_0_15px_rgba(249,115,22,0.7)]">
+              <div className="w-full h-full rounded-full bg-[#180303] flex items-center justify-center overflow-hidden relative">
+                <div className="rotate-12 flex items-center justify-center text-amber-300">
+                  {renderClassicContent(value, false)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center self-end leading-none rotate-180 z-10 pr-0.5 pb-0.5">
+            <span className={`font-headline font-black text-xs sm:text-sm ${dTheme.textColor}`}>
+              {value === 'skip' ? '⊘' : value === 'reverse' ? '⇄' : value === 'draw_two' ? '+2' : value === 'wild' ? 'W' : value === 'wild_draw_four' ? '+4' : value}
+            </span>
+            <span className="text-[7px] mt-0.5">🔥</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 5. SKIN HOÀNG GIA MẠ VÀNG 24K (Gold Luxury)
+  // =========================================================================
+  if (activeSkin === 'skin_gold_luxury' || activeSkin === 'skin_gold_24k' || activeSkin === 'skin_gold') {
+    const lTheme = GOLD_COLOR_CONFIGS[color] || GOLD_COLOR_CONFIGS.red;
+    return (
+      <div
+        onClick={!disabled && onClick ? onClick : undefined}
+        className={`
+          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          border-2 ${lTheme.border} ${lTheme.bg} ${lTheme.shadow}
+          transition-all duration-200 ease-out transform-gpu
+          ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
+          ${selected ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(251,191,36,0.95)]' : ''}
+          ${className}
+        `}
+        title={`[Hoàng Gia 24K] Lá bài UNO ${color.toUpperCase()} - ${value}`}
+      >
+        <div className={`relative w-full h-full rounded-[14px] ${lTheme.innerBg} overflow-hidden flex flex-col justify-between p-1.5 border border-amber-300/40`}>
+          <div className="flex flex-col items-center self-start leading-none z-10 pl-0.5 pt-0.5">
+            <span className={`font-serif font-black text-xs sm:text-sm ${lTheme.textColor}`}>
+              {value === 'skip' ? '⊘' : value === 'reverse' ? '⇄' : value === 'draw_two' ? '+2' : value === 'wild' ? 'W' : value === 'wild_draw_four' ? '+4' : value}
+            </span>
+            <span className="text-[7px] mt-0.5">👑</span>
+          </div>
+
+          <div className="absolute inset-1.5 flex items-center justify-center overflow-hidden pointer-events-none">
+            <div className="w-[86%] h-[78%] rounded-full -rotate-12 flex items-center justify-center bg-gradient-to-tr from-yellow-200 via-amber-400 to-yellow-600 p-0.5 shadow-[0_0_18px_rgba(251,191,36,0.85)]">
+              <div className="w-full h-full rounded-full bg-[#160f03] flex items-center justify-center overflow-hidden relative">
+                <div className="rotate-12 flex items-center justify-center text-amber-200">
+                  {renderClassicContent(value, false)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center self-end leading-none rotate-180 z-10 pr-0.5 pb-0.5">
+            <span className={`font-serif font-black text-xs sm:text-sm ${lTheme.textColor}`}>
+              {value === 'skip' ? '⊘' : value === 'reverse' ? '⇄' : value === 'draw_two' ? '+2' : value === 'wild' ? 'W' : value === 'wild_draw_four' ? '+4' : value}
+            </span>
+            <span className="text-[7px] mt-0.5">👑</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 6. PHONG CÁCH MẶC ĐỊNH (Classic Neo-Glassmorphism)
   // =========================================================================
   const theme = CLASSIC_COLOR_CONFIGS[color] || CLASSIC_COLOR_CONFIGS.red;
 
@@ -518,12 +847,10 @@ function UnoCard({
       `}
       title={`Lá bài UNO ${color.toUpperCase()} - ${value}`}
     >
-      {/* Góc trên bên trái */}
       <div className="flex items-center justify-start z-10 pl-0.5 pt-0.5">
         {renderClassicContent(value, true)}
       </div>
 
-      {/* Trung tâm Elip nghiêng */}
       <div className="absolute inset-2 flex items-center justify-center overflow-hidden pointer-events-none">
         <div
           className={`
@@ -537,7 +864,6 @@ function UnoCard({
         </div>
       </div>
 
-      {/* Góc dưới bên phải */}
       <div className="flex items-center justify-end z-10 pr-0.5 pb-0.5 rotate-180">
         {renderClassicContent(value, true)}
       </div>

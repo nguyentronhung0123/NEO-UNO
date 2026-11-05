@@ -5,15 +5,61 @@ import { AvatarFrame } from './AvatarFrame';
 import { soundEngine } from '../utils/audioFx';
 
 /**
- * Helper render Mặt Trước (Card Front) xem trước 3D cho từng bộ Skin
+ * Helper render Mặt Trước (Card Front) 3D cho từng bộ Skin
+ * Hỗ trợ 2 chế độ xem trước:
+ * - 'number': Lá Số Đặc Trưng (Signature Number Card)
+ * - 'action': Lá Kỹ Năng / Wild Độc Quyền (Special Action / Wild Card)
  */
-function CardFrontPreview({ skinId }) {
+function CardFrontPreview({ skinId, mode = 'number' }) {
+  // =========================================================================
+  // 1. HALLOWEEN SPOOKY 2026 (Jack-o'-Lantern Edition)
+  // =========================================================================
   if (skinId === 'skin_halloween') {
-    // Thẻ Số 7 Bí Ngô Ma Quái (Chuẩn từ File Word của người dùng)
+    if (mode === 'action') {
+      // Haunted Castle Wild Moon Card
+      return (
+        <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-purple-600 via-indigo-900 to-amber-950 shadow-2xl flex flex-col justify-between select-none">
+          <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#13072b] via-black to-[#220d04] overflow-hidden flex flex-col justify-between p-2.5 border border-purple-500/40">
+            {/* Top Left Corner */}
+            <div className="flex flex-col items-center self-start leading-none z-10">
+              <span className="font-headline text-lg font-black text-amber-300 drop-shadow-[0_0_8px_#f59e0b]">
+                WILD
+              </span>
+              <span className="text-xs">🦇</span>
+            </div>
+
+            {/* Center Moon & Castle */}
+            <div className="absolute inset-0 m-auto w-34 h-48 rounded-[50%] -rotate-12 bg-gradient-to-tr from-amber-500 via-purple-600 to-indigo-400 p-0.5 shadow-[0_0_25px_rgba(245,158,11,0.7)] flex items-center justify-center">
+              <div className="w-full h-full rounded-[50%] bg-gradient-to-b from-stone-950 via-purple-950 to-black flex flex-col items-center justify-center overflow-hidden relative p-2">
+                <svg className="w-16 h-16 rotate-12 drop-shadow-[0_0_12px_#fef08a]" fill="none" viewBox="0 0 100 100">
+                  <circle cx="50" cy="42" fill="#fef08a" opacity="0.95" r="28" />
+                  <path d="M26 80 L32 55 L38 55 L38 80 L44 80 L44 48 L48 42 L52 42 L56 48 L56 80 L62 80 L62 55 L68 55 L74 80 Z" fill="#0f0728" />
+                  <polygon fill="#0f0728" points="50,30 46,42 54,42" />
+                  <path d="M22 28 Q26 24 30 28 Q28 30 26 28 Z" fill="#0f0728" />
+                  <path d="M70 20 Q74 16 78 20 Q76 22 74 20 Z" fill="#0f0728" />
+                </svg>
+                <span className="rotate-12 mt-1 font-headline text-[10px] text-amber-200 tracking-widest font-black uppercase drop-shadow">
+                  SPOOKY WILD
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom Right Corner */}
+            <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+              <span className="font-headline text-lg font-black text-amber-300 drop-shadow-[0_0_8px_#f59e0b]">
+                WILD
+              </span>
+              <span className="text-xs">🦇</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Number 7 Spooky Pumpkin
     return (
       <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-amber-500 via-orange-600 to-amber-950 shadow-2xl flex flex-col justify-between select-none">
-        <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-orange-950/90 via-black/95 to-amber-950/95 overflow-hidden flex flex-col justify-between p-2.5">
-          {/* Top Left Index */}
+        <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-orange-950/90 via-black/95 to-amber-950/95 overflow-hidden flex flex-col justify-between p-2.5 border border-amber-500/40">
           <div className="flex flex-col items-center self-start leading-none z-10">
             <span className="font-headline text-2xl font-black text-amber-300 drop-shadow-[0_2px_8px_rgba(249,115,22,0.8)]">
               7
@@ -21,41 +67,15 @@ function CardFrontPreview({ skinId }) {
             <span className="text-[10px]">🎃</span>
           </div>
 
-          {/* Center Angled Oval with Jack-o'-lantern Carved Face SVG */}
           <div className="absolute inset-0 m-auto w-32 h-44 rounded-[50%] -rotate-12 bg-gradient-to-tr from-amber-600 to-orange-400 p-0.5 shadow-[0_0_20px_rgba(249,115,22,0.6)] flex items-center justify-center">
             <div className="w-full h-full rounded-[50%] bg-gradient-to-b from-black via-stone-900 to-amber-950 flex flex-col items-center justify-center overflow-hidden relative">
-              <svg
-                className="w-16 h-16 rotate-12 drop-shadow-[0_0_12px_#fbbf24]"
-                fill="none"
-                viewBox="0 0 100 100"
-              >
-                {/* Cuống bí ngô */}
-                <path
-                  d="M48 12C50 6 56 5 58 4C56 9 53 13 52 16"
-                  stroke="#4ade80"
-                  strokeLinecap="round"
-                  strokeWidth="4"
-                />
-                {/* Mắt phát sáng ma mị */}
+              <svg className="w-16 h-16 rotate-12 drop-shadow-[0_0_12px_#fbbf24]" fill="none" viewBox="0 0 100 100">
+                <path d="M48 12C50 6 56 5 58 4C56 9 53 13 52 16" stroke="#4ade80" strokeLinecap="round" strokeWidth="4" />
                 <polygon fill="#fef08a" points="30,38 42,42 34,48" />
                 <polygon fill="#fef08a" points="70,38 58,42 66,48" />
-                {/* Mũi răng cưa */}
                 <polygon fill="#fde047" points="50,49 44,57 56,57" />
-                {/* Nụ cười ma quái */}
-                <path
-                  d="M25,65 Q50,90 75,65 Q70,75 64,72 L62,67 L56,71 L51,66 L46,71 L40,67 L36,73 Q30,73 25,65 Z"
-                  fill="#fde047"
-                />
-                <ellipse
-                  cx="50"
-                  cy="54"
-                  opacity="0.5"
-                  rx="42"
-                  ry="34"
-                  stroke="#f97316"
-                  strokeDasharray="4 2"
-                  strokeWidth="2.5"
-                />
+                <path d="M25,65 Q50,90 75,65 Q70,75 64,72 L62,67 L56,71 L51,66 L46,71 L40,67 L36,73 Q30,73 25,65 Z" fill="#fde047" />
+                <ellipse cx="50" cy="54" opacity="0.5" rx="42" ry="34" stroke="#f97316" strokeDasharray="4 2" strokeWidth="2.5" />
               </svg>
               <span className="rotate-12 mt-0.5 font-headline text-[9px] text-amber-200 tracking-widest font-black">
                 SPOOKY 7
@@ -63,7 +83,6 @@ function CardFrontPreview({ skinId }) {
             </div>
           </div>
 
-          {/* Bottom Right Inverted Index */}
           <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
             <span className="font-headline text-2xl font-black text-amber-300 drop-shadow-[0_2px_8px_rgba(249,115,22,0.8)]">
               7
@@ -75,37 +94,350 @@ function CardFrontPreview({ skinId }) {
     );
   }
 
+  // =========================================================================
+  // 2. CYBERPUNK 2077 (Glitch Future Sci-Fi)
+  // =========================================================================
   if (skinId === 'skin_cyberpunk') {
+    if (mode === 'action') {
+      // Cyber Matrix Wild +4 Card
+      return (
+        <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-cyan-400 via-fuchsia-600 to-indigo-950 shadow-2xl flex flex-col justify-between select-none">
+          <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#020b18] via-black to-[#15021a] overflow-hidden flex flex-col justify-between p-2.5 border border-cyan-400/50">
+            <div className="flex flex-col items-center self-start leading-none z-10">
+              <span className="font-mono font-black text-xl text-cyan-300 drop-shadow-[0_0_8px_#00d2ff]">
+                +4
+              </span>
+              <span className="text-[7px] font-mono text-fuchsia-400 font-black">WILD</span>
+            </div>
+
+            <div className="absolute inset-0 m-auto w-34 h-48 rounded-[50%] -rotate-12 bg-gradient-to-tr from-cyan-400 via-fuchsia-500 to-yellow-300 p-0.5 shadow-[0_0_25px_rgba(0,210,255,0.8)] flex items-center justify-center">
+              <div className="w-full h-full rounded-[50%] bg-[#020b18] flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,#00d2ff_1px,transparent_1px),linear-gradient(to_bottom,#ff007f_1px,transparent_1px)] bg-[size:6px_6px]"></div>
+                <div className="rotate-12 flex flex-col items-center leading-none z-10">
+                  <span className="font-headline text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-fuchsia-400 to-yellow-300 drop-shadow-[0_0_12px_#00d2ff]">
+                    +4
+                  </span>
+                  <span className="font-mono text-[8px] font-black tracking-widest text-cyan-300 mt-1 uppercase">
+                    CYBER MATRIX
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+              <span className="font-mono font-black text-xl text-cyan-300 drop-shadow-[0_0_8px_#00d2ff]">
+                +4
+              </span>
+              <span className="text-[7px] font-mono text-fuchsia-400 font-black">WILD</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Number 9 Cyber Card
     return (
       <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-cyan-400 via-sky-600 to-blue-950 shadow-2xl flex flex-col justify-between select-none">
-        <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#020b18] via-black to-[#05132b] overflow-hidden flex flex-col justify-between p-2.5">
+        <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#020b18] via-black to-[#05132b] overflow-hidden flex flex-col justify-between p-2.5 border border-cyan-400/50">
           <div className="flex flex-col items-center self-start leading-none z-10">
             <span className="font-mono font-black text-2xl text-cyan-300 drop-shadow-[0_0_8px_#38bdf8]">
               9
             </span>
             <span className="text-[8px] font-mono text-cyan-400 font-bold">CYBER</span>
           </div>
+
           <div className="absolute inset-0 m-auto w-32 h-44 rounded-[50%] -rotate-12 bg-gradient-to-tr from-cyan-400 via-fuchsia-500 to-sky-300 p-0.5 shadow-[0_0_20px_rgba(6,182,212,0.8)] flex items-center justify-center">
             <div className="w-full h-full rounded-[50%] bg-[#020b18] flex flex-col items-center justify-center">
               <span className="rotate-12 font-headline text-4xl font-black text-cyan-300 drop-shadow-[0_0_12px_#00d2ff]">
                 9
               </span>
+              <span className="rotate-12 font-mono text-[8px] text-fuchsia-400 font-bold tracking-widest mt-0.5">
+                NEO 2077
+              </span>
             </div>
           </div>
+
           <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
             <span className="font-mono font-black text-2xl text-cyan-300 drop-shadow-[0_0_8px_#38bdf8]">
               9
             </span>
+            <span className="text-[8px] font-mono text-cyan-400 font-bold">CYBER</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // Mặc định hoặc các skin khác: Card Front chuẩn UNO
+  // =========================================================================
+  // 3. GALAXY (Thiên Hà Vũ Trụ Tím)
+  // =========================================================================
+  if (skinId === 'skin_galaxy') {
+    if (mode === 'action') {
+      // Supernova Galaxy Wild Card
+      return (
+        <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-purple-500 via-indigo-700 to-slate-950 shadow-2xl flex flex-col justify-between select-none">
+          <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#0e0326] via-black to-[#050014] overflow-hidden flex flex-col justify-between p-2.5 border border-purple-400/50">
+            <div className="flex flex-col items-center self-start leading-none z-10">
+              <span className="font-headline text-lg font-black text-purple-200 drop-shadow-[0_0_8px_#c084fc]">
+                WILD
+              </span>
+              <span className="text-xs">✨</span>
+            </div>
+
+            <div className="absolute inset-0 m-auto w-34 h-48 rounded-[50%] -rotate-12 bg-gradient-to-tr from-purple-500 via-pink-400 to-cyan-300 p-0.5 shadow-[0_0_25px_rgba(192,132,252,0.85)] flex items-center justify-center">
+              <div className="w-full h-full rounded-[50%] bg-[#100424] flex flex-col items-center justify-center relative overflow-hidden p-2">
+                <svg className="w-16 h-16 rotate-12 drop-shadow-[0_0_12px_#38bdf8]" viewBox="0 0 100 100" fill="none">
+                  <circle cx="50" cy="50" r="18" fill="#e0e7ff" opacity="0.9" />
+                  <ellipse cx="50" cy="50" rx="38" ry="12" stroke="#a855f7" strokeWidth="2.5" transform="rotate(-25 50 50)" />
+                  <ellipse cx="50" cy="50" rx="34" ry="10" stroke="#38bdf8" strokeWidth="1.5" transform="rotate(35 50 50)" />
+                </svg>
+                <span className="rotate-12 mt-1 font-headline text-[9px] text-transparent bg-clip-text bg-gradient-to-r from-cyan-200 via-pink-200 to-purple-300 tracking-widest font-black uppercase">
+                  SUPERNOVA
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+              <span className="font-headline text-lg font-black text-purple-200 drop-shadow-[0_0_8px_#c084fc]">
+                WILD
+              </span>
+              <span className="text-xs">✨</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Number 5 Galaxy Card
+    return (
+      <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-indigo-500 via-purple-700 to-slate-950 shadow-2xl flex flex-col justify-between select-none">
+        <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#0b0320] via-black to-[#050012] overflow-hidden flex flex-col justify-between p-2.5 border border-purple-400/50">
+          <div className="flex flex-col items-center self-start leading-none z-10">
+            <span className="font-headline text-2xl font-black text-purple-200 drop-shadow-[0_0_8px_#c084fc]">
+              5
+            </span>
+            <span className="text-[10px]">✨</span>
+          </div>
+
+          <div className="absolute inset-0 m-auto w-32 h-44 rounded-[50%] -rotate-12 bg-gradient-to-tr from-purple-500 via-indigo-400 to-pink-400 p-0.5 shadow-[0_0_20px_rgba(168,85,247,0.7)] flex items-center justify-center">
+            <div className="w-full h-full rounded-[50%] bg-[#0e0424] flex flex-col items-center justify-center">
+              <span className="rotate-12 font-headline text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-pink-200 to-purple-300 drop-shadow-[0_0_12px_#c084fc]">
+                5
+              </span>
+              <span className="rotate-12 font-headline text-[8px] text-cyan-300 font-bold tracking-widest mt-0.5">
+                GALAXY
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+            <span className="font-headline text-2xl font-black text-purple-200 drop-shadow-[0_0_8px_#c084fc]">
+              5
+            </span>
+            <span className="text-[10px]">✨</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 4. DRAGON FIRE (Hỏa Long Rực Lửa - Dragon Flame Scales)
+  // =========================================================================
+  if (skinId === 'skin_dragon_fire' || skinId === 'skin_dragon') {
+    if (mode === 'action') {
+      // Cataclysmic Dragon Inferno Wild Card
+      return (
+        <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-red-600 via-orange-600 to-neutral-950 shadow-2xl flex flex-col justify-between select-none">
+          <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#240404] via-black to-[#120000] overflow-hidden flex flex-col justify-between p-2.5 border border-orange-500/60">
+            <div className="flex flex-col items-center self-start leading-none z-10">
+              <span className="font-headline text-lg font-black text-amber-300 drop-shadow-[0_0_8px_#ea580c]">
+                +4
+              </span>
+              <span className="text-xs">🔥</span>
+            </div>
+
+            <div className="absolute inset-0 m-auto w-34 h-48 rounded-[50%] -rotate-12 bg-gradient-to-tr from-red-600 via-orange-500 to-amber-300 p-0.5 shadow-[0_0_25px_rgba(234,88,12,0.9)] flex items-center justify-center">
+              <div className="w-full h-full rounded-[50%] bg-[#180303] flex flex-col items-center justify-center relative overflow-hidden p-2">
+                <svg className="w-16 h-16 rotate-12 drop-shadow-[0_0_12px_#f97316]" viewBox="0 0 100 100" fill="currentColor">
+                  <path d="M50 10 C55 25 70 30 75 45 C78 55 72 65 65 72 C60 65 58 55 52 50 C50 65 42 75 30 70 C25 60 28 45 35 35 C38 40 42 42 45 38 C40 25 45 15 50 10 Z" fill="#f97316" />
+                  <path d="M50 35 C52 42 60 45 62 52 C60 58 52 62 48 55 C46 50 48 45 50 35 Z" fill="#fde047" />
+                </svg>
+                <span className="rotate-12 font-headline text-2xl font-black text-amber-300 drop-shadow -mt-1">
+                  +4
+                </span>
+                <span className="rotate-12 font-headline text-[8px] text-orange-200 tracking-widest font-black uppercase">
+                  DRAGON INFERNO
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+              <span className="font-headline text-lg font-black text-amber-300 drop-shadow-[0_0_8px_#ea580c]">
+                +4
+              </span>
+              <span className="text-xs">🔥</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Number 8 Dragon Card
+    return (
+      <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-red-600 via-orange-600 to-stone-950 shadow-2xl flex flex-col justify-between select-none">
+        <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#1f0404] via-black to-[#0e0101] overflow-hidden flex flex-col justify-between p-2.5 border border-orange-500/50">
+          <div className="flex flex-col items-center self-start leading-none z-10">
+            <span className="font-headline text-2xl font-black text-amber-300 drop-shadow-[0_2px_8px_rgba(234,88,12,0.9)]">
+              8
+            </span>
+            <span className="text-[10px]">🔥</span>
+          </div>
+
+          <div className="absolute inset-0 m-auto w-32 h-44 rounded-[50%] -rotate-12 bg-gradient-to-tr from-red-600 via-orange-500 to-amber-400 p-0.5 shadow-[0_0_22px_rgba(249,115,22,0.8)] flex items-center justify-center">
+            <div className="w-full h-full rounded-[50%] bg-[#1a0303] flex flex-col items-center justify-center">
+              <span className="rotate-12 font-headline text-4xl font-black text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-orange-400 to-red-600 drop-shadow-[0_2px_8px_rgba(234,88,12,0.95)]">
+                8
+              </span>
+              <span className="rotate-12 font-headline text-[8px] text-amber-300 font-bold tracking-widest mt-0.5 uppercase">
+                HỎA LONG
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+            <span className="font-headline text-2xl font-black text-amber-300 drop-shadow-[0_2px_8px_rgba(234,88,12,0.9)]">
+              8
+            </span>
+            <span className="text-[10px]">🔥</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 5. GOLD LUXURY (Hoàng Gia Mạ Vàng 24K - Luxury 24K Gold Plated)
+  // =========================================================================
+  if (skinId === 'skin_gold_luxury' || skinId === 'skin_gold_24k' || skinId === 'skin_gold') {
+    if (mode === 'action') {
+      // Sovereign Imperial 24K Crown Wild Card
+      return (
+        <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-yellow-300 via-amber-500 to-yellow-800 shadow-2xl flex flex-col justify-between select-none">
+          <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#1e1503] via-[#0c0901] to-[#2b1f05] overflow-hidden flex flex-col justify-between p-2.5 border border-amber-300/70">
+            <div className="flex flex-col items-center self-start leading-none z-10">
+              <span className="font-serif font-black text-base text-amber-200 drop-shadow-[0_0_8px_#fbbf24]">
+                WILD
+              </span>
+              <span className="text-xs">👑</span>
+            </div>
+
+            <div className="absolute inset-0 m-auto w-34 h-48 rounded-[50%] -rotate-12 bg-gradient-to-tr from-yellow-200 via-amber-400 to-yellow-600 p-0.5 shadow-[0_0_26px_rgba(251,191,36,0.95)] flex items-center justify-center">
+              <div className="w-full h-full rounded-[50%] bg-[#150e02] flex flex-col items-center justify-center relative overflow-hidden p-2">
+                <svg className="w-16 h-16 rotate-12 drop-shadow-[0_0_12px_#fbbf24]" viewBox="0 0 100 100" fill="currentColor">
+                  <path d="M15 65 L25 35 L40 50 L50 20 L60 50 L75 35 L85 65 Z" fill="#fbbf24" />
+                  <rect x="15" y="68" width="70" height="8" rx="2" fill="#fde047" />
+                  <circle cx="50" cy="20" r="4" fill="#fef08a" />
+                  <circle cx="25" cy="35" r="3.5" fill="#fef08a" />
+                  <circle cx="75" cy="35" r="3.5" fill="#fef08a" />
+                </svg>
+                <span className="rotate-12 font-headline text-lg font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-500 drop-shadow mt-0.5">
+                  24K ROYAL
+                </span>
+                <span className="rotate-12 font-mono text-[7px] text-amber-300 font-extrabold tracking-widest uppercase">
+                  SOVEREIGN WILD
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+              <span className="font-serif font-black text-base text-amber-200 drop-shadow-[0_0_8px_#fbbf24]">
+                WILD
+              </span>
+              <span className="text-xs">👑</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default Number 1 Royal Ace Gold Card
+    return (
+      <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-yellow-300 via-amber-500 to-yellow-800 shadow-2xl flex flex-col justify-between select-none">
+        <div className="relative w-full h-full rounded-[18px] bg-gradient-to-b from-[#1a1202] via-[#0a0701] to-[#241a04] overflow-hidden flex flex-col justify-between p-2.5 border border-amber-300/60">
+          <div className="flex flex-col items-center self-start leading-none z-10">
+            <span className="font-serif font-black text-2xl text-amber-200 drop-shadow-[0_2px_8px_rgba(251,191,36,0.9)]">
+              1
+            </span>
+            <span className="text-[10px]">👑</span>
+          </div>
+
+          <div className="absolute inset-0 m-auto w-32 h-44 rounded-[50%] -rotate-12 bg-gradient-to-tr from-yellow-200 via-amber-400 to-yellow-600 p-0.5 shadow-[0_0_24px_rgba(251,191,36,0.9)] flex items-center justify-center">
+            <div className="w-full h-full rounded-[50%] bg-[#120d02] flex flex-col items-center justify-center">
+              <span className="rotate-12 font-serif font-black text-4xl text-transparent bg-clip-text bg-gradient-to-b from-white via-amber-200 to-amber-500 drop-shadow-[0_2px_8px_rgba(251,191,36,0.95)]">
+                I
+              </span>
+              <span className="rotate-12 font-headline text-[8px] text-amber-300 font-bold tracking-widest mt-0.5 uppercase">
+                ROYAL 24K
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+            <span className="font-serif font-black text-2xl text-amber-200 drop-shadow-[0_2px_8px_rgba(251,191,36,0.9)]">
+              1
+            </span>
+            <span className="text-[10px]">👑</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // 6. MẶC ĐỊNH: ĐỎ RUBY (Classic Uno Red Neo-Glassmorphism)
+  // =========================================================================
+  if (mode === 'action') {
+    // Prismatic Crystalline Gem Wild Card
+    return (
+      <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-slate-900 via-rose-950 to-slate-950 shadow-2xl flex flex-col justify-between select-none">
+        <div className="relative w-full h-full rounded-[18px] bg-black/80 overflow-hidden flex flex-col justify-between p-2.5 border border-white/20">
+          <div className="flex flex-col items-center self-start leading-none z-10">
+            <span className="font-headline text-lg font-black text-white drop-shadow">
+              WILD
+            </span>
+            <span className="text-xs">💎</span>
+          </div>
+
+          <div className="absolute inset-0 m-auto w-34 h-48 rounded-[50%] -rotate-12 bg-white/20 border border-white/30 backdrop-blur-xs flex items-center justify-center shadow-lg">
+            <div className="rotate-12 flex flex-col items-center leading-none">
+              <div className="w-14 h-14 rounded-full overflow-hidden grid grid-cols-2 grid-rows-2 shadow-xl border-2 border-white/90">
+                <div className="bg-rose-500"></div>
+                <div className="bg-sky-400"></div>
+                <div className="bg-amber-400"></div>
+                <div className="bg-emerald-500"></div>
+              </div>
+              <span className="mt-1 font-headline text-[10px] text-white font-black tracking-widest uppercase">
+                NEO WILD
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center self-end leading-none rotate-180 z-10">
+            <span className="font-headline text-lg font-black text-white drop-shadow">
+              WILD
+            </span>
+            <span className="text-xs">💎</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default Classic 7 Ruby Card
   return (
     <div className="relative w-full h-full rounded-[24px] p-2 bg-gradient-to-br from-rose-500 via-red-600 to-rose-700 shadow-2xl flex flex-col justify-between select-none">
-      <div className="relative w-full h-full rounded-[18px] bg-rose-600/90 overflow-hidden flex flex-col justify-between p-2.5">
+      <div className="relative w-full h-full rounded-[18px] bg-rose-600/90 overflow-hidden flex flex-col justify-between p-2.5 border border-white/25">
         <div className="flex flex-col items-center self-start leading-none z-10">
           <span className="font-headline text-3xl font-black text-white drop-shadow">
             7
@@ -134,6 +466,7 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
   const [items, setItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [previewMode, setPreviewMode] = useState('number'); // 'number' | 'action'
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
@@ -150,7 +483,6 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
     const res = await shopApi.getItems();
     if (res && res.success && Array.isArray(res.items)) {
       setItems(res.items);
-      // Tự động chọn item đầu tiên nếu chưa chọn
       if (!selectedItem) {
         const defaultSelect = res.items.find((it) => it.id === 'skin_halloween') || res.items[0];
         setSelectedItem(defaultSelect);
@@ -165,16 +497,15 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
     }
   }, [isOpen]);
 
-  // Thông báo Toast ngắn
-  const showToast = (msg, type = 'success') => {
-    setToastMessage({ text: msg, type });
-    setTimeout(() => setToastMessage(null), 3500);
+  const showToast = (text, type = 'success') => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 3000);
   };
 
   // Mua vật phẩm
   const handleBuy = async (item) => {
     if (currentCoins < item.price) {
-      showToast(`Số dư không đủ! Cần thêm 🪙 ${(item.price - currentCoins).toLocaleString()} Vàng.`, 'error');
+      showToast('Bạn không đủ Vàng để mua vật phẩm này!', 'error');
       return;
     }
 
@@ -183,13 +514,12 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
     setActionLoadingId(null);
 
     if (res.success) {
-      soundEngine.playCoinBuy();
-      showToast(res.message || `Đã mở khóa thành công ${item.name}!`, 'success');
-      
-      // Cập nhật State người dùng ngay lập tức
+      soundEngine.playVictory();
+      showToast(`Mua thành công ${item.name}!`, 'success');
+
       if (onUpdateUser) {
         onUpdateUser({
-          coins: res.userCoins,
+          coins: res.coins,
           inventory: res.inventory,
           equippedCardSkin: res.equippedCardSkin,
           equippedAvatarFrame: res.equippedAvatarFrame,
@@ -306,7 +636,7 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
             }}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-headline text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'card_skin'
-                ? 'bg-gradient-to-r from-primary-container to-cyan-400 text-black shadow-lg shadow-cyan-500/30 font-black'
+                ? 'bg-gradient-to-r from-cyan-400 to-sky-400 text-black shadow-lg shadow-cyan-500/30 font-black'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -322,7 +652,7 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
             }}
             className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-headline text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'avatar_frame'
-                ? 'bg-gradient-to-r from-primary-container to-cyan-400 text-black shadow-lg shadow-cyan-500/30 font-black'
+                ? 'bg-gradient-to-r from-cyan-400 to-sky-400 text-black shadow-lg shadow-cyan-500/30 font-black'
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
@@ -510,7 +840,7 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
             {selectedItem ? (
               <div className="w-full flex flex-col items-center">
                 {/* Tiêu đề & Rarity */}
-                <div className="text-center mb-4">
+                <div className="text-center mb-3">
                   <span
                     className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full inline-block mb-1.5 ${
                       selectedItem.rarity === 'legendary'
@@ -539,7 +869,7 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
                 </div>
 
                 {/* KHU VỰC PREVIEW (3D FLIP CHO CARD SKIN / KHUNG CHO AVATAR) */}
-                <div className="my-2 flex flex-col items-center">
+                <div className="my-1 flex flex-col items-center">
                   {selectedItem.type === 'card_skin' ? (
                     <div className="flex flex-col items-center">
                       {/* Thẻ 3D Flip Container */}
@@ -568,25 +898,61 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
 
                           {/* MẶT TRƯỚC (BÀI SỐ / WILD 3D) */}
                           <div className="absolute inset-0 w-full h-full backface-hidden rotate-y-180 flex items-center justify-center">
-                            <CardFrontPreview skinId={selectedItem.id} />
+                            <CardFrontPreview skinId={selectedItem.id} mode={previewMode} />
                           </div>
                         </div>
                       </div>
 
-                      {/* Nút lật xem trước */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsFlipped((prev) => !prev);
-                          soundEngine.playCardSlide();
-                        }}
-                        className="mt-3.5 flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-300 hover:text-white transition-all cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          3d_rotation
-                        </span>
-                        <span>{isFlipped ? 'Xem Mặt Lưng Bài' : 'Xem Mặt Trước Thẻ Bài'}</span>
-                      </button>
+                      {/* Nút lật xem trước & Tùy chọn Mặt Trước */}
+                      <div className="flex flex-col items-center gap-2 mt-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFlipped((prev) => !prev);
+                            soundEngine.playCardSlide();
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold text-slate-200 hover:text-white transition-all cursor-pointer border border-white/10 shadow-md"
+                        >
+                          <span className="material-symbols-outlined text-sm">
+                            3d_rotation
+                          </span>
+                          <span>{isFlipped ? '🔄 Lật Xem Mặt Lưng Bài' : '🔄 Lật Xem Mặt Trước Thẻ Bài'}</span>
+                        </button>
+
+                        {/* Tùy chọn xem Mặt Trước: Lá Số vs Lá Kỹ Năng */}
+                        {isFlipped && (
+                          <div className="flex items-center gap-1.5 p-1 bg-black/60 rounded-full border border-white/10 animate-in fade-in duration-200">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPreviewMode('number');
+                                soundEngine.playCardSlide();
+                              }}
+                              className={`px-3 py-1 rounded-full text-[10px] font-headline font-bold transition-all cursor-pointer ${
+                                previewMode === 'number'
+                                  ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-400/50 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+                                  : 'text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              🃏 Lá Số Đặc Trưng
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPreviewMode('action');
+                                soundEngine.playCardSlide();
+                              }}
+                              className={`px-3 py-1 rounded-full text-[10px] font-headline font-bold transition-all cursor-pointer ${
+                                previewMode === 'action'
+                                  ? 'bg-amber-500/30 text-amber-300 border border-amber-400/50 shadow-[0_0_10px_rgba(245,158,11,0.4)]'
+                                  : 'text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              ✨ Lá Kỹ Năng / Wild
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     /* Preview Khung Viền Avatar */
@@ -608,7 +974,7 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
                 </div>
 
                 {/* Mô tả chi tiết */}
-                <div className="w-full mt-4 p-3.5 rounded-2xl bg-black/40 border border-white/5 text-xs text-slate-300 leading-relaxed text-center">
+                <div className="w-full mt-3 p-3.5 rounded-2xl bg-black/40 border border-white/5 text-xs text-slate-300 leading-relaxed text-center">
                   {selectedItem.description}
                 </div>
 
