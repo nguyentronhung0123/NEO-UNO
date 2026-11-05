@@ -4,7 +4,11 @@ let socket = null;
 
 export function getSocket() {
   if (!socket) {
-    const serverUrl = window.location.hostname === 'localhost' ? 'http://localhost:5001' : '/';
+    const apiBase = import.meta.env.VITE_API_BASE_URL || '';
+    const derivedUrl = apiBase.replace(/\/api\/?$/, '');
+    const serverUrl =
+      import.meta.env.VITE_SOCKET_URL ||
+      (derivedUrl ? derivedUrl : (window.location.hostname === 'localhost' ? 'http://localhost:5001' : '/'));
     socket = io(serverUrl, {
       autoConnect: true,
       transports: ['websocket', 'polling'],

@@ -164,7 +164,7 @@ connectDB().then(async () => {
     }
   });
 
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`[BE] 🚀 Server & Socket.io đã khởi chạy thành công tại: http://localhost:${PORT} (Chế độ ghép trận: 60s auto-fill)`);
   });
 });
