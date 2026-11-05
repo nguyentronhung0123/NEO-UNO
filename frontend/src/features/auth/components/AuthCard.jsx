@@ -15,7 +15,8 @@ import {
 } from '../helpers/authValidation';
 
 export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
-  const { login, register, guestLogin } = useAuth();
+  const { login, register, guestLogin, loginWithGoogle } = useAuth();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('login');
   const [showPassword, setShowPassword] = useState(false);
@@ -220,6 +221,78 @@ export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
       if (onEnterGameWithBot) {
         onEnterGameWithBot({ nickname: 'Đấu thủ Khách', elo: 1000 });
       }
+    }
+  };
+
+  const handleGoogleLogin = async (useFastDemo = false) => {
+    setIsGoogleLoading(true);
+    setStatusMessage(null);
+
+    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+    if (!useFastDemo && window.google?.accounts?.id && googleClientId) {
+      try {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: async (response) => {
+            if (response.credential) {
+              const res = await loginWithGoogle({ credential: response.credential }, rememberMe);
+              setIsGoogleLoading(false);
+              if (res.success) {
+                setStatusMessage({
+                  type: 'success',
+                  text: res.message || 'Đăng nhập Google thành công!',
+                });
+                setTimeout(() => {
+                  if (onEnterGameWithBot) onEnterGameWithBot(res.user);
+                }, 800);
+              } else {
+                setStatusMessage({ type: 'error', text: res.message || 'Đăng nhập Google thất bại!' });
+              }
+            }
+          },
+        });
+        window.google.accounts.id.prompt();
+        return;
+      } catch (err) {
+        console.warn('Google GIS Error:', err);
+      }
+    }
+
+    // Fast Demo Google Sign-In
+    try {
+      const demoEmail = useFastDemo
+        ? `player_google_${Math.floor(100 + Math.random() * 900)}@gmail.com`
+        : prompt('Nhập địa chỉ Gmail để kiểm thử đăng nhập (hoặc để trống để tạo tài khoản mẫu Google):') || 'gamer.google@neouno.com';
+
+      const cleanEmail = demoEmail.trim().toLowerCase();
+      const namePart = cleanEmail.split('@')[0];
+      const displayName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+
+      const res = await loginWithGoogle({
+        mockUser: {
+          googleId: 'google_id_' + Math.abs(cleanEmail.split('').reduce((a, b) => ((a << 5) - a) + b.charCodeAt(0), 0)),
+          email: cleanEmail,
+          name: displayName,
+          picture: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(cleanEmail)}`,
+        }
+      }, rememberMe);
+
+      setIsGoogleLoading(false);
+      if (res.success) {
+        setStatusMessage({
+          type: 'success',
+          text: res.message || 'Đăng nhập Google thành công! Đang chuyển vào Sảnh...',
+        });
+        setTimeout(() => {
+          if (onEnterGameWithBot) onEnterGameWithBot(res.user);
+        }, 800);
+      } else {
+        setStatusMessage({ type: 'error', text: res.message || 'Đăng nhập Google thất bại!' });
+      }
+    } catch {
+      setIsGoogleLoading(false);
+      setStatusMessage({ type: 'error', text: 'Không thể kết nối đến máy chủ Backend (Port 5001)!' });
     }
   };
 
@@ -735,8 +808,9 @@ export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
           {/* Divider & Social Logins */}
           <SocialLoginButtons
             dividerText={activeTab === 'login' ? 'ĐĂNG NHẬP ĐỒNG BỘ NHANH' : 'HOẶC ĐĂNG KÝ NHANH'}
-            onGoogleClick={() => alert('Đang kết nối cổng Google Play Games...')}
-            onDiscordClick={() => alert('Đang kết nối cổng Discord Gaming Gateway...')}
+            onGoogleClick={() => handleGoogleLogin(false)}
+            onFastGoogleDemo={() => handleGoogleLogin(true)}
+            isLoadingGoogle={isGoogleLoading}
           />
 
           {/* Real-time Server Status Badge */}

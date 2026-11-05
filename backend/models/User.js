@@ -27,8 +27,24 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Vui lòng nhập mật khẩu'],
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        'Vui lòng nhập mật khẩu',
+      ],
       minlength: [6, 'Mật khẩu phải từ 6 ký tự trở lên'],
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google', 'guest'],
+      default: 'local',
     },
     avatar: {
       type: String,

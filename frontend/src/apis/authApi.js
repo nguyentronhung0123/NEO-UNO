@@ -88,4 +88,22 @@ export const authApi = {
       body: JSON.stringify({ email, otp, newPassword }),
     });
   },
+
+  googleLogin: async ({ credential, mockUser }) => {
+    return safeFetchJson(`${API_BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential, mockUser }),
+    });
+  },
+
+  logout: async (token) => {
+    return safeFetchJson(`${API_BASE_URL}/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  },
 };

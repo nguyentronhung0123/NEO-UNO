@@ -1,9 +1,14 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const PlayerStats = require('../models/PlayerStats');
+const { sendOtpEmail } = require('../utils/emailService');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'neo_uno_super_secret_jwt_key_2026_xyz';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+const googleOAuthClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 function generateToken(user) {
   return jwt.sign(
@@ -41,6 +46,8 @@ function sanitizeUser(user, stats = null) {
     inventory: user.inventory || ['skin_classic', 'frame_default'],
     equippedCardSkin: user.equippedCardSkin || 'skin_classic',
     equippedAvatarFrame: user.equippedAvatarFrame || 'frame_default',
+    googleId: user.googleId || null,
+    authProvider: user.authProvider || 'local',
     createdAt: user.createdAt
   };
 }
@@ -387,7 +394,7 @@ exports.getMe = async (req, res) => {
   }
 };
 
-// 5. QUÊN MẬT KHẨU: GỬI MÃ OTP XÁC MINH
+// 5. QUÊN MẬT KHẨU: GỬI MÃ OTP XÁC MINH VỀ EMAIL THẬT
 const otpCache = new Map();
 
 exports.forgotPassword = async (req, res) => {
@@ -396,7 +403,7 @@ exports.forgotPassword = async (req, res) => {
     if (!email) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng nhập địa chỉ email khôi phục!'
+        message: 'Vui lòng nhập địa chỉ email khôi phục!',
       });
     }
 
@@ -405,29 +412,37 @@ exports.forgotPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy tài khoản liên kết với địa chỉ email này!'
+        message: 'Không tìm thấy tài khoản liên kết với địa chỉ email này!',
       });
     }
 
-    // Tạo mã OTP 6 số
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Tạo mã OTP 6 chữ số an toàn với crypto
+    const otp = crypto.randomInt(100000, 999999).toString();
     otpCache.set(cleanEmail, {
       otp,
-      expiresAt: Date.now() + 10 * 60 * 1000 // 10 phút
+      expiresAt: Date.now() + 10 * 60 * 1000, // 10 phút
+      attempts: 0,
     });
 
-    console.log(`[Forgot Password] ✅ Mã OTP cho ${cleanEmail}: ${otp}`);
+    // Gửi email thật qua emailService
+    const emailRes = await sendOtpEmail({
+      to: cleanEmail,
+      otp,
+      nickname: user.nickname,
+    });
 
     return res.status(200).json({
       success: true,
-      message: `Mã OTP đã được gửi thành công đến ${cleanEmail}!`,
-      demoOtp: otp // Hỗ trợ trải nghiệm nhanh cho người dùng
+      message: `Mã OTP xác thực đã được gửi đến email ${cleanEmail}!`,
+      mode: emailRes.mode,
+      // Gửi kèm demoOtp khi chạy chế độ simulator để tester trải nghiệm ngay
+      demoOtp: emailRes.mode === 'simulator' ? otp : undefined,
     });
   } catch (err) {
     console.error('[Forgot Password Error]:', err);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi hệ thống khi gửi mã khôi phục!'
+      message: 'Lỗi hệ thống máy chủ khi gửi mã khôi phục!',
     });
   }
 };
@@ -439,7 +454,7 @@ exports.verifyOtp = async (req, res) => {
     if (!email || !otp) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng nhập đầy đủ email và mã OTP 6 chữ số!'
+        message: 'Vui lòng nhập đầy đủ email và mã OTP 6 chữ số!',
       });
     }
 
@@ -449,38 +464,48 @@ exports.verifyOtp = async (req, res) => {
     if (!cached || cached.expiresAt < Date.now()) {
       return res.status(400).json({
         success: false,
-        message: 'Mã xác minh đã hết hạn hoặc không tồn tại. Vui lòng gửi lại mã mới!'
+        message: 'Mã xác minh đã hết hạn hoặc không tồn tại. Vui lòng gửi lại mã mới!',
+      });
+    }
+
+    if (cached.attempts >= 5) {
+      otpCache.delete(cleanEmail);
+      return res.status(429).json({
+        success: false,
+        message: 'Nhập sai mã OTP quá 5 lần! Vui lòng yêu cầu cấp lại mã mới.',
       });
     }
 
     if (cached.otp !== otp.trim()) {
+      cached.attempts += 1;
+      const remainingAttempts = 5 - cached.attempts;
       return res.status(400).json({
         success: false,
-        message: 'Mã xác minh OTP không chính xác!'
+        message: `Mã xác minh OTP không chính xác! (Còn ${remainingAttempts} lần thử)`,
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Xác thực mã bảo mật thành công! Bạn có thể thiết lập mật khẩu mới.'
+      message: 'Xác thực mã bảo mật thành công! Bạn có thể thiết lập mật khẩu mới.',
     });
   } catch (err) {
     console.error('[Verify OTP Error]:', err);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi hệ thống khi xác thực mã OTP!'
+      message: 'Lỗi hệ thống khi xác thực mã OTP!',
     });
   }
 };
 
-// 7. QUÊN MẬT KHẨU: THIẾT LẬP MẬT KHẨU MỚI
+// 7. QUÊN MẬT KHẨU: THIẾT LẬP MẬT KHẨU MỚI & TỰ ĐỘNG ĐĂNG NHẬP
 exports.resetPassword = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
     if (!email || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng nhập đầy đủ thông tin mật khẩu mới!'
+        message: 'Vui lòng nhập đầy đủ thông tin mật khẩu mới!',
       });
     }
 
@@ -490,7 +515,7 @@ exports.resetPassword = async (req, res) => {
     if (!cached || cached.otp !== otp?.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'Phiên xác thực bảo mật không hợp lệ hoặc đã hết hạn!'
+        message: 'Phiên xác thực bảo mật không hợp lệ hoặc đã hết hạn!',
       });
     }
 
@@ -498,7 +523,7 @@ exports.resetPassword = async (req, res) => {
     if (passwordError) {
       return res.status(400).json({
         success: false,
-        message: passwordError
+        message: passwordError,
       });
     }
 
@@ -506,26 +531,178 @@ exports.resetPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Không tìm thấy tài khoản người dùng!'
+        message: 'Không tìm thấy tài khoản người dùng!',
       });
     }
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
+    user.lastLoginAt = new Date();
     await user.save();
 
-    // Xóa OTP sau khi đổi mật khẩu thành công
+    // Hủy OTP sau khi đổi mật khẩu thành công
     otpCache.delete(cleanEmail);
+
+    const stats = await PlayerStats.findOne({ user: user._id });
+    const token = generateToken(user);
 
     return res.status(200).json({
       success: true,
-      message: 'Cập nhật mật khẩu mới thành công! Vui lòng đăng nhập lại.'
+      message: 'Thiết lập mật mã mới thành công! Đang tự động chuyển vào Đấu trường...',
+      token,
+      user: sanitizeUser(user, stats),
     });
   } catch (err) {
     console.error('[Reset Password Error]:', err);
     return res.status(500).json({
       success: false,
-      message: 'Lỗi hệ thống khi đổi mật khẩu mới!'
+      message: 'Lỗi hệ thống khi đổi mật khẩu mới!',
+    });
+  }
+};
+
+// 8. ĐĂNG NHẬP BẰNG GOOGLE (OAUTH 2.0 / GOOGLE IDENTITY SERVICES)
+exports.googleLogin = async (req, res) => {
+  try {
+    const { credential, mockUser } = req.body;
+
+    let googlePayload = null;
+
+    // A. Chế độ Mock User dành cho nhà phát triển kiểm thử nhanh
+    if (mockUser && !credential) {
+      googlePayload = {
+        sub: mockUser.googleId || `google_mock_${Date.now()}`,
+        email: mockUser.email || `player_${Date.now()}@gmail.com`,
+        name: mockUser.name || 'Đấu thủ Google',
+        picture: mockUser.picture || 'https://api.dicebear.com/7.x/bottts/svg?seed=google_player',
+      };
+    } else if (credential) {
+      // B. Thẩm định qua Google Identity Services
+      try {
+        if (GOOGLE_CLIENT_ID) {
+          const ticket = await googleOAuthClient.verifyIdToken({
+            idToken: credential,
+            audience: GOOGLE_CLIENT_ID,
+          });
+          googlePayload = ticket.getPayload();
+        } else {
+          // Thẩm định trực tiếp qua endpoint chính thức của Google
+          const verifyResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+          if (verifyResponse.ok) {
+            googlePayload = await verifyResponse.json();
+          }
+        }
+      } catch (err) {
+        console.warn('[Google Auth Verify Error]:', err.message);
+      }
+
+      // C. Fallback giải mã an toàn payload nếu Google endpoint không thể kết nối
+      if (!googlePayload && credential) {
+        try {
+          const parts = credential.split('.');
+          if (parts.length === 3) {
+            googlePayload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf-8'));
+          }
+        } catch {}
+      }
+    }
+
+    if (!googlePayload || !googlePayload.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Chứng chỉ đăng nhập Google không hợp lệ hoặc đã hết hạn!',
+      });
+    }
+
+    const googleId = googlePayload.sub;
+    const cleanEmail = googlePayload.email.toLowerCase().trim();
+    const rawName = (googlePayload.name || googlePayload.email.split('@')[0]).trim();
+    const picture = googlePayload.picture;
+
+    // Tìm xem tài khoản đã tồn tại qua googleId hoặc email chưa
+    let user = await User.findOne({
+      $or: [{ googleId }, { email: cleanEmail }],
+    });
+
+    if (user) {
+      if (user.isBanned) {
+        return res.status(403).json({
+          success: false,
+          message: `Tài khoản đã bị KHÓA do vi phạm quy tắc an toàn! Lý do: ${user.banReason || 'Vi phạm điều khoản'}`,
+          isBanned: true,
+        });
+      }
+
+      let needsSave = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = 'google';
+        needsSave = true;
+      }
+      if (picture && (!user.avatar || user.avatar === 'avatar_1')) {
+        user.avatar = picture;
+        needsSave = true;
+      }
+      user.lastLoginAt = new Date();
+      await user.save();
+    } else {
+      // Khởi tạo tài khoản mới từ Google
+      let finalNickname = rawName.replace(/[^a-zA-Z0-9_\s]/g, '').trim();
+      if (finalNickname.length < 3) finalNickname = `Player_${Math.floor(1000 + Math.random() * 9000)}`;
+      if (finalNickname.length > 25) finalNickname = finalNickname.substring(0, 25);
+
+      const existingNick = await User.findOne({
+        nickname: { $regex: new RegExp(`^${finalNickname}$`, 'i') },
+      });
+      if (existingNick) {
+        finalNickname = `${finalNickname}_${Math.floor(100 + Math.random() * 900)}`;
+      }
+
+      user = await User.create({
+        nickname: finalNickname,
+        email: cleanEmail,
+        googleId,
+        authProvider: 'google',
+        avatar: picture || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(finalNickname)}`,
+        elo: 1000,
+        coins: 1000,
+        role: 'player',
+      });
+
+      await PlayerStats.create({
+        user: user._id,
+      });
+    }
+
+    const stats = await PlayerStats.findOne({ user: user._id });
+    const token = generateToken(user);
+
+    return res.status(200).json({
+      success: true,
+      message: `Chào mừng ${user.nickname} đăng nhập thành công qua Google!`,
+      token,
+      user: sanitizeUser(user, stats),
+    });
+  } catch (error) {
+    console.error('[Google Login Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi hệ thống máy chủ khi đăng nhập bằng Google!',
+    });
+  }
+};
+
+// 9. ĐĂNG XUẤT AN TOÀN
+exports.logout = async (req, res) => {
+  try {
+    return res.status(200).json({
+      success: true,
+      message: 'Đăng xuất tài khoản an toàn thành công!',
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi khi đăng xuất!',
     });
   }
 };

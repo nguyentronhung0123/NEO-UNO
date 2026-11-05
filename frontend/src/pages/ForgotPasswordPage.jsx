@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { authApi } from '../apis/authApi';
+import { useAuth } from '../hooks/useAuth';
 
 export default function ForgotPasswordPage({ onBackToLogin, onSuccessLogin }) {
+  const { login } = useAuth();
   // step: 1 = Email, 2 = Verify OTP, 3 = Reset Password
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
@@ -173,13 +175,18 @@ export default function ForgotPasswordPage({ onBackToLogin, onSuccessLogin }) {
 
     if (res?.success) {
       setShowToast(true);
+      try {
+        await login(email.trim(), newPassword);
+      } catch (err) {
+        console.warn('Auto login after reset:', err);
+      }
       setTimeout(() => {
         if (onSuccessLogin) {
           onSuccessLogin();
         } else if (onBackToLogin) {
           onBackToLogin();
         }
-      }, 2000);
+      }, 1500);
     } else {
       setErrorMessage(res?.message || 'Lỗi khi cập nhật mật khẩu mới!');
     }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../apis/authApi';
+import { disconnectSocket } from '../services/socket';
 
 const AuthContext = createContext(null);
 
@@ -30,8 +31,11 @@ export function AuthProvider({ children }) {
     setToken(null);
     localStorage.removeItem('neo_token');
     localStorage.removeItem('neo_user');
+    localStorage.removeItem('neo_online_room');
     sessionStorage.removeItem('neo_token');
     sessionStorage.removeItem('neo_user');
+    sessionStorage.removeItem('neo_online_room');
+    sessionStorage.removeItem('activeMatchStorage');
   };
 
   // Khôi phục & Thẩm định phiên đăng nhập khi load trang
@@ -92,7 +96,23 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const loginWithGoogle = async ({ credential, mockUser }, remember = true) => {
+    const res = await authApi.googleLogin({ credential, mockUser });
+    if (res.success && res.token && res.user) {
+      saveSession(res.token, res.user, remember);
+    }
+    return res;
+  };
+
   const logout = () => {
+    try {
+      if (token) {
+        authApi.logout(token).catch(() => {});
+      }
+      disconnectSocket();
+    } catch (err) {
+      console.warn('[Auth] Lỗi ngắt socket khi logout:', err);
+    }
     clearSession();
   };
 
@@ -121,6 +141,7 @@ export function AuthProvider({ children }) {
         login,
         register,
         guestLogin,
+        loginWithGoogle,
         logout,
         updateUser,
       }}

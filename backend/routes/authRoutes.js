@@ -20,6 +20,12 @@ router.post('/verify-otp', authController.verifyOtp);
 // Quên mật khẩu: Đặt lại mật khẩu mới
 router.post('/reset-password', authController.resetPassword);
 
+// Đăng nhập Google
+router.post('/google', authController.googleLogin);
+
+// Đăng xuất an toàn
+router.post('/logout', authController.logout);
+
 // Lấy thông tin tài khoản hiện tại
 router.get('/me', authController.getMe);
 
