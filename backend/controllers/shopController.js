@@ -214,6 +214,7 @@ exports.buyItem = async (req, res) => {
       success: true,
       message: `🎉 Chúc mừng! Bạn đã mở khóa thành công "${item.name}" và đã được tự động trang bị!`,
       item,
+      coins: updatedUser.coins,
       userCoins: updatedUser.coins,
       inventory: updatedUser.inventory,
       equippedCardSkin: updatedUser.equippedCardSkin,

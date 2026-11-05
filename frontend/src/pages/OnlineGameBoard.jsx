@@ -565,7 +565,22 @@ export default function OnlineGameBoard({ room, user, onBack }) {
           );
         }
       } else if (event.type === 'skip') {
-        handlersRef.current.triggerActionFx('skip', `🛑 CẤM LƯỢT!`, event.message);
+        const cur = gameStateRef.current;
+        const isMeSkipped = cur && event.targetSeatIndex === cur.mySeatIndex;
+        if (isMeSkipped) {
+          handlersRef.current.triggerActionFx(
+            'skip',
+            '🚫 BẠN ĐÃ BỊ CẤM LƯỢT!',
+            event.message || 'Bạn bị tước lượt đánh ở vòng này!'
+          );
+        } else {
+          const targetName = event.targetName ? event.targetName.toUpperCase() : 'ĐỐI THỦ';
+          handlersRef.current.triggerActionFx(
+            'skip',
+            `🛑 CẤM LƯỢT ${targetName}!`,
+            event.message || `${targetName} bị tước lượt đánh!`
+          );
+        }
         if (event.targetSeatIndex !== undefined) {
           handlersRef.current.triggerAvatarFx(
             event.targetSeatIndex,

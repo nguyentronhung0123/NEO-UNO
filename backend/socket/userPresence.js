@@ -120,7 +120,7 @@ class UserPresence {
   }
 
   broadcastPresenceChange(userId, status, io, roomCode = null) {
-    if (!io) return;
+    if (!io || typeof io.emit !== 'function') return;
     io.emit('friend:status_change', {
       userId: String(userId),
       status,

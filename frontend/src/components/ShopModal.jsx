@@ -518,8 +518,14 @@ export function ShopModal({ isOpen, onClose, user, onUpdateUser }) {
       showToast(`Mua thành công ${item.name}!`, 'success');
 
       if (onUpdateUser) {
+        const nextCoins =
+          res.coins !== undefined
+            ? res.coins
+            : res.userCoins !== undefined
+            ? res.userCoins
+            : Math.max(0, currentCoins - item.price);
         onUpdateUser({
-          coins: res.coins,
+          coins: nextCoins,
           inventory: res.inventory,
           equippedCardSkin: res.equippedCardSkin,
           equippedAvatarFrame: res.equippedAvatarFrame,

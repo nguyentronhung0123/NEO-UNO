@@ -207,6 +207,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   const starterFlipTimerRef = useRef(null);
   const botTimerRef = useRef(null);
   const actionTimerRef = useRef(null);
+  const runBotTurnRef = useRef(null);
 
   const isPlayerTurn = currentTurnIndex === 0;
 
@@ -375,15 +376,24 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       }
 
       const dir = forcedDirection !== null ? forcedDirection : turnDirectionRef.current;
-      setCurrentTurnIndex((prev) => {
-        const nextSeat = getNextTurnIndex(prev, steps, dir);
-        currentTurnIndexRef.current = nextSeat;
-        return nextSeat;
-      });
+      const prevSeat = currentTurnIndexRef.current;
+      const nextSeat = getNextTurnIndex(prevSeat, steps, dir);
+      currentTurnIndexRef.current = nextSeat;
+      setCurrentTurnIndex(nextSeat);
       setTurnTimer(TURN_TIME_LIMIT);
       setDrawnCountInTurn(0);
       isCardActionLockedRef.current = false; // Mở khóa đánh bài cho lượt mới
       setIsTurnTransitioning(false);
+
+      // Nếu lượt mới vẫn là cùng một Bot (ví dụ trong 1v1 Bot đánh Skip hoặc Reverse được đánh tiếp)
+      // thì React state không đổi -> Phải kích hoạt trực tiếp runBotTurn để Bot đánh tiếp mà không bị treo 15s rồi timeout!
+      if (nextSeat > 0 && nextSeat === prevSeat) {
+        setTimeout(() => {
+          if (runBotTurnRef.current) {
+            runBotTurnRef.current();
+          }
+        }, 300);
+      }
     },
     [getNextTurnIndex]
   );
@@ -1306,9 +1316,18 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         const nextActiveSeat = getNextTurnIndex(botSeatIndex, 2);
         const skippedInfo = getPlayerInfo(skippedSeat);
         const nextActiveInfo = getPlayerInfo(nextActiveSeat);
-        triggerActionFx('skip', '🚫 CẤM LƯỢT!', `${botDisplayName} cấm lượt ${skippedInfo.displayName}`);
-        triggerAvatarFx(skippedInfo.id, 'skip', '🚫 BỊ CẤM LƯỢT!', 'block', 2600);
-        setStatusMessage(`🚫 ${botDisplayName} đánh lá CẤM (SKIP)! ${skippedInfo.displayName} bị mất lượt! Chuyển lượt sang ${nextActiveInfo.displayName}.`);
+
+        const isPlayerSkipped = skippedSeat === 0;
+        if (isPlayerSkipped) {
+          triggerActionFx('skip', '🚫 BẠN ĐÃ BỊ CẤM LƯỢT!', `${botDisplayName} đã tước lượt đánh của bạn!`);
+          triggerAvatarFx('player', 'skip', '🚫 BỊ CẤM LƯỢT!', 'block', 3000);
+          setStatusMessage(`🚫 ${botDisplayName} đánh lá CẤM (SKIP)! Bạn đã bị mất lượt! Chuyển lượt sang ${nextActiveInfo.displayName}.`);
+        } else {
+          triggerActionFx('skip', `🚫 CẤM LƯỢT ${skippedInfo.name.toUpperCase()}!`, `${botDisplayName} chặn lượt của ${skippedInfo.displayName}`);
+          triggerAvatarFx(skippedInfo.id, 'skip', '🚫 BỊ CẤM LƯỢT!', 'block', 2600);
+          setStatusMessage(`🚫 ${botDisplayName} đánh lá CẤM (SKIP)! ${skippedInfo.displayName} bị mất lượt! Chuyển lượt sang ${nextActiveInfo.displayName}.`);
+        }
+
         actionTimerRef.current = setTimeout(() => {
           advanceTurn(2);
         }, 2000);
@@ -1318,8 +1337,9 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       // 3. Reverse (Đổi chiều vòng đánh)
       if (card.value === 'reverse') {
         if (totalPlayers === 2) {
-          triggerActionFx('reverse', '🔄 ĐỔI CHIỀU / CẤM LƯỢT!', `${botDisplayName} đánh tiếp`);
-          setStatusMessage(`🔄 ${botDisplayName} đánh lá REVERSE! Trong ván 2 người, đối thủ bị mất lượt!`);
+          triggerActionFx('reverse', '🔄 BẠN BỊ CẤM LƯỢT (1v1)!', `${botDisplayName} được đánh tiếp lượt mới`);
+          triggerAvatarFx('player', 'skip', '🚫 BỊ MẤT LƯỢT!', 'block', 2600);
+          setStatusMessage(`🔄 ${botDisplayName} đánh lá REVERSE! Trong ván 1v1, bạn bị mất lượt và đối thủ được đánh tiếp!`);
           actionTimerRef.current = setTimeout(() => {
             advanceTurn(2);
           }, 2000);
@@ -1572,6 +1592,8 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     }, 1500);
   }, [advanceTurn, botExecutePlayCard, drawCards, getNextTurnIndex, getPlayerInfo, soundEnabled]);
 
+  runBotTurnRef.current = runBotTurn;
+
   useEffect(() => {
     if (
       currentTurnIndex > 0 &&
@@ -1700,7 +1722,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       const nextActiveSeat = getNextTurnIndex(0, 2);
       const skippedInfo = getPlayerInfo(skippedSeat);
       const nextActiveInfo = getPlayerInfo(nextActiveSeat);
-      triggerActionFx('skip', '🚫 CẤM LƯỢT ĐỐI THỦ!', `${skippedInfo.displayName} bị mất lượt`);
+      triggerActionFx('skip', `🚫 CẤM LƯỢT ${skippedInfo.name.toUpperCase()}!`, `${skippedInfo.displayName} bị mất lượt`);
       triggerAvatarFx(skippedInfo.id, 'skip', '🚫 BỊ CẤM LƯỢT!', 'block', 2600);
       setStatusMessage(`🚫 [P1] Bạn đánh lá CẤM (SKIP)! ${skippedInfo.displayName} bị mất lượt! Chuyển lượt sang ${nextActiveInfo.displayName}.`);
       actionTimerRef.current = setTimeout(() => {

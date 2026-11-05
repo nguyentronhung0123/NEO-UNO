@@ -117,9 +117,17 @@ export function AuthProvider({ children }) {
   };
 
   const updateUser = (partialUser) => {
+    if (!partialUser || typeof partialUser !== 'object') return;
     setUser((prev) => {
       if (!prev) return prev;
-      const updated = { ...prev, ...partialUser };
+      // Lọc bỏ triệt để các trường undefined để tránh ghi đè làm mất dữ liệu hiện tại (như coins)
+      const sanitizedPartial = {};
+      Object.keys(partialUser).forEach((key) => {
+        if (partialUser[key] !== undefined) {
+          sanitizedPartial[key] = partialUser[key];
+        }
+      });
+      const updated = { ...prev, ...sanitizedPartial };
       try {
         if (localStorage.getItem('neo_user')) {
           localStorage.setItem('neo_user', JSON.stringify(updated));

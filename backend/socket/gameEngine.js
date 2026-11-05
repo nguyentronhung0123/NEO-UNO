@@ -720,136 +720,8 @@ class OnlineGame {
           colorCounts[a] >= colorCounts[b] ? a : b
         );
       }
-      this.activeColor = chosenColor;
-
-      // Phát sự kiện đánh bài cho tất cả client tạo hiệu ứng
-      this.io.to(this.roomCode).emit('game:card_played', {
-        seatIndex: bot.seatIndex,
-        card,
-        chosenColor: this.activeColor,
-        playerName: bot.name,
-        action: card.value,
-      });
-
-      this.recordTurnLog({
-        actionType: 'play_card',
-        playerId: bot.userId || bot.name,
-        playerName: bot.name,
-        isBot: true,
-        cardPlayed: card,
-        chosenColor: card.color === 'wild' ? this.activeColor : null,
-        cardsRemaining: bot.hand.length,
-        description: `${bot.name} đánh lá ${card.color.toUpperCase()} ${card.value}${card.color === 'wild' ? ` (Đổi màu sang ${this.activeColor.toUpperCase()})` : ''}`,
-        specialEffect: ['draw_two', 'skip', 'reverse', 'wild_draw_four'].includes(card.value) ? card.value : null,
-      });
-
-      if (bot.hand.length === 1) this.triggerBotUnoCall(bot);
-      if (bot.hand.length === 0) {
-        this.finishGame(bot);
-        return;
-      }
-
-      // Bot AI phát ngôn sinh động theo tình huống bài đánh
-      if (['wild_draw_four', 'draw_two', 'skip', 'reverse'].includes(card.value)) {
-        if (Math.random() < 0.75) {
-          const attEmote = getBotAttackEmote(bot.name);
-          if (attEmote) {
-            this.io.to(this.roomCode).emit('game:receive_emote', {
-              senderSeatIndex: bot.seatIndex,
-              senderName: bot.name,
-              emote: attEmote,
-              targetSeatIndex: null,
-              timestamp: Date.now(),
-            });
-          }
-        }
-      } else {
-        // Có 15% xác suất cà khịa nhẹ nhàng khi đánh lá bài thường
-        if (Math.random() < 0.15) {
-          const banEmote = getBotBanterEmote(bot.name);
-          if (banEmote) {
-            this.io.to(this.roomCode).emit('game:receive_emote', {
-              senderSeatIndex: bot.seatIndex,
-              senderName: bot.name,
-              emote: banEmote,
-              targetSeatIndex: null,
-              timestamp: Date.now(),
-            });
-          }
-        }
-      }
-
-      // Xử lý hiệu ứng lá bài
-      if (card.value === 'wild_draw_four') {
-        const victim = this.players[this.getNextTurnIndex(1)];
-        const penaltyCount = 4;
-        for (let i = 0; i < penaltyCount; i++) {
-          const c = this.drawOneCard();
-          if (c) victim.hand.push(c);
-        }
-        if (victim.hand.length > 2) victim.unoCalled = false;
-
-        this.io.to(this.roomCode).emit('game:action_event', {
-          type: 'wild_draw_four',
-          playerName: bot.name,
-          seatIndex: bot.seatIndex,
-          victimSeatIndex: victim.seatIndex,
-          victimName: victim.name,
-          chosenColor: this.activeColor,
-          count: penaltyCount,
-          message: `⚡ ${bot.name} đánh WILD +4! ${victim.name} bị phạt bốc 4 lá và chuyển lượt!`,
-        });
-
-        this.io.to(this.roomCode).emit('game:card_drawn', {
-          seatIndex: victim.seatIndex,
-          count: penaltyCount,
-          isPenalty: true,
-          playerName: victim.name,
-        });
-
-        // Nạn nhân bị phạt +4 lá và mất lượt (trong 1v1 người đánh đi tiếp, trong 3-4P chuyển sang người kế tiếp)
-        const step = 2;
-        this.scheduleTurnTransition(2000, step);
-        return;
-      } else if (card.value === 'draw_two') {
-        this.drawTwoStack += 2;
-        this.io.to(this.roomCode).emit('game:action_event', {
-          type: 'draw_two',
-          playerName: bot.name,
-          seatIndex: bot.seatIndex,
-          count: this.drawTwoStack,
-          message: `🔥 ${bot.name} đánh lá +2! Chồng phạt: +${this.drawTwoStack} lá!`,
-        });
-        this.scheduleTurnTransition(900, 1);
-        return;
-      } else if (card.value === 'skip') {
-        const victim = this.players[this.getNextTurnIndex(1)];
-        this.io.to(this.roomCode).emit('game:action_event', {
-          type: 'skip',
-          playerName: bot.name,
-          seatIndex: bot.seatIndex,
-          targetSeatIndex: victim.seatIndex,
-          targetName: victim.name,
-          message: `🛑 ${bot.name} đã chặn lượt của ${victim.name}!`,
-        });
-        this.scheduleTurnTransition(1200, 2);
-        return;
-      } else if (card.value === 'reverse') {
-        this.turnDirection = -this.turnDirection;
-        const step = this.players.length === 2 ? 2 : 1;
-        this.io.to(this.roomCode).emit('game:action_event', {
-          type: 'reverse',
-          playerName: bot.name,
-          seatIndex: bot.seatIndex,
-          direction: this.turnDirection,
-          message: `🔄 ${bot.name} đã đổi chiều vòng đánh!`,
-        });
-        this.scheduleTurnTransition(1000, step);
-        return;
-      } else {
-        this.scheduleTurnTransition(750, 1);
-        return;
-      }
+      this.executeBotCardPlay(bot, card, chosenColor);
+      return;
     } else {
       // Bot bốc 1 lá
       const c = this.drawOneCard();
@@ -870,32 +742,17 @@ class OnlineGame {
           if (idx !== -1) {
             const [played] = bot.hand.splice(idx, 1);
             this.discardPile.push(played);
+            let chosenColor = played.color;
             if (played.color === 'wild') {
               const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
               bot.hand.forEach((cd) => {
                 if (colorCounts[cd.color] !== undefined) colorCounts[cd.color]++;
               });
-              this.activeColor = Object.keys(colorCounts).reduce((a, b) =>
+              chosenColor = Object.keys(colorCounts).reduce((a, b) =>
                 colorCounts[a] >= colorCounts[b] ? a : b
               );
-            } else {
-              this.activeColor = played.color;
             }
-
-            this.io.to(this.roomCode).emit('game:card_played', {
-              seatIndex: bot.seatIndex,
-              card: played,
-              chosenColor: this.activeColor,
-              playerName: bot.name,
-              action: played.value,
-            });
-
-            if (bot.hand.length === 1) this.triggerBotUnoCall(bot);
-            if (bot.hand.length === 0) {
-              this.finishGame(bot);
-              return;
-            }
-            this.scheduleTurnTransition(900, 1);
+            this.executeBotCardPlay(bot, played, chosenColor);
           }
         }, 900);
         return;
@@ -921,38 +778,160 @@ class OnlineGame {
             if (idx2 !== -1) {
               const [played2] = bot.hand.splice(idx2, 1);
               this.discardPile.push(played2);
+              let chosenColor = played2.color;
               if (played2.color === 'wild') {
                 const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
                 bot.hand.forEach((cd) => {
                   if (colorCounts[cd.color] !== undefined) colorCounts[cd.color]++;
                 });
-                this.activeColor = Object.keys(colorCounts).reduce((a, b) =>
+                chosenColor = Object.keys(colorCounts).reduce((a, b) =>
                   colorCounts[a] >= colorCounts[b] ? a : b
                 );
-              } else {
-                this.activeColor = played2.color;
               }
-
-              this.io.to(this.roomCode).emit('game:card_played', {
-                seatIndex: bot.seatIndex,
-                card: played2,
-                chosenColor: this.activeColor,
-                playerName: bot.name,
-                action: played2.value,
-              });
-
-              if (bot.hand.length === 1) this.triggerBotUnoCall(bot);
-              if (bot.hand.length === 0) {
-                this.finishGame(bot);
-                return;
-              }
-              this.scheduleTurnTransition(900, 1);
+              this.executeBotCardPlay(bot, played2, chosenColor);
             }
           }, 900);
         } else {
           this.scheduleTurnTransition(1000, 1);
         }
       }, 700);
+    }
+  }
+
+  /**
+   * Helper xử lý đồng nhất toàn bộ hành động và hiệu ứng khi Bot đánh bài:
+   * Áp dụng chuẩn luật UNO cho cả đánh từ tay lẫn đánh ngay sau khi bốc bài
+   */
+  executeBotCardPlay(bot, card, chosenColor) {
+    this.activeColor = chosenColor;
+
+    // Phát sự kiện đánh bài cho tất cả client tạo hiệu ứng
+    this.io.to(this.roomCode).emit('game:card_played', {
+      seatIndex: bot.seatIndex,
+      card,
+      chosenColor: this.activeColor,
+      playerName: bot.name,
+      action: card.value,
+    });
+
+    this.recordTurnLog({
+      actionType: 'play_card',
+      playerId: bot.userId || bot.name,
+      playerName: bot.name,
+      isBot: true,
+      cardPlayed: card,
+      chosenColor: card.color === 'wild' ? this.activeColor : null,
+      cardsRemaining: bot.hand.length,
+      description: `${bot.name} đánh lá ${card.color.toUpperCase()} ${card.value}${card.color === 'wild' ? ` (Đổi màu sang ${this.activeColor.toUpperCase()})` : ''}`,
+      specialEffect: ['draw_two', 'skip', 'reverse', 'wild_draw_four'].includes(card.value) ? card.value : null,
+    });
+
+    if (bot.hand.length === 1) this.triggerBotUnoCall(bot);
+    if (bot.hand.length === 0) {
+      this.finishGame(bot);
+      return;
+    }
+
+    // Bot AI phát ngôn sinh động theo tình huống bài đánh
+    if (['wild_draw_four', 'draw_two', 'skip', 'reverse'].includes(card.value)) {
+      if (Math.random() < 0.75) {
+        const attEmote = getBotAttackEmote(bot.name);
+        if (attEmote) {
+          this.io.to(this.roomCode).emit('game:receive_emote', {
+            senderSeatIndex: bot.seatIndex,
+            senderName: bot.name,
+            emote: attEmote,
+            targetSeatIndex: null,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    } else {
+      // Có 15% xác suất cà khịa nhẹ nhàng khi đánh lá bài thường
+      if (Math.random() < 0.15) {
+        const banEmote = getBotBanterEmote(bot.name);
+        if (banEmote) {
+          this.io.to(this.roomCode).emit('game:receive_emote', {
+            senderSeatIndex: bot.seatIndex,
+            senderName: bot.name,
+            emote: banEmote,
+            targetSeatIndex: null,
+            timestamp: Date.now(),
+          });
+        }
+      }
+    }
+
+    // Xử lý hiệu ứng lá bài
+    if (card.value === 'wild_draw_four') {
+      const victim = this.players[this.getNextTurnIndex(1)];
+      const penaltyCount = 4;
+      for (let i = 0; i < penaltyCount; i++) {
+        const c = this.drawOneCard();
+        if (c) victim.hand.push(c);
+      }
+      if (victim.hand.length > 2) victim.unoCalled = false;
+
+      this.io.to(this.roomCode).emit('game:action_event', {
+        type: 'wild_draw_four',
+        playerName: bot.name,
+        seatIndex: bot.seatIndex,
+        victimSeatIndex: victim.seatIndex,
+        victimName: victim.name,
+        chosenColor: this.activeColor,
+        count: penaltyCount,
+        message: `⚡ ${bot.name} đánh WILD +4! ${victim.name} bị phạt bốc 4 lá và chuyển lượt!`,
+      });
+
+      this.io.to(this.roomCode).emit('game:card_drawn', {
+        seatIndex: victim.seatIndex,
+        count: penaltyCount,
+        isPenalty: true,
+        playerName: victim.name,
+      });
+
+      // Nạn nhân bị phạt +4 lá và mất lượt (trong 1v1 người đánh đi tiếp, trong 3-4P chuyển sang người kế tiếp)
+      const step = 2;
+      this.scheduleTurnTransition(2000, step);
+      return;
+    } else if (card.value === 'draw_two') {
+      this.drawTwoStack += 2;
+      this.io.to(this.roomCode).emit('game:action_event', {
+        type: 'draw_two',
+        playerName: bot.name,
+        seatIndex: bot.seatIndex,
+        count: this.drawTwoStack,
+        message: `🔥 ${bot.name} đánh lá +2! Chồng phạt: +${this.drawTwoStack} lá!`,
+      });
+      this.scheduleTurnTransition(900, 1);
+      return;
+    } else if (card.value === 'skip') {
+      const victim = this.players[this.getNextTurnIndex(1)];
+      this.io.to(this.roomCode).emit('game:action_event', {
+        type: 'skip',
+        playerName: bot.name,
+        seatIndex: bot.seatIndex,
+        targetSeatIndex: victim.seatIndex,
+        targetName: victim.name,
+        message: `🛑 ${bot.name} đã chặn lượt của ${victim.name}!`,
+      });
+      this.scheduleTurnTransition(1200, 2);
+      return;
+    } else if (card.value === 'reverse') {
+      this.turnDirection = -this.turnDirection;
+      const step = this.players.length === 2 ? 2 : 1;
+      this.io.to(this.roomCode).emit('game:action_event', {
+        type: 'reverse',
+        playerName: bot.name,
+        seatIndex: bot.seatIndex,
+        direction: this.turnDirection,
+        message: `🔄 ${bot.name} đã đổi chiều vòng đánh!`,
+      });
+      this.scheduleTurnTransition(1000, step);
+      return;
+    } else {
+      this.scheduleTurnTransition(750, 1);
+      return;
     }
   }
 
