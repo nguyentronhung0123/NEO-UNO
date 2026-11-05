@@ -4,7 +4,6 @@ export default function SocialLoginButtons({
   dividerText = 'ĐĂNG NHẬP ĐỒNG BỘ NHANH',
   onGoogleClick,
   isLoadingGoogle = false,
-  onFastGoogleDemo,
   onGoogleSuccess,
 }) {
   const googleBtnRef = useRef(null);
@@ -27,21 +26,19 @@ export default function SocialLoginButtons({
             },
           });
 
-          // Render official Google button
           googleBtnRef.current.innerHTML = '';
           window.google.accounts.id.renderButton(googleBtnRef.current, {
             theme: 'filled_black',
-            size: 'medium',
+            size: 'large',
             type: 'standard',
             shape: 'pill',
             text: 'signin_with',
             logo_alignment: 'left',
-            width: 175,
+            width: 330,
           });
 
           setHasOfficialButton(true);
 
-          // One-tap trigger
           try {
             window.google.accounts.id.prompt();
           } catch {}
@@ -72,61 +69,52 @@ export default function SocialLoginButtons({
   }, [clientId, onGoogleSuccess]);
 
   return (
-    <div>
+    <div className="w-full">
       {/* Divider */}
       <div className="relative flex items-center my-4">
         <div className="flex-grow h-[1px] bg-outline-variant/30"></div>
-        <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-500 tracking-widest uppercase">
+        <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-400 tracking-widest uppercase">
           {dividerText}
         </span>
         <div className="flex-grow h-[1px] bg-outline-variant/30"></div>
       </div>
 
-      {/* Social Logins Grid */}
-      <div className="grid grid-cols-2 gap-3 items-center">
-        {/* Google Official Button Container */}
-        <div className="relative flex justify-center items-center">
-          {/* Container for Google GIS SDK iframe */}
+      {/* Google Login Section - Centered & Full Width */}
+      <div className="flex flex-col items-center justify-center w-full">
+        <div className="relative group w-full flex justify-center items-center">
+          {/* Subtle Cyber Neon Ambient Glow Behind */}
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-[#4285F4]/30 via-[#EA4335]/30 to-[#34A853]/30 rounded-full blur opacity-40 group-hover:opacity-75 transition-opacity duration-300 pointer-events-none"></div>
+
+          {/* Official Google Button Container */}
           <div
             ref={googleBtnRef}
-            className={`flex justify-center items-center w-full min-h-[36px] ${
-              hasOfficialButton ? 'block' : 'hidden'
+            className={`relative z-10 flex justify-center items-center w-full min-h-[44px] transition-transform duration-200 group-hover:scale-[1.01] ${
+              hasOfficialButton ? 'flex' : 'hidden'
             }`}
           />
 
-          {/* Custom Fallback Button if GIS not rendered */}
+          {/* Fallback Cyberpunk Button (Shown until GIS loads or on click) */}
           {!hasOfficialButton && (
             <button
               type="button"
               onClick={onGoogleClick}
               disabled={isLoadingGoogle}
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-full bg-[#181d2a] hover:bg-[#22293b] text-slate-200 text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer border border-outline-variant/20 disabled:opacity-50"
+              className="relative z-10 w-full max-w-[330px] flex items-center justify-center gap-3 py-2.5 px-4 rounded-full bg-[#131724] hover:bg-[#1a2030] text-slate-100 text-xs sm:text-sm font-semibold shadow-lg border border-white/10 hover:border-[#00d2ff]/50 transition-all duration-200 cursor-pointer active:scale-[0.98] disabled:opacity-50 min-h-[44px]"
             >
               {isLoadingGoogle ? (
-                <span className="material-symbols-outlined text-sm animate-spin">autorenew</span>
+                <span className="material-symbols-outlined text-lg animate-spin text-[#00d2ff]">autorenew</span>
               ) : (
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.4 1 3.5 3.6 1.6 7.4l3.7 2.9C6.2 7.3 8.8 5 12 5z" fill="#EA4335" />
                   <path d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z" fill="#4285F4" />
                   <path d="M5.3 14.7c-.2-.7-.4-1.6-.4-2.7s.1-1.9.4-2.7L1.6 6.4C.6 8.3 0 10.1 0 12s.6 3.7 1.6 5.6l3.7-2.9z" fill="#FBBC05" />
                   <path d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3.2 0-5.8-2.3-6.7-5.3L1.6 16C3.5 19.8 7.4 23 12 23z" fill="#34A853" />
                 </svg>
               )}
-              <span>Google Sign-In</span>
+              <span className="tracking-wide">Đăng nhập bằng Google</span>
             </button>
           )}
         </div>
-
-        {/* Fast Google Test Button */}
-        <button
-          type="button"
-          onClick={onFastGoogleDemo || onGoogleClick}
-          disabled={isLoadingGoogle}
-          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-full bg-[#131926] hover:bg-[#1a2336] text-[#00d2ff] text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer border border-[#00d2ff]/30 disabled:opacity-50 min-h-[36px]"
-        >
-          <span className="material-symbols-outlined text-sm text-[#00d2ff]">bolt</span>
-          <span>Google Test Acc</span>
-        </button>
       </div>
     </div>
   );
