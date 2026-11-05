@@ -224,6 +224,29 @@ export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
     }
   };
 
+  const handleGoogleCredential = async (credential) => {
+    setIsGoogleLoading(true);
+    setStatusMessage(null);
+    try {
+      const res = await loginWithGoogle({ credential }, rememberMe);
+      setIsGoogleLoading(false);
+      if (res.success) {
+        setStatusMessage({
+          type: 'success',
+          text: res.message || 'Đăng nhập Google thành công! Đang chuyển vào Sảnh...',
+        });
+        setTimeout(() => {
+          if (onEnterGameWithBot) onEnterGameWithBot(res.user);
+        }, 800);
+      } else {
+        setStatusMessage({ type: 'error', text: res.message || 'Đăng nhập Google thất bại!' });
+      }
+    } catch {
+      setIsGoogleLoading(false);
+      setStatusMessage({ type: 'error', text: 'Lỗi kết nối máy chủ khi xác thực Google!' });
+    }
+  };
+
   const handleGoogleLogin = async (useFastDemo = false) => {
     setIsGoogleLoading(true);
     setStatusMessage(null);
@@ -236,19 +259,7 @@ export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
           client_id: googleClientId,
           callback: async (response) => {
             if (response.credential) {
-              const res = await loginWithGoogle({ credential: response.credential }, rememberMe);
-              setIsGoogleLoading(false);
-              if (res.success) {
-                setStatusMessage({
-                  type: 'success',
-                  text: res.message || 'Đăng nhập Google thành công!',
-                });
-                setTimeout(() => {
-                  if (onEnterGameWithBot) onEnterGameWithBot(res.user);
-                }, 800);
-              } else {
-                setStatusMessage({ type: 'error', text: res.message || 'Đăng nhập Google thất bại!' });
-              }
+              await handleGoogleCredential(response.credential);
             }
           },
         });
@@ -810,6 +821,7 @@ export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
             dividerText={activeTab === 'login' ? 'ĐĂNG NHẬP ĐỒNG BỘ NHANH' : 'HOẶC ĐĂNG KÝ NHANH'}
             onGoogleClick={() => handleGoogleLogin(false)}
             onFastGoogleDemo={() => handleGoogleLogin(true)}
+            onGoogleSuccess={handleGoogleCredential}
             isLoadingGoogle={isGoogleLoading}
           />
 
