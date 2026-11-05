@@ -651,3 +651,48 @@ exports.resolveReport = async (req, res) => {
     });
   }
 };
+
+/**
+ * 6. GIÁM SÁT HIỆU NĂNG & TẢI MÁY CHỦ (SERVER PERFORMANCE & METRICS - Task 4)
+ * GET /api/admin/metrics
+ */
+exports.getServerMetrics = async (req, res) => {
+  try {
+    const mem = process.memoryUsage();
+    const io = req.app.get('io');
+    const { getGameEngineMetrics } = require('../socket/gameEngine');
+    const gameMetrics = getGameEngineMetrics ? getGameEngineMetrics() : { totalRooms: 0, activeMatches: 0, totalSpectators: 0 };
+
+    const activeSockets = io?.engine?.clientsCount || 0;
+    const uptimeSeconds = Math.floor(process.uptime());
+
+    return res.status(200).json({
+      success: true,
+      timestamp: Date.now(),
+      server: {
+        uptimeSeconds,
+        uptimeFormatted: `${Math.floor(uptimeSeconds / 3600)}h ${Math.floor((uptimeSeconds % 3600) / 60)}m ${uptimeSeconds % 60}s`,
+        nodeVersion: process.version,
+        platform: process.platform,
+      },
+      sockets: {
+        connectedClients: activeSockets,
+        activeRooms: gameMetrics.totalRooms,
+        activeMatches: gameMetrics.activeMatches,
+        totalSpectators: gameMetrics.totalSpectators,
+      },
+      memory: {
+        rssMb: Math.round((mem.rss / 1024 / 1024) * 100) / 100,
+        heapTotalMb: Math.round((mem.heapTotal / 1024 / 1024) * 100) / 100,
+        heapUsedMb: Math.round((mem.heapUsed / 1024 / 1024) * 100) / 100,
+        externalMb: Math.round((mem.external / 1024 / 1024) * 100) / 100,
+      },
+    });
+  } catch (error) {
+    console.error('[Get Server Metrics Error]:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ khi lấy dữ liệu giám sát hiệu năng!',
+    });
+  }
+};

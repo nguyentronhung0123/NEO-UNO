@@ -2143,8 +2143,24 @@ function getActiveGame(roomCode) {
   return activeGames.get(roomCode.toUpperCase()) || null;
 }
 
+// Bổ sung hàm thống kê thời gian thực cho Task 4 (Metrics Telemetry)
+function getGameEngineMetrics() {
+  let totalSpectators = 0;
+  let activeMatches = 0;
+  activeGames.forEach((game) => {
+    if (game.status === 'in_game') activeMatches++;
+    totalSpectators += game.getSpectatorCount ? game.getSpectatorCount() : 0;
+  });
+  return {
+    totalRooms: activeGames.size,
+    activeMatches,
+    totalSpectators,
+  };
+}
+
 module.exports = {
   startOnlineMatch,
   getActiveGame,
+  getGameEngineMetrics,
   activeGames,
 };

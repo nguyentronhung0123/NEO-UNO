@@ -24,4 +24,7 @@ router.get('/logs', adminController.getSecurityLogs);
 router.get('/reports', adminController.getReportsList);
 router.post('/report/:id/resolve', adminController.resolveReport);
 
+// 5. Giám sát Hiệu năng & Tải máy chủ (Server Metrics Telemetry - Task 4)
+router.get('/metrics', adminController.getServerMetrics);
+
 module.exports = router;

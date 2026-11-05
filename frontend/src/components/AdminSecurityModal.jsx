@@ -7,6 +7,7 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
 
   // 1. Dashboard State
   const [dashboardStats, setDashboardStats] = useState(null);
+  const [serverMetrics, setServerMetrics] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [isStatsLoading, setIsStatsLoading] = useState(false);
 
@@ -51,15 +52,26 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
   const [resolveMessage, setResolveMessage] = useState(null);
   const [socReplayMatchId, setSocReplayMatchId] = useState(null);
 
-  // Load Dashboard Data
+  // Load Dashboard Data & Real-time Metrics (Task 4)
   const loadDashboard = useCallback(async () => {
     setIsStatsLoading(true);
-    const res = await adminApi.getDashboardStats();
-    if (res && res.success) {
-      setDashboardStats(res.stats);
-      setRecentLogs(res.recentLogs || []);
+    try {
+      const [statsRes, metricsRes] = await Promise.all([
+        adminApi.getDashboardStats(),
+        adminApi.getServerMetrics(),
+      ]);
+      if (statsRes && statsRes.success) {
+        setDashboardStats(statsRes.stats);
+        setRecentLogs(statsRes.recentLogs || []);
+      }
+      if (metricsRes && metricsRes.success) {
+        setServerMetrics(metricsRes);
+      }
+    } catch (err) {
+      console.warn('[AdminSecurityModal] loadDashboard error:', err);
+    } finally {
+      setIsStatsLoading(false);
     }
-    setIsStatsLoading(false);
   }, []);
 
   // Load Users Data
@@ -422,6 +434,88 @@ export default function AdminSecurityModal({ isOpen, onClose, currentUser }) {
                       {dashboardStats?.securityAlerts24h ?? 0}
                     </span>
                     <span className="text-[10px] text-purple-300/80 mt-1">Nguy cơ đã chặn</span>
+                  </div>
+                </div>
+
+                {/* Task 4: Giám Sát Hiệu Năng & Tải Máy Chủ Thời Gian Thực (Socket & Resources) */}
+                <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-cyan-950/30 to-[#12182b] border border-cyan-500/30 shadow-lg">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-cyan-400 text-lg animate-pulse">speed</span>
+                      <h4 className="font-headline font-black text-sm text-cyan-300 uppercase tracking-wide">
+                        GIÁM SÁT HIỆU NĂNG & TẢI MÁY CHỦ THỜI GIAN THỰC (SOCKET ENGINE)
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        ONLINE: {serverMetrics?.server?.uptimeFormatted || '0h 0m 0s'}
+                      </span>
+                      <button
+                        onClick={loadDashboard}
+                        title="Làm mới thông số máy chủ"
+                        className="px-2.5 py-1 rounded-xl bg-cyan-950/70 border border-cyan-600/40 hover:border-cyan-400 text-cyan-300 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">refresh</span>
+                        Làm mới
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                    {/* Socket Clients */}
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Socket Kết Nối</span>
+                      <span className="font-mono font-black text-xl text-cyan-300 mt-1">
+                        {serverMetrics?.sockets?.connectedClients ?? 0}
+                      </span>
+                      <span className="text-[10px] text-cyan-500/80 mt-0.5">Active WebSocket</span>
+                    </div>
+
+                    {/* Active Rooms */}
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Phòng Đang Mở</span>
+                      <span className="font-mono font-black text-xl text-indigo-300 mt-1">
+                        {serverMetrics?.sockets?.activeRooms ?? 0}
+                      </span>
+                      <span className="text-[10px] text-indigo-400/80 mt-0.5">GameEngine Memory</span>
+                    </div>
+
+                    {/* Active Matches */}
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Trận Đang Đấu</span>
+                      <span className="font-mono font-black text-xl text-amber-300 mt-1">
+                        {serverMetrics?.sockets?.activeMatches ?? 0}
+                      </span>
+                      <span className="text-[10px] text-amber-400/80 mt-0.5">Trạng thái in_game</span>
+                    </div>
+
+                    {/* Spectators */}
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Khán Giả Live</span>
+                      <span className="font-mono font-black text-xl text-pink-300 mt-1">
+                        {serverMetrics?.sockets?.totalSpectators ?? 0}
+                      </span>
+                      <span className="text-[10px] text-pink-400/80 mt-0.5">Spectator Streams</span>
+                    </div>
+
+                    {/* RAM RSS */}
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">RAM RSS</span>
+                      <span className="font-mono font-black text-xl text-emerald-300 mt-1">
+                        {serverMetrics?.memory?.rssMb ?? '--'} <span className="text-xs text-slate-400 font-normal">MB</span>
+                      </span>
+                      <span className="text-[10px] text-emerald-400/80 mt-0.5">Tiến trình Node.js</span>
+                    </div>
+
+                    {/* Heap Memory */}
+                    <div className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Heap Memory</span>
+                      <span className="font-mono font-black text-base text-yellow-300 mt-1">
+                        {serverMetrics?.memory?.heapUsedMb ?? '--'} <span className="text-xs text-slate-400 font-normal">/ {serverMetrics?.memory?.heapTotalMb ?? '--'} MB</span>
+                      </span>
+                      <span className="text-[10px] text-yellow-500/80 mt-0.5">Tối ưu Garbage Collection</span>
+                    </div>
                   </div>
                 </div>
 

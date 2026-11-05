@@ -181,4 +181,17 @@ export const adminApi = {
       return { success: false, message: err.message };
     }
   },
+
+  // 10. Giám sát Hiệu năng & Tải máy chủ (Server Metrics Telemetry - Task 4)
+  getServerMetrics: async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/metrics`, {
+        headers: authHeaders(),
+      });
+      return await res.json();
+    } catch (err) {
+      console.warn('[Admin API Error - getServerMetrics]:', err.message);
+      return { success: false, message: err.message };
+    }
+  },
 };
