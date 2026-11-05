@@ -224,11 +224,11 @@ export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
     }
   };
 
-  const handleGoogleCredential = async (credential) => {
+  const handleGoogleAuth = async ({ credential, accessToken }) => {
     setIsGoogleLoading(true);
     setStatusMessage(null);
     try {
-      const res = await loginWithGoogle({ credential }, rememberMe);
+      const res = await loginWithGoogle({ credential, accessToken }, rememberMe);
       setIsGoogleLoading(false);
       if (res.success) {
         setStatusMessage({
@@ -245,36 +245,6 @@ export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
       setIsGoogleLoading(false);
       setStatusMessage({ type: 'error', text: 'Lỗi kết nối máy chủ khi xác thực Google!' });
     }
-  };
-
-  const handleGoogleLogin = async () => {
-    setIsGoogleLoading(true);
-    setStatusMessage(null);
-
-    const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-    if (window.google?.accounts?.id && googleClientId) {
-      try {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: async (response) => {
-            if (response.credential) {
-              await handleGoogleCredential(response.credential);
-            }
-          },
-        });
-        window.google.accounts.id.prompt();
-        return;
-      } catch (err) {
-        console.warn('Google GIS Error:', err);
-      }
-    }
-
-    setIsGoogleLoading(false);
-    setStatusMessage({
-      type: 'error',
-      text: 'Không thể kết nối dịch vụ Google Identity. Vui lòng thử lại!',
-    });
   };
 
   return (
@@ -789,9 +759,9 @@ export default function AuthCard({ onEnterGameWithBot, onForgotPassword }) {
           {/* Divider & Social Logins */}
           <SocialLoginButtons
             dividerText={activeTab === 'login' ? 'ĐĂNG NHẬP ĐỒNG BỘ NHANH' : 'HOẶC ĐĂNG KÝ NHANH'}
-            onGoogleClick={handleGoogleLogin}
-            onGoogleSuccess={handleGoogleCredential}
+            onGoogleAuth={handleGoogleAuth}
             isLoadingGoogle={isGoogleLoading}
+            setStatusMessage={setStatusMessage}
           />
 
           {/* Real-time Server Status Badge */}

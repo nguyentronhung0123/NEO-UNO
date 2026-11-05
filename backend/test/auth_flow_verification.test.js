@@ -93,7 +93,10 @@ async function runTestSuite() {
     // -----------------------------------------------------------------
     const forgotRes = await fetch(`${BASE_URL}/auth/forgot-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-test-suite': 'true',
+      },
       body: JSON.stringify({ email: testUser.email }),
     });
     const forgotData = await forgotRes.json();

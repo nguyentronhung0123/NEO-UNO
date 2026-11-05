@@ -96,8 +96,8 @@ export function AuthProvider({ children }) {
     return res;
   };
 
-  const loginWithGoogle = async ({ credential, mockUser }, remember = true) => {
-    const res = await authApi.googleLogin({ credential, mockUser });
+  const loginWithGoogle = async ({ credential, accessToken, mockUser }, remember = true) => {
+    const res = await authApi.googleLogin({ credential, accessToken, mockUser });
     if (res.success && res.token && res.user) {
       saveSession(res.token, res.user, remember);
     }
