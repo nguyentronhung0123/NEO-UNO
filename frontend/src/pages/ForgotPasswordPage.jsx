@@ -59,9 +59,12 @@ export default function ForgotPasswordPage({ onBackToLogin, onSuccessLogin }) {
       setIsTimerActive(true);
       if (res.demoOtp) {
         setDemoOtpHint(res.demoOtp);
-        // Tự điền demoOtp cho người dùng trải nghiệm tiện lợi nếu muốn
+        // Tự điền demoOtp cho người dùng trong chế độ mô phỏng
         const digits = res.demoOtp.split('');
         setOtp(digits);
+      } else {
+        setDemoOtpHint(null);
+        setOtp(['', '', '', '', '', '']);
       }
     } else {
       setErrorMessage(res?.message || 'Không tìm thấy tài khoản với email này!');
@@ -82,6 +85,9 @@ export default function ForgotPasswordPage({ onBackToLogin, onSuccessLogin }) {
       if (res.demoOtp) {
         setDemoOtpHint(res.demoOtp);
         setOtp(res.demoOtp.split(''));
+      } else {
+        setDemoOtpHint(null);
+        setOtp(['', '', '', '', '', '']);
       }
     } else {
       setErrorMessage(res?.message || 'Lỗi khi gửi lại mã OTP!');
@@ -321,9 +327,10 @@ export default function ForgotPasswordPage({ onBackToLogin, onSuccessLogin }) {
               </div>
 
               {demoOtpHint && (
-                <div className="w-full mb-3 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] text-center font-mono font-bold flex items-center justify-center gap-1.5">
-                  <span>💡 Mã xác thực test:</span>
-                  <span className="text-xs tracking-widest bg-black/40 px-2 py-0.5 rounded border border-amber-500/30 text-white">
+                <div className="w-full mb-3 p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[11px] text-center font-mono font-medium flex items-center justify-center gap-1.5 animate-fade-in">
+                  <span className="material-symbols-outlined text-sm text-amber-400">info</span>
+                  <span>Chế độ mô phỏng dự phòng: Mã OTP là</span>
+                  <span className="text-xs tracking-widest bg-black/50 px-2 py-0.5 rounded border border-amber-500/40 text-white font-mono font-bold">
                     {demoOtpHint}
                   </span>
                 </div>

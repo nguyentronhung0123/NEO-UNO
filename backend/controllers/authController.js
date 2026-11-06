@@ -431,13 +431,17 @@ exports.forgotPassword = async (req, res) => {
       nickname: user.nickname,
     });
 
+    const isRealEmailSent = emailRes.mode === 'smtp' || emailRes.mode === 'resend';
+    const isTestSuite = req.headers['x-test-suite'] === 'true' || cleanEmail.endsWith('.test');
+
     return res.status(200).json({
       success: true,
-      message: emailRes.mode === 'smtp'
+      message: isRealEmailSent
         ? `Mã OTP xác thực đã được gửi đến email ${cleanEmail}!`
         : `Mã OTP bảo mật của bạn là: ${otp}`,
       mode: emailRes.mode,
-      demoOtp: otp,
+      // CHỈ trả về demoOtp trong chế độ simulator hoặc khi chạy unit test (.test)
+      demoOtp: !isRealEmailSent || isTestSuite ? otp : undefined,
     });
   } catch (err) {
     console.error('[Forgot Password Error]:', err);

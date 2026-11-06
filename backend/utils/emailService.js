@@ -125,6 +125,36 @@ async function sendOtpEmail({ to, otp, nickname = 'Đấu thủ' }) {
     return { success: true, mode: 'simulator', otp };
   }
 
+  // 1. ƯU TIÊN 1 (Giải pháp tối ưu cho Đám mây Cloud/Render Free): Gửi qua Resend REST API (HTTPS Port 443 - không bao giờ bị chặn cổng)
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (resendApiKey) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM || 'NEO UNO <onboarding@resend.dev>',
+          to: [to],
+          subject: `[NEO UNO] Mã xác thực bảo mật khôi phục mật khẩu: ${otp}`,
+          html: createOtpEmailHtml(otp, nickname),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.id) {
+        console.log(`[EmailService] ✅ Đã gửi email OTP thực tế qua Resend API đến ${to} (MessageId: ${data.id})`);
+        return { success: true, mode: 'resend', messageId: data.id };
+      } else {
+        console.warn(`[EmailService] ⚠️ Resend API trả về lỗi:`, data);
+      }
+    } catch (err) {
+      console.warn(`[EmailService] ⚠️ Gửi qua Resend API thất bại (${err.message}). Chuyển sang SMTP...`);
+    }
+  }
+
+  // 2. ƯU TIÊN 2: Gửi qua SMTP (Gmail / Custom SMTP)
   if (transporter) {
     try {
       const sendPromise = transporter.sendMail({
@@ -135,7 +165,7 @@ async function sendOtpEmail({ to, otp, nickname = 'Đấu thủ' }) {
       });
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('SMTP timeout - cổng gửi thư bị chặn trên máy chủ đám mây')), 3500)
+        setTimeout(() => reject(new Error('SMTP timeout - cổng gửi thư bị chặn trên máy chủ đám mây Render Free')), 4000)
       );
 
       const info = await Promise.race([sendPromise, timeoutPromise]);
