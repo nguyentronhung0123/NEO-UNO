@@ -9,6 +9,36 @@ const { trackQuestProgress } = require('../controllers/questController');
 const DirectMessage = require('../models/DirectMessage');
 const { getBotRetaliationEmote } = require('../utils/botDialogue');
 
+// ============================================================================
+// ENTERPRISE WEBSOCKET FLOOD SHIELD & RATE LIMITER (SOCKET FORTRESS)
+// ============================================================================
+const socketRateMap = new Map();
+
+function checkSocketRateLimit(socketId, actionType, maxCount, windowMs) {
+  const now = Date.now();
+  const key = `${socketId}:${actionType}`;
+  let record = socketRateMap.get(key);
+
+  if (!record || now - record.startTime > windowMs) {
+    record = { count: 1, startTime: now };
+    socketRateMap.set(key, record);
+    return true;
+  }
+
+  record.count += 1;
+  return record.count <= maxCount;
+}
+
+// Dọn dẹp định kỳ 60s giải phóng bộ nhớ cho các socket đã ngắt kết nối
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, record] of socketRateMap.entries()) {
+    if (now - record.startTime > 30000) {
+      socketRateMap.delete(key);
+    }
+  }
+}, 60000);
+
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
     console.log(`[Socket] ⚡ Người chơi kết nối: ${socket.id}`);
@@ -123,10 +153,17 @@ function setupSocketIO(io) {
     // -4. TRÒ CHUYỆN BẠN BÈ TRỰC TIẾP 
     socket.on('dm:send', async ({ toUserId, content, sender }, callback) => {
       try {
-        if (!toUserId || !content || !content.trim()) {
+        if (!checkSocketRateLimit(socket.id, 'dm', 6, 5000)) {
+          if (typeof callback === 'function') callback({ success: false, message: 'Bạn gửi tin nhắn quá nhanh, vui lòng chờ giây lát!' });
+          return;
+        }
+
+        if (!toUserId || !content || typeof content !== 'string' || !content.trim()) {
           if (typeof callback === 'function') callback({ success: false, message: 'Thiếu thông tin người nhận hoặc nội dung!' });
           return;
         }
+
+        const cleanContent = content.trim().slice(0, 500);
 
         const senderId = String(sender?.id || sender?._id);
         const recipientId = String(toUserId);
@@ -139,7 +176,7 @@ function setupSocketIO(io) {
         const newMsg = await DirectMessage.create({
           sender: senderId,
           recipient: recipientId,
-          content: content.trim(),
+          content: cleanContent,
         });
 
         const populatedMsg = await newMsg.populate('sender', 'nickname avatar');
@@ -372,6 +409,8 @@ function setupSocketIO(io) {
     // 6.1. NGƯỜI CHƠI ĐÁNH BÀI ONLINE
     socket.on('game:play_card', ({ code, cardId, chosenColor, userId }, callback) => {
       try {
+        if (!checkSocketRateLimit(socket.id, 'play_card', 2, 350)) return;
+
         const game = gameEngine.getActiveGame(code);
         if (!game) {
           if (typeof callback === 'function') callback({ success: false, message: 'Trận đấu không tồn tại!' });
@@ -388,6 +427,8 @@ function setupSocketIO(io) {
     // 6.2. NGƯỜI CHƠI BỐC BÀI ONLINE
     socket.on('game:draw_card', ({ code, userId }, callback) => {
       try {
+        if (!checkSocketRateLimit(socket.id, 'draw_card', 2, 350)) return;
+
         const game = gameEngine.getActiveGame(code);
         if (!game) {
           if (typeof callback === 'function') callback({ success: false, message: 'Trận đấu không tồn tại!' });
@@ -433,6 +474,7 @@ function setupSocketIO(io) {
     // 6.5. BÁNH XE BIỂU CẢM & CHAT NHANH TRONG TRẬN ĐẤU (TASK 3)
     socket.on('game:send_emote', ({ code, emote, targetSeatIndex }) => {
       try {
+        if (!checkSocketRateLimit(socket.id, 'emote', 4, 2000)) return;
         if (!code || !emote) return;
         const cleanCode = code.toUpperCase();
         const game = gameEngine.getActiveGame(cleanCode);
@@ -649,6 +691,11 @@ function setupSocketIO(io) {
     socket.on('disconnect', () => {
       console.log(`[Socket] ❌ Người chơi ngắt kết nối: ${socket.id}`);
       try {
+        // Dọn dẹp bộ nhớ Socket Rate Limiter
+        for (const action of ['dm', 'emote', 'play_card', 'draw_card']) {
+          socketRateMap.delete(`${socket.id}:${action}`);
+        }
+
         // Dọn dẹp nếu socket đang là khán giả trong bất kỳ trận đấu nào (Task 2)
         for (const [code, game] of gameEngine.activeGames.entries()) {
           if (game.spectators && game.spectators.some((s) => s.socketId === socket.id)) {

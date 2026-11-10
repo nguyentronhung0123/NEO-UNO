@@ -165,7 +165,7 @@ exports.buyItem = async (req, res) => {
         inventory: { $ne: item.id },
       },
       updateOps,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!updatedUser) {

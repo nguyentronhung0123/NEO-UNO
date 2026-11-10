@@ -12,7 +12,6 @@ export default function MessengerDrawer({
   const [isOpen, setIsOpen] = useState(false);
   const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   // 1. Tải danh sách bạn bè & hội thoại
   const fetchConversations = useCallback(async () => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getSocket } from '../services/socket';
 import { soundEngine } from '../utils/audioFx';
-import { getRankTier } from './LeaderboardModal';
+import { getRankTier } from '../utils/rankTiers';
 
 export default function MatchmakingModal({
   isOpen,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { matchApi } from '../apis/matchApi';
 import MatchReplayModal from './MatchReplayModal';
 import ReportModal from './ReportModal';
@@ -367,7 +367,6 @@ export default function MatchHistoryModal({ isOpen, onClose, onOpenAuth, onPlayN
           ) : (
             matches.map((m, idx) => {
               const my = m.myResult || {};
-              const isWin = my.isWin;
               const isExpanded = expandedMatchId === m._id;
 
               // Cấu hình theme theo thứ hạng

@@ -1,5 +1,5 @@
-import React from 'react';
-import { useAuth } from '../hooks/useAuth';
+import React, { useContext } from 'react';
+import { AuthContext } from '../contexts/AuthContext';
 
 /**
  * =========================================================================
@@ -539,14 +539,8 @@ function UnoCard({
   disabled = false,
   selected = false,
 }) {
-  let userEquippedSkin = 'skin_classic';
-  try {
-    const auth = useAuth();
-    if (auth?.user?.equippedCardSkin) {
-      userEquippedSkin = auth.user.equippedCardSkin;
-    }
-  } catch {}
-
+  const auth = useContext(AuthContext);
+  const userEquippedSkin = auth?.user?.equippedCardSkin || 'skin_classic';
   const activeSkin = skinId || userEquippedSkin || 'skin_classic';
 
   // =========================================================================

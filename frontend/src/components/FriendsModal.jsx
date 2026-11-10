@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { friendApi } from '../apis/friendApi';
-import { getRankTier } from './LeaderboardModal';
+import { getRankTier } from '../utils/rankTiers';
 
 export default function FriendsModal({
   isOpen,

@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { matchApi } from '../apis/matchApi';
 import { RANK_TIERS, getRankTier } from '../utils/rankTiers';
 
-// Tái xuất cấu hình bậc Rank (hỗ trợ tương thích ngược)
-export { RANK_TIERS, getRankTier };
-
 export default function LeaderboardModal({ isOpen, onClose, onOpenAuth }) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSocket } from '../services/socket';
-import { getRankTier } from './LeaderboardModal';
+import { getRankTier } from '../utils/rankTiers';
 
 export default function OnlineRoomModal({
   isOpen,

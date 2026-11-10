@@ -184,7 +184,6 @@ export default function PwaInstallPrompt({ onInstalled }) {
  */
 export function PwaInstallHeaderButton() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [canInstall, setCanInstall] = useState(false);
   const [showIosGuide, setShowIosGuide] = useState(false);
 
   const isStandalone =
@@ -200,7 +199,6 @@ export function PwaInstallHeaderButton() {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setCanInstall(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -214,7 +212,6 @@ export function PwaInstallHeaderButton() {
       deferredPrompt.prompt();
       await deferredPrompt.userChoice;
       setDeferredPrompt(null);
-      setCanInstall(false);
     } else if (isIos) {
       setShowIosGuide(true);
     }

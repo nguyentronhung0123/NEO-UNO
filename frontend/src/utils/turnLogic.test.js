@@ -1,5 +1,4 @@
 // Kiểm tra tự động toàn bộ logic vòng chơi và luật phạt
-import { BOT_CONFIGS_4P, initGameState } from './gameLogic.js';
 
 let passed = 0;
 let total = 0;
