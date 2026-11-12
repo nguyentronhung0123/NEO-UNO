@@ -11,6 +11,7 @@ import { shuffleDeck } from '../utils/deck.js';
 import { soundEngine } from '../utils/audioFx.js';
 import { getSocket } from '../services/socket.js';
 import { matchApi } from '../apis/matchApi.js';
+import { tournamentApi } from '../apis/tournamentApi.js';
 import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch } from '../utils/activeMatchStorage.js';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
@@ -582,6 +583,31 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
             }
           }
         });
+
+        // TỰ ĐỘNG GỬI KẾT QUẢ ĐẤU GIẢI CÚP VÔ ĐỊCH (TOURNAMENT KNOCKOUT CUP)
+        if (matchConfig?.isTournament && matchConfig.tournamentContext) {
+          const { tournamentId, matchId } = matchConfig.tournamentContext;
+          const isHumanWinner = topWinner.isHuman || topWinner.id === 'player';
+          const userCardsLeft = allContenders.find((p) => p.id === 'player')?.cardCount || 0;
+          const opponentCardsLeft = allContenders.find((p) => p.id !== 'player')?.cardCount || 0;
+
+          tournamentApi
+            .submitMatchResult(tournamentId, {
+              matchId,
+              isWin: isHumanWinner,
+              userCardsLeft,
+              opponentCardsLeft,
+              userId: currentUser?.id || currentUser?._id,
+            })
+            .then((tRes) => {
+              if (tRes?.success) {
+                console.log('[Tournament Cup] ✅ Kết quả giải đấu đã được cập nhật:', tRes);
+              }
+            })
+            .catch((tErr) => {
+              console.warn('[Tournament Cup] Lỗi gửi kết quả giải đấu:', tErr);
+            });
+        }
       } catch (err) {
         console.warn('[MongoDB Atlas] Lỗi khi gửi kết quả trận đấu:', err.message);
       }
@@ -624,6 +650,13 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     soundEngine.playShuffle();
 
     const fullState = initGameState(botCount);
+    if (matchConfig?.isTournament && matchConfig.tournamentContext?.opponent && fullState.bots[0]) {
+      const opp = matchConfig.tournamentContext.opponent;
+      fullState.bots[0].name = opp.nickname || fullState.bots[0].name;
+      fullState.bots[0].avatar = opp.avatar || fullState.bots[0].avatar;
+      fullState.bots[0].avatarFrame = opp.avatarFrame || 'frame_default';
+      fullState.bots[0].elo = opp.elo || 1200;
+    }
     const starterCard = fullState.discardPile[0];
 
     setGameState({
@@ -824,7 +857,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   const handleRequestExit = () => {
     if (winner || endGameRankings) {
       clearActiveMatch();
-      onBack();
+      onBack({ returnToTournament: matchConfig?.isTournament });
       return;
     }
     setIsExitModalOpen(true);
@@ -2095,13 +2128,24 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
               <span className="hidden sm:inline">Thoát</span>
             </button>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <span className="material-symbols-outlined text-primary-container text-lg sm:text-xl">
-                sports_soccer
+                {matchConfig?.isTournament ? 'emoji_events' : 'sports_soccer'}
               </span>
               <span className="font-headline font-black text-sm sm:text-base text-white tracking-wider">
-                NEO <span className="text-primary-container">UNO</span>
+                {matchConfig?.isTournament ? (
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
+                    🏆 {matchConfig.tournamentContext?.roundName?.toUpperCase() || 'CÚP VÔ ĐỊCH'}
+                  </span>
+                ) : (
+                  <>NEO <span className="text-primary-container">UNO</span></>
+                )}
               </span>
+              {matchConfig?.isTournament && (
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
+                  8 ĐẤU THỦ
+                </span>
+              )}
             </div>
           </div>
 
@@ -3096,32 +3140,49 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full">
-              <button
-                onClick={startShuffleAndDeal}
-                className="flex-1 min-w-[120px] py-3 rounded-2xl bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline font-black text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
-              >
-                Chơi Ván Mới
-              </button>
-              <button
-                onClick={() => setShowLeaderboard(true)}
-                className="py-3 px-3.5 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <span>🏆</span> Bảng Rank
-              </button>
-              <button
-                onClick={() => setShowHistory(true)}
-                className="py-3 px-3.5 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <span>📜</span> Lịch Sử
-              </button>
+              {matchConfig?.isTournament ? (
+                <button
+                  onClick={() => {
+                    clearActiveMatch();
+                    onBack({ returnToTournament: true });
+                  }}
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-slate-950 font-headline font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_25px_rgba(245,158,11,0.6)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">emoji_events</span>
+                  <span>QUAY LẠI SƠ ĐỒ NHÁNH ĐẤU</span>
+                </button>
+              ) : (
+                <button
+                  onClick={startShuffleAndDeal}
+                  className="flex-1 min-w-[120px] py-3 rounded-2xl bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline font-black text-xs uppercase tracking-wider shadow-lg hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                >
+                  Chơi Ván Mới
+                </button>
+              )}
+              {!matchConfig?.isTournament && (
+                <>
+                  <button
+                    onClick={() => setShowLeaderboard(true)}
+                    className="py-3 px-3.5 rounded-2xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>🏆</span> Bảng Rank
+                  </button>
+                  <button
+                    onClick={() => setShowHistory(true)}
+                    className="py-3 px-3.5 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/40 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>📜</span> Lịch Sử
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => {
                   clearActiveMatch();
-                  onBack();
+                  onBack({ returnToTournament: matchConfig?.isTournament });
                 }}
-                className="py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+                className={`py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${matchConfig?.isTournament ? 'w-full' : ''}`}
               >
-                <span>Thoát</span>
+                <span>{matchConfig?.isTournament ? 'Về Sảnh Đấu' : 'Thoát'}</span>
                 <span className="font-mono text-cyan-300 text-[11px]">({autoReturnCountdown}s)</span>
               </button>
             </div>

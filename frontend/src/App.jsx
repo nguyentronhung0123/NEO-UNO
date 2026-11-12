@@ -97,9 +97,14 @@ function MainApp() {
         <GameBoard
           matchConfig={matchConfig}
           restoredMatchState={restoredMatchState}
-          onBack={() => {
+          onBack={(opt) => {
             setRestoredMatchState(null);
             setCurrentScreen('lobby');
+            if (opt?.returnToTournament) {
+              try {
+                sessionStorage.setItem('neo_open_tournament', 'true');
+              } catch {}
+            }
           }}
         />
       </Suspense>

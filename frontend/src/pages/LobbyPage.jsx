@@ -24,6 +24,7 @@ const ShopModal = lazy(() => import('../components/ShopModal'));
 const AdminSecurityModal = lazy(() => import('../components/AdminSecurityModal'));
 const QuestModal = lazy(() => import('../components/QuestModal'));
 const AudioSettingsModal = lazy(() => import('../components/AudioSettingsModal'));
+const TournamentBracketModal = lazy(() => import('../components/TournamentBracketModal'));
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
   const { user, logout, updateUser } = useAuth();
@@ -33,6 +34,16 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isOnlineRoomOpen, setIsOnlineRoomOpen] = useState(false);
   const [isMatchmakingOpen, setIsMatchmakingOpen] = useState(false);
+  const [isTournamentOpen, setIsTournamentOpen] = useState(() => {
+    try {
+      const open = sessionStorage.getItem('neo_open_tournament');
+      if (open === 'true') {
+        sessionStorage.removeItem('neo_open_tournament');
+        return true;
+      }
+    } catch {}
+    return false;
+  });
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isQuestOpen, setIsQuestOpen] = useState(false);
@@ -340,6 +351,29 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
   const handleOnlineMultiplayerClick = () => {
     setIsOnlineRoomOpen(true);
+  };
+
+  const handleStartTournamentMatch = (match, tournament) => {
+    setIsTournamentOpen(false);
+    const userId = String(user?._id || user?.id || 'guest_user');
+    const isPlayer1 =
+      String(match.player1?.id) === userId || !match.player1?.isBot;
+    const opponent = isPlayer1 ? match.player2 : match.player1;
+
+    const tournamentMatchConfig = {
+      botCount: 1,
+      timeLimit: 300,
+      isTournament: true,
+      tournamentContext: {
+        tournamentId: tournament.tournamentId,
+        matchId: match.matchId,
+        round: match.round,
+        roundName: match.roundName,
+        opponent,
+      },
+    };
+
+    onJoinOfflineMatch(tournamentMatchConfig);
   };
 
   return (
@@ -1015,6 +1049,32 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               </button>
             </div>
 
+            {/* NÚT ĐẶC BIỆT: ĐẤU GIẢI CÚP VÔ ĐỊCH (TOURNAMENT KNOCKOUT CUP - TASK 1) */}
+            <button
+              onClick={() => setIsTournamentOpen(true)}
+              className="w-full py-3.5 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-headline text-sm sm:text-base font-black uppercase tracking-wider flex items-center justify-between gap-3 shadow-[0_0_30px_rgba(245,158,11,0.45)] hover:shadow-[0_0_45px_rgba(251,191,36,0.65)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer border-2 border-yellow-300/60 relative overflow-hidden group"
+            >
+              <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none"></div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl animate-bounce">🏆</span>
+                <div className="text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-950 font-black">ĐẤU GIẢI CÚP VÔ ĐỊCH</span>
+                    <span className="px-2 py-0.2 rounded-full bg-slate-950 text-amber-300 text-[9px] font-black uppercase tracking-widest">
+                      MÙA 1
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-800">
+                    8 Đấu Thủ • Loại Trực Tiếp • Thưởng 5,000 Vàng
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 font-black text-xs text-slate-950 bg-black/10 px-3 py-1.5 rounded-xl border border-black/10">
+                <span>VÀO GIẢI</span>
+                <span className="material-symbols-outlined text-base">arrow_forward</span>
+              </div>
+            </button>
+
             {/* 2 Nút phụ: Đấu Bot & Phòng Bạn Bè */}
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               {/* Nút 1: Đấu với Bot (Luôn mở cho cả Khách & Đấu thủ) */}
@@ -1622,6 +1682,19 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           <AudioSettingsModal
             isOpen={isAudioSettingsOpen}
             onClose={() => setIsAudioSettingsOpen(false)}
+          />
+        </Suspense>
+      )}
+
+      {/* MODAL SƠ ĐỒ ĐẤU GIẢI CÚP VÔ ĐỊCH (TASK 1 TUẦN 5) */}
+      {isTournamentOpen && (
+        <Suspense fallback={null}>
+          <TournamentBracketModal
+            isOpen={isTournamentOpen}
+            onClose={() => setIsTournamentOpen(false)}
+            user={user}
+            onStartTournamentMatch={handleStartTournamentMatch}
+            onUpdateUser={updateUser}
           />
         </Suspense>
       )}

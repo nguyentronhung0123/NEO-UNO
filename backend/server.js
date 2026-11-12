@@ -124,6 +124,10 @@ app.use('/api/quests', questRoutes);
 const reportRoutes = require('./routes/reportRoutes');
 app.use('/api/reports', reportRoutes);
 
+// 9. API Đấu Giải Cúp Vô Địch (Tournament Knockout Cup - Task 1 Tuần 5)
+const tournamentRoutes = require('./routes/tournamentRoutes');
+app.use('/api/tournaments', tournamentRoutes);
+
 // Chặn 404 an toàn cho mọi endpoint không xác định (ẩn hoàn toàn HTML/công nghệ server)
 app.use((req, res) => {
   res.status(404).json({

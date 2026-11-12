@@ -69,6 +69,14 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    tournamentsWon: {
+      type: Number,
+      default: 0,
+    },
+    tournamentCups: {
+      type: [String],
+      default: [],
+    },
     level: {
       type: Number,
       default: 1,
