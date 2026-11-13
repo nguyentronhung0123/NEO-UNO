@@ -30,6 +30,7 @@ const TournamentBracketModal = lazy(() => import('../components/TournamentBracke
 const LuckyWheelModal = lazy(() => import('../components/LuckyWheelModal'));
 const DailyCheckInModal = lazy(() => import('../components/DailyCheckInModal'));
 const BattlePassModal = lazy(() => import('../components/BattlePassModal'));
+const GuildModal = lazy(() => import('../components/GuildModal'));
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
   const { user, logout, updateUser } = useAuth();
@@ -60,6 +61,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [isBattlePassOpen, setIsBattlePassOpen] = useState(false);
   const [battlePassLevel, setBattlePassLevel] = useState(1);
   const [canClaimBattlePass, setCanClaimBattlePass] = useState(false);
+  const [isGuildOpen, setIsGuildOpen] = useState(false);
   const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -498,6 +500,26 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             )}
           </button>
 
+          {/* NÚT BANG HỘI CYBERPUNK (TASK 5 - TUẦN 5) */}
+          <button
+            onClick={() => {
+              soundEngine.playCardSlide();
+              setIsGuildOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            title="Bang Hội & Quân Đoàn Cyberpunk - Buff +10% Vàng & EXP"
+          >
+            <span className="text-sm group-hover:scale-110 transition-transform">
+              🛡️
+            </span>
+            <span className="hidden sm:inline">
+              {user?.guild?.guildTag ? `[${user.guild.guildTag}]` : 'Bang Hội'}
+            </span>
+            {user?.guild?.guildTag && (
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            )}
+          </button>
+
           {/* NÚT NHIỆM VỤ & THÀNH TỰU - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE */}
           <button
             onClick={() => setIsQuestOpen(true)}
@@ -905,6 +927,36 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-slate-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 0.9: Bang Hội & Quân Đoàn (Task 5 Tuần 5) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsGuildOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-amber-500/15 border border-white/5 hover:border-amber-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        🛡️
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors flex items-center gap-2">
+                          <span>
+                            {user?.guild?.guildTag
+                              ? `Bang Hội [${user.guild.guildTag}] ${user.guild.guildName}`
+                              : 'Quân Đoàn & Bang Hội'}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Quản lý bang, trò chuyện nội bộ, Buff +10% Vàng & EXP
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all text-sm">
                       chevron_right
                     </span>
                   </button>
@@ -1922,6 +1974,18 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           <BattlePassModal
             isOpen={isBattlePassOpen}
             onClose={() => setIsBattlePassOpen(false)}
+            user={user}
+            onUpdateUser={updateUser}
+          />
+        </Suspense>
+      )}
+
+      {/* MODAL BANG HỘI CYBERPUNK (TASK 5 TUẦN 5) */}
+      {isGuildOpen && (
+        <Suspense fallback={null}>
+          <GuildModal
+            isOpen={isGuildOpen}
+            onClose={() => setIsGuildOpen(false)}
             user={user}
             onUpdateUser={updateUser}
           />

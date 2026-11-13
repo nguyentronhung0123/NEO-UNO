@@ -136,6 +136,10 @@ app.use('/api/rewards', rewardRoutes);
 const battlePassRoutes = require('./routes/battlePassRoutes');
 app.use('/api/battlepass', battlePassRoutes);
 
+// 12. API Bang Hội & Quân Đoàn Cyberpunk (Guild / Clan System - Task 5 Tuần 5)
+const guildRoutes = require('./routes/guildRoutes');
+app.use('/api/guilds', guildRoutes);
+
 // Chặn 404 an toàn cho mọi endpoint không xác định (ẩn hoàn toàn HTML/công nghệ server)
 app.use((req, res) => {
   res.status(404).json({

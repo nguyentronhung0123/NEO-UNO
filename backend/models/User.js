@@ -176,6 +176,26 @@ const userSchema = new mongoose.Schema(
         default: [],
       },
     },
+    // BANG HỘI & QUÂN ĐOÀN CYBERPUNK (TASK 5 - TUẦN 5)
+    guild: {
+      guildId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Guild',
+        default: null,
+      },
+      guildTag: {
+        type: String,
+        default: null,
+      },
+      guildName: {
+        type: String,
+        default: null,
+      },
+      role: {
+        type: String,
+        default: null,
+      },
+    },
     lastLoginAt: {
       type: Date,
       default: Date.now,
