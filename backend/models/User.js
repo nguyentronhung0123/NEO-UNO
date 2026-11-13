@@ -128,6 +128,27 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'frame_default',
     },
+    // PHẦN THƯỞNG GIỮ CHÂN: VÒNG QUAY MAY MẮN & ĐIỂM DANH 7 NGÀY (TASK 3 - TUẦN 5)
+    lastDailySpinAt: {
+      type: Date,
+      default: null,
+    },
+    spinCount: {
+      type: Number,
+      default: 0,
+    },
+    checkInStreak: {
+      type: Number,
+      default: 0,
+    },
+    lastCheckInDate: {
+      type: String,
+      default: null,
+    },
+    claimedCheckInDays: {
+      type: [Number],
+      default: [],
+    },
     lastLoginAt: {
       type: Date,
       default: Date.now,

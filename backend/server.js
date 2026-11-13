@@ -128,6 +128,10 @@ app.use('/api/reports', reportRoutes);
 const tournamentRoutes = require('./routes/tournamentRoutes');
 app.use('/api/tournaments', tournamentRoutes);
 
+// 10. API Vòng Quay May Mắn & Điểm Danh 7 Ngày (Lucky Wheel & Daily Check-in - Task 3 Tuần 5)
+const rewardRoutes = require('./routes/rewardRoutes');
+app.use('/api/rewards', rewardRoutes);
+
 // Chặn 404 an toàn cho mọi endpoint không xác định (ẩn hoàn toàn HTML/công nghệ server)
 app.use((req, res) => {
   res.status(404).json({

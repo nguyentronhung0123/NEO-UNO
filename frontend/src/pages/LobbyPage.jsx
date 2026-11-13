@@ -9,6 +9,7 @@ import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
 import { questApi } from '../apis/questApi';
+import { rewardApi } from '../apis/rewardApi';
 import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
 import { getRankTier } from '../utils/rankTiers';
 
@@ -25,6 +26,8 @@ const AdminSecurityModal = lazy(() => import('../components/AdminSecurityModal')
 const QuestModal = lazy(() => import('../components/QuestModal'));
 const AudioSettingsModal = lazy(() => import('../components/AudioSettingsModal'));
 const TournamentBracketModal = lazy(() => import('../components/TournamentBracketModal'));
+const LuckyWheelModal = lazy(() => import('../components/LuckyWheelModal'));
+const DailyCheckInModal = lazy(() => import('../components/DailyCheckInModal'));
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
   const { user, logout, updateUser } = useAuth();
@@ -48,6 +51,10 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isQuestOpen, setIsQuestOpen] = useState(false);
   const [hasClaimableQuest, setHasClaimableQuest] = useState(false);
+  const [isWheelOpen, setIsWheelOpen] = useState(false);
+  const [isCheckInOpen, setIsCheckInOpen] = useState(false);
+  const [canFreeSpin, setCanFreeSpin] = useState(true);
+  const [hasUnclaimedCheckIn, setHasUnclaimedCheckIn] = useState(true);
   const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -156,6 +163,18 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           setHasClaimableQuest(true);
         } else {
           setHasClaimableQuest(false);
+        }
+      });
+
+      // Kiểm tra trạng thái Vòng quay may mắn & Chuỗi điểm danh (Task 3 Tuần 5)
+      rewardApi.getWheelStatus(user.id || user._id).then((res) => {
+        if (res && res.success) {
+          setCanFreeSpin(res.canFreeSpin);
+        }
+      });
+      rewardApi.getCheckInStatus(user.id || user._id).then((res) => {
+        if (res && res.success) {
+          setHasUnclaimedCheckIn(!res.isClaimedToday);
         }
       });
     }
@@ -409,6 +428,42 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
         <div className="flex items-center gap-2.5">
           
+          {/* NÚT VÒNG QUAY MAY MẮN (TASK 3 - TUẦN 5) */}
+          <button
+            onClick={() => {
+              soundEngine.playCardSlide();
+              setIsWheelOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            title="Vòng quay Cyberpunk - Mỗi ngày 1 lượt Free"
+          >
+            <span className="text-sm group-hover:scale-110 transition-transform">
+              🎡
+            </span>
+            <span className="hidden sm:inline">Vòng Quay</span>
+            {canFreeSpin && (
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+            )}
+          </button>
+
+          {/* NÚT ĐIỂM DANH 7 NGÀY (TASK 3 - TUẦN 5) */}
+          <button
+            onClick={() => {
+              soundEngine.playCardSlide();
+              setIsCheckInOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            title="Điểm danh nhận quà 7 ngày & Khung Bí Ngô"
+          >
+            <span className="text-sm group-hover:scale-110 transition-transform">
+              📅
+            </span>
+            <span className="hidden sm:inline">Điểm Danh</span>
+            {hasUnclaimedCheckIn && (
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+            )}
+          </button>
+
           {/* NÚT NHIỆM VỤ & THÀNH TỰU - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE */}
           <button
             onClick={() => setIsQuestOpen(true)}
@@ -725,6 +780,64 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                         </div>
                         <div className="text-[10px] text-slate-400">
                           Nhiệm vụ ngày reset 24h & mở khóa danh hiệu
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 0.6: Vòng Quay May Mắn (Task 3 Tuần 5) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsWheelOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-cyan-500/15 border border-white/5 hover:border-cyan-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        🎡
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+                          <span>Vòng Quay Cyberpunk</span>
+                          {canFreeSpin && (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Mỗi ngày 1 lượt quay miễn phí, trúng Jackpot 2,500 Vàng
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 0.7: Điểm Danh 7 Ngày (Task 3 Tuần 5) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsCheckInOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-amber-500/15 border border-white/5 hover:border-amber-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        📅
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors flex items-center gap-2">
+                          <span>Điểm Danh 7 Ngày</span>
+                          {hasUnclaimedCheckIn && (
+                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Tích lũy chuỗi Streak nhận Khung Bí Ngô độc quyền
                         </div>
                       </div>
                     </div>
@@ -1711,6 +1824,30 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             onClose={() => setIsTournamentOpen(false)}
             user={user}
             onStartTournamentMatch={handleStartTournamentMatch}
+            onUpdateUser={updateUser}
+          />
+        </Suspense>
+      )}
+
+      {/* MODAL VÒNG QUAY MAY MẮN CYBERPUNK (TASK 3 TUẦN 5) */}
+      {isWheelOpen && (
+        <Suspense fallback={null}>
+          <LuckyWheelModal
+            isOpen={isWheelOpen}
+            onClose={() => setIsWheelOpen(false)}
+            user={user}
+            onUpdateUser={updateUser}
+          />
+        </Suspense>
+      )}
+
+      {/* MODAL ĐIỂM DANH 7 NGÀY STREAK (TASK 3 TUẦN 5) */}
+      {isCheckInOpen && (
+        <Suspense fallback={null}>
+          <DailyCheckInModal
+            isOpen={isCheckInOpen}
+            onClose={() => setIsCheckInOpen(false)}
+            user={user}
             onUpdateUser={updateUser}
           />
         </Suspense>
