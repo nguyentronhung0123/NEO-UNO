@@ -140,6 +140,10 @@ app.use('/api/battlepass', battlePassRoutes);
 const guildRoutes = require('./routes/guildRoutes');
 app.use('/api/guilds', guildRoutes);
 
+// 13. API Hồ Sơ Sự Nghiệp Đấu Thủ & Radar 6 Trục (Career Profile & Radar Analytics - Task 6 Tuần 5)
+const profileRoutes = require('./routes/profileRoutes');
+app.use('/api/profile', profileRoutes);
+
 // Chặn 404 an toàn cho mọi endpoint không xác định (ẩn hoàn toàn HTML/công nghệ server)
 app.use((req, res) => {
   res.status(404).json({

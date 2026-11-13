@@ -128,6 +128,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'frame_default',
     },
+    equippedTitle: {
+      type: String,
+      default: 'Tân Thủ Cyber',
+    },
     // PHẦN THƯỞNG GIỮ CHÂN: VÒNG QUAY MAY MẮN & ĐIỂM DANH 7 NGÀY (TASK 3 - TUẦN 5)
     lastDailySpinAt: {
       type: Date,

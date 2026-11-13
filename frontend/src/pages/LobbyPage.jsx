@@ -31,6 +31,7 @@ const LuckyWheelModal = lazy(() => import('../components/LuckyWheelModal'));
 const DailyCheckInModal = lazy(() => import('../components/DailyCheckInModal'));
 const BattlePassModal = lazy(() => import('../components/BattlePassModal'));
 const GuildModal = lazy(() => import('../components/GuildModal'));
+const CareerProfileModal = lazy(() => import('../components/CareerProfileModal'));
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
   const { user, logout, updateUser } = useAuth();
@@ -62,6 +63,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [battlePassLevel, setBattlePassLevel] = useState(1);
   const [canClaimBattlePass, setCanClaimBattlePass] = useState(false);
   const [isGuildOpen, setIsGuildOpen] = useState(false);
+  const [isCareerProfileOpen, setIsCareerProfileOpen] = useState(false);
   const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -647,9 +649,14 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                     {isGuest ? 'KHÁCH' : 'VIP'}
                   </span>
                 </div>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {isGuest ? 'Chưa Xếp Hạng' : `${user?.elo || 1000} ELO • Lv.${user?.level || 1}`}
-                </span>
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                  <span>{isGuest ? 'Chưa Xếp Hạng' : `${user?.elo || 1000} ELO • Lv.${user?.level || 1}`}</span>
+                  {user?.equippedTitle && (
+                    <span className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[9px] font-bold">
+                      {user.equippedTitle}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <span
@@ -729,13 +736,30 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                     <span>⭐ <strong>Lv.{user?.level || 1}</strong></span>
                   </div>
 
+                  {/* NÚT MỞ HỒ SƠ SỰ NGHIỆP & RADAR 6 TRỤC (TASK 6) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsCareerProfileOpen(true);
+                    }}
+                    className="w-full mt-2.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500/20 via-blue-500/20 to-purple-500/20 hover:from-cyan-500/30 hover:to-purple-500/30 border border-cyan-500/40 text-cyan-300 font-headline font-bold text-xs flex items-center justify-between transition-all cursor-pointer group shadow-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm group-hover:scale-110 transition-transform">📊</span>
+                      <span>Hồ Sơ Sự Nghiệp & Radar</span>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-cyan-300">
+                      [{user?.equippedTitle || 'Tân Thủ'}] →
+                    </span>
+                  </button>
+
                   {/* NÚT MỞ CỬA HÀNG & TÚI ĐỒ TRONG MENU */}
                   <button
                     onClick={() => {
                       setIsProfileMenuOpen(false);
                       setIsShopOpen(true);
                     }}
-                    className="w-full mt-2.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 font-headline font-bold text-xs flex items-center justify-between transition-all cursor-pointer group shadow-sm"
+                    className="w-full mt-2 py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 font-headline font-bold text-xs flex items-center justify-between transition-all cursor-pointer group shadow-sm"
                   >
                     <div className="flex items-center gap-2">
                       <span className="text-sm group-hover:scale-110 transition-transform">🛍️</span>
@@ -784,6 +808,35 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                 </span>
 
                 <div className="space-y-1.5">
+                  {/* Tab 0.0: Hồ Sơ Sự Nghiệp & Radar 6 Trục (Task 6 Tuần 5) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsCareerProfileOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-cyan-500/15 border border-cyan-500/20 hover:border-cyan-400/50 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        📊
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+                          <span>Hồ Sơ Sự Nghiệp & Radar</span>
+                          <span className="px-1.5 py-0.2 rounded-full bg-cyan-500/30 text-cyan-300 text-[9px] font-mono font-bold">
+                            NEW
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Phân tích 6 trục, kho danh hiệu & thẻ căn cước số
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
                   {/* Tab 0: Hệ Thống Bạn Bè & Lời Mời Đấu (Task 2) */}
                   <button
                     onClick={() => {
@@ -1986,6 +2039,18 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           <GuildModal
             isOpen={isGuildOpen}
             onClose={() => setIsGuildOpen(false)}
+            user={user}
+            onUpdateUser={updateUser}
+          />
+        </Suspense>
+      )}
+
+      {/* MODAL HỒ SƠ SỰ NGHIỆP & RADAR 6 TRỤC (TASK 6 TUẦN 5) */}
+      {isCareerProfileOpen && (
+        <Suspense fallback={null}>
+          <CareerProfileModal
+            isOpen={isCareerProfileOpen}
+            onClose={() => setIsCareerProfileOpen(false)}
             user={user}
             onUpdateUser={updateUser}
           />
