@@ -182,6 +182,12 @@ exports.spinWheel = async (req, res) => {
       updatedUser = await User.findByIdAndUpdate(user._id, updateOps, {
         returnDocument: 'after',
       });
+
+      // Hook thưởng Season EXP cho Sổ Sứ Mệnh (Task 4)
+      try {
+        const { addSeasonExpToUser } = require('./battlePassController');
+        await addSeasonExpToUser(user._id, 20);
+      } catch {}
     }
 
     return res.status(200).json({
@@ -315,6 +321,12 @@ exports.claimCheckIn = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(userId, updateOps, {
       returnDocument: 'after',
     });
+
+    // Hook thưởng Season EXP cho Sổ Sứ Mệnh (Task 4)
+    try {
+      const { addSeasonExpToUser } = require('./battlePassController');
+      await addSeasonExpToUser(userId, 40);
+    } catch {}
 
     return res.status(200).json({
       success: true,

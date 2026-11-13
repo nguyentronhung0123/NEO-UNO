@@ -10,6 +10,7 @@ import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
 import { questApi } from '../apis/questApi';
 import { rewardApi } from '../apis/rewardApi';
+import { battlePassApi } from '../apis/battlePassApi';
 import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
 import { getRankTier } from '../utils/rankTiers';
 
@@ -28,6 +29,7 @@ const AudioSettingsModal = lazy(() => import('../components/AudioSettingsModal')
 const TournamentBracketModal = lazy(() => import('../components/TournamentBracketModal'));
 const LuckyWheelModal = lazy(() => import('../components/LuckyWheelModal'));
 const DailyCheckInModal = lazy(() => import('../components/DailyCheckInModal'));
+const BattlePassModal = lazy(() => import('../components/BattlePassModal'));
 
 export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth, onJoinOnlineMatch }) {
   const { user, logout, updateUser } = useAuth();
@@ -55,6 +57,9 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [isCheckInOpen, setIsCheckInOpen] = useState(false);
   const [canFreeSpin, setCanFreeSpin] = useState(true);
   const [hasUnclaimedCheckIn, setHasUnclaimedCheckIn] = useState(true);
+  const [isBattlePassOpen, setIsBattlePassOpen] = useState(false);
+  const [battlePassLevel, setBattlePassLevel] = useState(1);
+  const [canClaimBattlePass, setCanClaimBattlePass] = useState(false);
   const [matchmakingMode, setMatchmakingMode] = useState('4_PLAYERS');
   const [showGuestOnlineModal, setShowGuestOnlineModal] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -175,6 +180,14 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       rewardApi.getCheckInStatus(user.id || user._id).then((res) => {
         if (res && res.success) {
           setHasUnclaimedCheckIn(!res.isClaimedToday);
+        }
+      });
+
+      // Kiểm tra trạng thái Sổ Sứ Mệnh Mùa 1 (Task 4 Tuần 5)
+      battlePassApi.getStatus(user.id || user._id).then((res) => {
+        if (res && res.success) {
+          setBattlePassLevel(res.pass?.level || 1);
+          setCanClaimBattlePass(res.canClaimAny);
         }
       });
     }
@@ -460,6 +473,27 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             </span>
             <span className="hidden sm:inline">Điểm Danh</span>
             {hasUnclaimedCheckIn && (
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+            )}
+          </button>
+
+          {/* NÚT SỔ SỨ MỆNH MÙA 1 (TASK 4 - TUẦN 5) */}
+          <button
+            onClick={() => {
+              soundEngine.playCardSlide();
+              setIsBattlePassOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            title="Sổ Sứ Mệnh Mùa 1: Neon Overdrive - 30 Cấp Độ"
+          >
+            <span className="text-sm group-hover:scale-110 transition-transform">
+              🎖️
+            </span>
+            <span className="hidden sm:inline">Sứ Mệnh</span>
+            <span className="px-1.5 py-0.2 rounded-md bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-black">
+              Lv.{battlePassLevel}
+            </span>
+            {canClaimBattlePass && (
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
             )}
           </button>
@@ -842,6 +876,35 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                       </div>
                     </div>
                     <span className="material-symbols-outlined text-slate-400 group-hover:text-amber-300 group-hover:translate-x-1 transition-all text-sm">
+                      chevron_right
+                    </span>
+                  </button>
+
+                  {/* Tab 0.8: Sổ Sứ Mệnh Mùa 1 (Task 4 Tuần 5) */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      setIsBattlePassOpen(true);
+                    }}
+                    className="w-full bg-[#151b2a] hover:bg-cyan-500/15 border border-white/5 hover:border-cyan-400/40 p-2.5 rounded-2xl transition-all cursor-pointer flex items-center justify-between group text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-xs">
+                        🎖️
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors flex items-center gap-2">
+                          <span>Sổ Sứ Mệnh Mùa 1 (Cấp {battlePassLevel})</span>
+                          {canClaimBattlePass && (
+                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          30 cấp độ mốc thưởng, mở khóa Tuyến VIP & Quà Thần Thoại
+                        </div>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined text-slate-400 group-hover:text-cyan-300 group-hover:translate-x-1 transition-all text-sm">
                       chevron_right
                     </span>
                   </button>
@@ -1847,6 +1910,18 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           <DailyCheckInModal
             isOpen={isCheckInOpen}
             onClose={() => setIsCheckInOpen(false)}
+            user={user}
+            onUpdateUser={updateUser}
+          />
+        </Suspense>
+      )}
+
+      {/* MODAL SỔ SỨ MỆNH MÙA 1: NEON OVERDRIVE (TASK 4 TUẦN 5) */}
+      {isBattlePassOpen && (
+        <Suspense fallback={null}>
+          <BattlePassModal
+            isOpen={isBattlePassOpen}
+            onClose={() => setIsBattlePassOpen(false)}
             user={user}
             onUpdateUser={updateUser}
           />

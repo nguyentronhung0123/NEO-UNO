@@ -132,6 +132,10 @@ app.use('/api/tournaments', tournamentRoutes);
 const rewardRoutes = require('./routes/rewardRoutes');
 app.use('/api/rewards', rewardRoutes);
 
+// 11. API Sổ Sứ Mệnh Cyber Mùa 1 (Season 1 Battle Pass - Task 4 Tuần 5)
+const battlePassRoutes = require('./routes/battlePassRoutes');
+app.use('/api/battlepass', battlePassRoutes);
+
 // Chặn 404 an toàn cho mọi endpoint không xác định (ẩn hoàn toàn HTML/công nghệ server)
 app.use((req, res) => {
   res.status(404).json({

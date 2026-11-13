@@ -148,6 +148,35 @@ export function AvatarFrame({
     );
   }
 
+  // 6. KHUNG VƯƠNG MIỆN HOÀNG GIA ĐIỆN TỬ (👑 Cyber Emperor Crown - Sổ Sứ Mệnh Mùa 1)
+  if (frameId === 'frame_cyber_emperor') {
+    return (
+      <div
+        className={`
+          relative rounded-full shrink-0 flex items-center justify-center p-[3px]
+          bg-gradient-to-tr from-amber-400 via-cyan-400 to-fuchsia-500
+          shadow-[0_0_28px_rgba(6,182,212,1)]
+          ${isActive ? 'ring-2 ring-yellow-300 ring-offset-2 ring-offset-black scale-105' : ''}
+          ${dim} ${className}
+        `}
+      >
+        <div className="w-full h-full rounded-full overflow-hidden bg-[#070b14] flex items-center justify-center relative">
+          {children}
+        </div>
+        {/* Vương Miện Cyberpunk phát sáng đỉnh đầu */}
+        <span
+          className="absolute -top-3 left-1/2 -translate-x-1/2 text-sm sm:text-base drop-shadow-[0_0_12px_rgba(250,204,21,1)] animate-bounce"
+          title="Chúa Tể Cyber 2026"
+        >
+          👑
+        </span>
+        <span className="absolute -bottom-1 -right-1 text-xs drop-shadow-[0_0_8px_rgba(6,182,212,1)]">
+          ⚡
+        </span>
+      </div>
+    );
+  }
+
   // MẶC ĐỊNH: Khung Kim Loại Cơ Bản (Default Metallic Slate)
   return (
     <div

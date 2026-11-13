@@ -149,6 +149,33 @@ const userSchema = new mongoose.Schema(
       type: [Number],
       default: [],
     },
+    // SỔ SỨ MỆNH CYBER MÙA 1 (BATTLE PASS - TASK 4 TUẦN 5)
+    battlePass: {
+      season: {
+        type: Number,
+        default: 1,
+      },
+      level: {
+        type: Number,
+        default: 1,
+      },
+      exp: {
+        type: Number,
+        default: 0,
+      },
+      isPremium: {
+        type: Boolean,
+        default: false,
+      },
+      claimedFreeLevels: {
+        type: [Number],
+        default: [],
+      },
+      claimedPremiumLevels: {
+        type: [Number],
+        default: [],
+      },
+    },
     lastLoginAt: {
       type: Date,
       default: Date.now,

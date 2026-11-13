@@ -496,6 +496,13 @@ exports.claimReward = async (req, res) => {
       updatedUser = await User.findByIdAndUpdate(userId, updateOps, {
         returnDocument: 'after',
       });
+
+      // Hook thưởng Season EXP cho Sổ Sứ Mệnh (Task 4)
+      try {
+        const { addSeasonExpToUser } = require('./battlePassController');
+        const passExp = tournament.userFinishedStage === 'champion' ? 300 : 100;
+        await addSeasonExpToUser(userId, passExp);
+      } catch {}
     }
 
     return res.status(200).json({
