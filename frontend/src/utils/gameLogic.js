@@ -1,14 +1,14 @@
 import { createDeck, shuffleDeck } from './deck.js';
 
 // CẤU HÌNH BÀN ĐẤU 4 VỊ TRÍ THEO VÒNG NGƯỢC CHIỀU KIM ĐỒNG HỒ (↺):
-// Seat 0 (Dưới): P1 - Bạn
-// Seat 1 (Phải): P2 - Bot Titan (🛡️ Bậc thầy phòng thủ)
-// Seat 2 (Trên): P3 - Bot Neon (⚡ Chiến thuật gia)
-// Seat 3 (Trái): P4 - Bot Cyber (🤖 Chuyên gia tốc độ)
+// Seat 0 (Dưới): P1 - Bạn (Team Alpha trong 2v2)
+// Seat 1 (Phải): P2 - Bot Titan (Team Omega trong 2v2)
+// Seat 2 (Trên): P3 - Bot Neon (Đồng đội Team Alpha trong 2v2)
+// Seat 3 (Trái): P4 - Bot Cyber (Team Omega trong 2v2)
 export const BOT_CONFIGS_4P = [
-  { id: 'bot_right', name: 'Bot Titan', avatar: '🛡️', badge: 'Bậc thầy phòng thủ', color: '#ec4899', position: 'right', playerNumber: 2 },
-  { id: 'bot_top',   name: 'Bot Neon',  avatar: '⚡', badge: 'Chiến thuật gia',    color: '#10b981', position: 'top',   playerNumber: 3 },
-  { id: 'bot_left',  name: 'Bot Cyber', avatar: '🤖', badge: 'Chuyên gia tốc độ', color: '#00d2ff', position: 'left',  playerNumber: 4 },
+  { id: 'bot_right', name: 'Bot Titan', avatar: '🛡️', badge: 'Bậc thầy phòng thủ', color: '#ec4899', position: 'right', playerNumber: 2, team: 'OMEGA', teamName: 'Team Omega' },
+  { id: 'bot_top',   name: 'Bot Neon',  avatar: '⚡', badge: 'Chiến thuật gia (Đồng đội)', color: '#10b981', position: 'top', playerNumber: 3, team: 'ALPHA', teamName: 'Team Alpha', isTeammate: true },
+  { id: 'bot_left',  name: 'Bot Cyber', avatar: '🤖', badge: 'Chuyên gia tốc độ', color: '#00d2ff', position: 'left',  playerNumber: 4, team: 'OMEGA', teamName: 'Team Omega' },
 ];
 
 export const BOT_CONFIGS_3P = [
@@ -86,4 +86,90 @@ export function calculateHandPoints(hand = []) {
 export function getMaxCardPoint(hand = []) {
   if (!hand || hand.length === 0) return 0;
   return Math.max(...hand.map(calculateCardPoints));
+}
+
+// ============================================================================
+// HỖ TRỢ CHẾ ĐỘ CHƠI ĐỒNG ĐỘI 2V2 (TASK 2 - TUẦN 5: DUO TAG-TEAM MODE)
+// ============================================================================
+
+/**
+ * Lấy thông tin phe (Team) theo vị trí ghế ngồi
+ * Seat 0 (Player) & Seat 2 (Bot Neon đối diện) = TEAM ALPHA
+ * Seat 1 (Bot Titan) & Seat 3 (Bot Cyber) = TEAM OMEGA
+ */
+export function getTeamForSeat(seatIndex) {
+  if (seatIndex === 0 || seatIndex === 2) {
+    return {
+      id: 'ALPHA',
+      name: 'Team Alpha',
+      color: '#00d2ff',
+      isPlayerTeam: true,
+      isTeammate: seatIndex === 2,
+    };
+  }
+  return {
+    id: 'OMEGA',
+    name: 'Team Omega',
+    color: '#f43f5e',
+    isPlayerTeam: false,
+    isTeammate: false,
+  };
+}
+
+/**
+ * Kiểm tra kết quả chiến thắng theo luật Đồng Đội 2v2:
+ * 1. Nếu bất kỳ thành viên nào hết bài -> Đội của thành viên đó thắng 100%!
+ * 2. Nếu hết thời gian (Timeout) -> Đội nào có tổng số lá bài còn lại ít hơn thắng!
+ */
+export function checkTeamVictory({ playerHand = [], bots = [], reason = 'out_of_cards' }) {
+  const topBot = bots.find((b) => b.position === 'top') || bots[1];
+  const rightBot = bots.find((b) => b.position === 'right') || bots[0];
+  const leftBot = bots.find((b) => b.position === 'left') || bots[2];
+
+  const pCount = playerHand.length;
+  const topCount = topBot?.hand?.length ?? 99;
+  const rightCount = rightBot?.hand?.length ?? 99;
+  const leftCount = leftBot?.hand?.length ?? 99;
+
+  // 1. Luật hết bài: 1 người hết bài là cả đội thắng
+  if (reason === 'out_of_cards') {
+    if (pCount === 0 || topCount === 0) {
+      return {
+        winningTeam: 'ALPHA',
+        isPlayerWin: true,
+        mvp: pCount === 0 ? 'player' : 'bot_top',
+        reason: 'out_of_cards',
+      };
+    }
+    if (rightCount === 0 || leftCount === 0) {
+      return {
+        winningTeam: 'OMEGA',
+        isPlayerWin: false,
+        mvp: rightCount === 0 ? 'bot_right' : 'bot_left',
+        reason: 'out_of_cards',
+      };
+    }
+  }
+
+  // 2. Luật hết giờ (Timeout): Tổng số lá của đội
+  const alphaTotalCards = pCount + topCount;
+  const omegaTotalCards = rightCount + leftCount;
+
+  if (alphaTotalCards <= omegaTotalCards) {
+    return {
+      winningTeam: 'ALPHA',
+      isPlayerWin: true,
+      alphaCards: alphaTotalCards,
+      omegaCards: omegaTotalCards,
+      reason: 'timeout',
+    };
+  }
+
+  return {
+    winningTeam: 'OMEGA',
+    isPlayerWin: false,
+    alphaCards: alphaTotalCards,
+    omegaCards: omegaTotalCards,
+    reason: 'timeout',
+  };
 }

@@ -12,6 +12,7 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
   
   // 3 slot bot: mặc định chưa thêm bot nào để người dùng tự do bấm ô tròn dấu cộng
   const [activeSlots, setActiveSlots] = useState([false, false, false]);
+  const [isTeamMode, setIsTeamMode] = useState(false);
   const [error, setError] = useState('');
   const [isShaking, setIsShaking] = useState(false);
 
@@ -56,7 +57,7 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
   };
 
   const handleStart = () => {
-    if (activeBotCount === 0) {
+    if (!isTeamMode && activeBotCount === 0) {
       setError('⚠️ Bạn chưa thêm Bot nào! Vui lòng ấn vào ô tròn dấu cộng (+) để thêm ít nhất 1 Bot đối thủ trước khi bắt đầu.');
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
@@ -65,8 +66,10 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
 
     setError('');
     onStartMatch({
-      botCount: activeBotCount,
+      botCount: isTeamMode ? 3 : activeBotCount,
       timeLimit: 300, // 5 phút = 300 giây
+      gameMode: isTeamMode ? '2V2' : 'STANDARD',
+      isTeamMode: isTeamMode,
     });
   };
 
@@ -103,6 +106,54 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
             ✕
           </button>
         </div>
+
+        {/* CHỌN CHẾ ĐỘ: ĐẤU ĐƠN VS ĐỒNG ĐỘI 2V2 */}
+        <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-black/40 border border-white/10">
+          <button
+            type="button"
+            onClick={() => setIsTeamMode(false)}
+            className={`py-2 px-3 rounded-xl font-headline font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              !isTeamMode
+                ? 'bg-primary-container text-black shadow-md font-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <span>👤</span>
+            <span>Đấu Đơn Tự Do</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setIsTeamMode(true);
+              setActiveSlots([true, true, true]);
+              if (error) setError('');
+            }}
+            className={`py-2 px-3 rounded-xl font-headline font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              isTeamMode
+                ? 'bg-gradient-to-r from-cyan-400 to-sky-500 text-black shadow-[0_0_15px_rgba(0,210,255,0.4)] font-black'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <span>🤝</span>
+            <span>Đồng Đội 2v2</span>
+            <span className="px-1.5 py-0.2 rounded bg-cyan-300 text-slate-950 text-[8px] font-black uppercase">
+              MỚI
+            </span>
+          </button>
+        </div>
+
+        {/* BẢNG GIẢI THÍCH LUẬT 2V2 NẾU ĐANG BẬT */}
+        {isTeamMode && (
+          <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-400/30 flex items-center gap-2.5 text-xs text-cyan-200 animate-fadeIn">
+            <span className="text-xl">🛡️</span>
+            <div>
+              <span className="font-bold text-white">Chiến Thuật Đồng Đội 2v2:</span>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Bạn và Bot Neon (Ghế đối diện) là <b>Team Alpha</b>. Bot Titan & Bot Cyber là <b>Team Omega</b>. Chỉ cần 1 trong 2 người cùng đội hết bài trước là toàn đội chiến thắng!
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ================= KHU VỰC 4 Ô TRÒN CHÍNH (1 BẠN + 3 BOT) ================= */}
         <div className="flex flex-col gap-3">

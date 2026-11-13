@@ -1015,34 +1015,51 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               </span>
             </button>
 
-            {/* Quick Mode Chips: 4P, 3P, Solo 1v1 */}
-            <div className="flex items-center justify-center gap-2 w-full text-[11px] font-bold">
+            {/* Quick Mode Chips: 4P, 2v2 Team, 3P, Solo 1v1 */}
+            <div className="flex flex-wrap items-center justify-center gap-2 w-full text-[11px] font-bold">
               <button
                 onClick={() => {
                   setMatchmakingMode('4_PLAYERS');
                   setIsMatchmakingOpen(true);
                 }}
-                className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
+                className="flex-1 min-w-[90px] py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
               >
                 <span>👥</span>
-                <span>4 Người (Chuẩn)</span>
+                <span>4 Người</span>
+              </button>
+              <button
+                onClick={() => {
+                  onJoinOfflineMatch({
+                    botCount: 3,
+                    timeLimit: 300,
+                    gameMode: '2V2',
+                    isTeamMode: true,
+                  });
+                }}
+                className="flex-1 min-w-[120px] py-1.5 px-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-200 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer shadow-[0_0_15px_rgba(0,210,255,0.25)] hover:shadow-[0_0_20px_rgba(0,210,255,0.45)] hover:scale-105"
+              >
+                <span>🤝</span>
+                <span className="font-black text-cyan-300">Đồng Đội 2v2</span>
+                <span className="px-1.5 py-0.2 rounded bg-cyan-400 text-slate-950 text-[8px] font-black uppercase">
+                  MỚI
+                </span>
               </button>
               <button
                 onClick={() => {
                   setMatchmakingMode('3_PLAYERS');
                   setIsMatchmakingOpen(true);
                 }}
-                className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
+                className="flex-1 min-w-[80px] py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
               >
                 <span>⚔️</span>
-                <span>Đấu Tay Ba</span>
+                <span>Tay Ba</span>
               </button>
               <button
                 onClick={() => {
                   setMatchmakingMode('SOLO_1V1');
                   setIsMatchmakingOpen(true);
                 }}
-                className="flex-1 py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
+                className="flex-1 min-w-[80px] py-1.5 px-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer hover:border-amber-400/50"
               >
                 <span>🥊</span>
                 <span>Solo 1v1</span>

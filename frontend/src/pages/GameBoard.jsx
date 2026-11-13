@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import LeaderboardModal from '../components/LeaderboardModal';
 import { getRankTier } from '../utils/rankTiers';
 import MatchHistoryModal from '../components/MatchHistoryModal';
-import { initGameState, calculateHandPoints, getMaxCardPoint } from '../utils/gameLogic.js';
+import { initGameState, calculateHandPoints, getMaxCardPoint, checkTeamVictory, getTeamForSeat } from '../utils/gameLogic.js';
 import { shuffleDeck } from '../utils/deck.js';
 import { soundEngine } from '../utils/audioFx.js';
 import { getSocket } from '../services/socket.js';
@@ -44,8 +44,9 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   const equippedCardSkin = user?.equippedCardSkin || 'skin_classic';
   const equippedAvatarFrame = user?.equippedAvatarFrame || 'frame_default';
 
-  // Cấu hình bàn đấu: Mặc định 3 Bot (bàn 4 người 4 góc) & 5 phút
-  const botCount = Math.max(1, Math.min(3, matchConfig?.botCount || 3));
+  // Cấu hình bàn đấu: Mặc định 3 Bot (bàn 4 người 4 góc) & 5 phút (Hoặc 2v2 Đồng Đội)
+  const isTeamMode = matchConfig?.gameMode === '2V2' || matchConfig?.isTeamMode;
+  const botCount = isTeamMode ? 3 : Math.max(1, Math.min(3, matchConfig?.botCount || 3));
   const timeLimit = matchConfig?.timeLimit || 300;
   const totalPlayers = 1 + botCount;
 
@@ -534,7 +535,19 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       setEndGameReason(reason);
 
       const topWinner = allContenders[0];
-      setWinner(topWinner.id === 'player' ? 'player' : topWinner.name);
+      let finalWinner = topWinner.id === 'player' ? 'player' : topWinner.name;
+
+      if (isTeamMode) {
+        const teamResult = checkTeamVictory({
+          playerHand,
+          bots,
+          reason,
+        });
+        finalWinner = teamResult.isPlayerWin ? 'TEAM_ALPHA' : 'TEAM_OMEGA';
+        setWinner(finalWinner);
+      } else {
+        setWinner(finalWinner);
+      }
 
       // Xóa phiên đấu dở dang vì ván đấu đã kết thúc chính thức
       clearActiveMatch();
@@ -612,7 +625,21 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         console.warn('[MongoDB Atlas] Lỗi khi gửi kết quả trận đấu:', err.message);
       }
 
-      if (topWinner.id === 'player') {
+      if (isTeamMode) {
+        if (finalWinner === 'TEAM_ALPHA') {
+          soundEngine.playUnoAlert();
+          setStatusMessage(
+            topWinner.id === 'player'
+              ? '🎉 XUẤT SẮC! BẠN ĐÃ ĐÁNH HẾT BÀI VÀ MANG VỀ CHIẾN THẮNG CHO TEAM ALPHA!'
+              : '🎉 TUYỆT VỜI! ĐỒNG ĐỘI BOT NEON ĐÃ HẾT BÀI! TEAM ALPHA CHIẾN THẮNG TRỌN VẸN!'
+          );
+        } else {
+          soundEngine.playActionSound('skip');
+          setStatusMessage(
+            '⚔️ TEAM OMEGA ĐÃ ĐÁNH HẾT BÀI TRƯỚC! TEAM ALPHA THUA CUỘC VÁN NÀY.'
+          );
+        }
+      } else if (topWinner.id === 'player') {
         soundEngine.playUnoChime();
         setStatusMessage(
           reason === 'timeout'
@@ -951,7 +978,17 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     [activeColor]
   );
 
-  const pickBotWildColor = (hand) => {
+  const pickBotWildColor = (hand, seatIdx = null) => {
+    // Trong chế độ 2v2 Đồng Đội: Nếu Bot là Ghế 2 (Đồng đội Team Alpha), ưu tiên chọn màu mà Người chơi (Ghế 0) đang giữ nhiều nhất!
+    if (isTeamMode && seatIdx === 2 && gameStateRef.current?.playerHand?.length > 0) {
+      const pColors = { red: 0, blue: 0, green: 0, yellow: 0 };
+      gameStateRef.current.playerHand.forEach((c) => {
+        if (c.color !== 'wild') pColors[c.color] = (pColors[c.color] || 0) + 1;
+      });
+      const bestColor = Object.keys(pColors).reduce((a, b) => (pColors[a] > pColors[b] ? a : b), 'red');
+      if (pColors[bestColor] > 0) return bestColor;
+    }
+
     const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
     (hand || []).forEach((c) => {
       if (c.color !== 'wild') colorCounts[c.color] = (colorCounts[c.color] || 0) + 1;
@@ -1558,7 +1595,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
         let botColor = chosenCard.color;
         if (chosenCard.color === 'wild') {
-          botColor = pickBotWildColor(actualBotHand);
+          botColor = pickBotWildColor(actualBotHand, curIdx);
         }
 
         botExecutePlayCard(curIdx, chosenCard, botColor);
@@ -1581,7 +1618,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
             const cardToPlay = playableAfter1[0];
             let botColor = cardToPlay.color;
             if (cardToPlay.color === 'wild') {
-              botColor = pickBotWildColor(handAfter1);
+              botColor = pickBotWildColor(handAfter1, curIdx);
             }
             setStatusMessage(`🤖 ${botDisplayName} vừa bốc được lá hợp lệ! Đang chuẩn bị đánh...`);
             actionTimerRef.current = setTimeout(() => {
@@ -1603,7 +1640,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                   const cardToPlay = playableAfter2[0];
                   let botColor = cardToPlay.color;
                   if (cardToPlay.color === 'wild') {
-                    botColor = pickBotWildColor(handAfter2);
+                    botColor = pickBotWildColor(handAfter2, curIdx);
                   }
                   setStatusMessage(`🤖 ${botDisplayName} bốc được lá hợp lệ! Đang chuẩn bị đánh...`);
                   actionTimerRef.current = setTimeout(() => {
@@ -2024,6 +2061,13 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
           </span>
         )}
 
+        {isTeamMode && (
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-200 text-[8px] font-black uppercase tracking-wider mb-0.5 shadow-sm">
+            <span>⚔️</span>
+            <span>TEAM OMEGA</span>
+          </div>
+        )}
+
         <div className="flex items-center gap-1.5 sm:gap-2 mb-1 mt-1 relative">
           {renderAvatarFxBadge(bot.id)}
           <span className={`text-xl sm:text-2xl p-1 rounded-full ${
@@ -2130,12 +2174,16 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
             <div className="flex items-center gap-1.5">
               <span className="material-symbols-outlined text-primary-container text-lg sm:text-xl">
-                {matchConfig?.isTournament ? 'emoji_events' : 'sports_soccer'}
+                {matchConfig?.isTournament ? 'emoji_events' : isTeamMode ? 'groups' : 'sports_soccer'}
               </span>
               <span className="font-headline font-black text-sm sm:text-base text-white tracking-wider">
                 {matchConfig?.isTournament ? (
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500">
                     🏆 {matchConfig.tournamentContext?.roundName?.toUpperCase() || 'CÚP VÔ ĐỊCH'}
+                  </span>
+                ) : isTeamMode ? (
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-rose-400">
+                    🤝 ĐỒNG ĐỘI 2V2: ALPHA vs OMEGA
                   </span>
                 ) : (
                   <>NEO <span className="text-primary-container">UNO</span></>
@@ -2144,6 +2192,11 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
               {matchConfig?.isTournament && (
                 <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
                   8 ĐẤU THỦ
+                </span>
+              )}
+              {isTeamMode && (
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
+                  TAG-TEAM 2V2
                 </span>
               )}
             </div>
@@ -2280,6 +2333,12 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       {topBot.playerNumber ? `P${topBot.playerNumber}` : `P${topBotSeatIndex + 1}`}
                     </span>
                   )}
+                  {isTeamMode && (
+                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 text-[9px] font-black uppercase tracking-wider mb-0.5 shadow-sm">
+                      <span>🛡️</span>
+                      <span>ĐỒNG ĐỘI (TEAM ALPHA)</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2.5 mt-0.5 relative">
                     {renderAvatarFxBadge(topBot.id)}
                     <span className={`text-2xl p-1 rounded-full ${
@@ -2314,6 +2373,28 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       );
                     })}
                   </div>
+
+                  {/* TACTICAL TEAMMATE CARD PEEK (TASK 2 - 2V2 MODE) */}
+                  {isTeamMode && (
+                    <div className="flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full bg-black/70 border border-cyan-400/40 text-[9px] text-cyan-200 font-mono shadow-sm">
+                      <span className="font-bold text-slate-300">Bài đồng đội:</span>
+                      {(() => {
+                        const cCounts = { red: 0, blue: 0, green: 0, yellow: 0, wild: 0 };
+                        (topBot.hand || []).forEach((c) => {
+                          cCounts[c.color] = (cCounts[c.color] || 0) + 1;
+                        });
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            {cCounts.red > 0 && <span className="text-rose-400 font-bold">🔴{cCounts.red}</span>}
+                            {cCounts.blue > 0 && <span className="text-sky-400 font-bold">🔵{cCounts.blue}</span>}
+                            {cCounts.green > 0 && <span className="text-emerald-400 font-bold">🟢{cCounts.green}</span>}
+                            {cCounts.yellow > 0 && <span className="text-amber-400 font-bold">🟡{cCounts.yellow}</span>}
+                            {cCounts.wild > 0 && <span className="text-purple-400 font-bold">🌈{cCounts.wild}</span>}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -2746,9 +2827,16 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                 </div>
               </AvatarFrame>
               <div className="flex flex-col">
-                <span className={`text-xs font-bold leading-tight ${isPlayerTurn ? 'text-primary-container font-black' : 'text-white'}`}>
-                  Bạn (Dưới)
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`text-xs font-bold leading-tight ${isPlayerTurn ? 'text-primary-container font-black' : 'text-white'}`}>
+                    Bạn (Dưới)
+                  </span>
+                  {isTeamMode && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-cyan-500/25 border border-cyan-400/50 text-cyan-200 text-[8px] font-black uppercase">
+                      TEAM ALPHA
+                    </span>
+                  )}
+                </div>
                 <span className="text-[10px] text-slate-400">{playerHand.length} lá trên tay</span>
               </div>
             </div>
@@ -2953,19 +3041,55 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       {winner && endGameRankings && (
         <div className="fixed inset-0 bg-black/85 backdrop-blur-lg flex items-center justify-center z-50 p-4 animate-fade-in">
           <div className="bg-surface-container-high border border-primary-container/40 p-6 sm:p-8 rounded-3xl max-w-md w-full shadow-[0_0_80px_rgba(0,210,255,0.3)] text-center flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-3xl shadow-lg mb-3">
-              {winner === 'player' ? '🏆' : '🎮'}
-            </div>
-
-            <h2 className="font-headline font-black text-2xl sm:text-3xl text-white uppercase tracking-tight">
-              {winner === 'player' ? 'BẠN ĐÃ CHIẾN THẮNG!' : `${winner} CHIẾN THẮNG!`}
-            </h2>
-
-            <p className="text-xs text-slate-300 mt-1 mb-5">
-              {endGameReason === 'timeout'
-                ? '⏱ Trận đấu 5 phút đã kết thúc! Xếp hạng ưu tiên người ít lá bài nhất; nếu bằng số lá, người có tổng điểm phạt của bài nhỏ hơn (+2, +4, Skip...) sẽ xếp trên:'
-                : 'Trận đấu kết thúc do có người chơi đã đánh hết toàn bộ bài trên tay:'}
-            </p>
+            {isTeamMode ? (
+              winner === 'TEAM_ALPHA' || winner === 'player' ? (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-3xl shadow-[0_0_35px_rgba(0,210,255,0.6)] mb-3 animate-bounce">
+                    🏆
+                  </div>
+                  <h2 className="font-headline font-black text-2xl sm:text-3xl text-cyan-300 uppercase tracking-tight">
+                    CHIẾN THẮNG ĐỒNG ĐỘI!
+                  </h2>
+                  <span className="px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 text-xs font-black uppercase mt-1">
+                    🛡️ TEAM ALPHA VÔ ĐỊCH
+                  </span>
+                  <p className="text-xs text-slate-300 mt-2 mb-4">
+                    {endGameRankings[0]?.id === 'player'
+                      ? 'Bạn đã đánh hết bài, đưa Team Alpha lên đỉnh vinh quang!'
+                      : 'Đồng đội Bot Neon đã xả hết bài thành công, mang chiến thắng về cho Team Alpha!'}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-rose-500 to-red-600 flex items-center justify-center text-3xl shadow-[0_0_35px_rgba(244,63,94,0.6)] mb-3">
+                    ⚔️
+                  </div>
+                  <h2 className="font-headline font-black text-2xl sm:text-3xl text-rose-300 uppercase tracking-tight">
+                    TEAM OMEGA THẮNG CUỘC
+                  </h2>
+                  <span className="px-3 py-1 rounded-full bg-rose-500/20 border border-rose-400/50 text-rose-200 text-xs font-black uppercase mt-1">
+                    ⚔️ TEAM OMEGA ĐÃ XẢ BÀI TRƯỚC
+                  </span>
+                  <p className="text-xs text-slate-300 mt-2 mb-4">
+                    Đối thủ đã đánh hết bài trước. Hãy cùng đồng đội phối hợp ăn ý hơn ở ván sau!
+                  </p>
+                </>
+              )
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-3xl shadow-lg mb-3">
+                  {winner === 'player' ? '🏆' : '🎮'}
+                </div>
+                <h2 className="font-headline font-black text-2xl sm:text-3xl text-white uppercase tracking-tight">
+                  {winner === 'player' ? 'BẠN ĐÃ CHIẾN THẮNG!' : `${winner} CHIẾN THẮNG!`}
+                </h2>
+                <p className="text-xs text-slate-300 mt-1 mb-5">
+                  {endGameReason === 'timeout'
+                    ? '⏱ Trận đấu 5 phút đã kết thúc! Xếp hạng ưu tiên người ít lá bài nhất; nếu bằng số lá, người có tổng điểm phạt của bài nhỏ hơn (+2, +4, Skip...) sẽ xếp trên:'
+                    : 'Trận đấu kết thúc do có người chơi đã đánh hết toàn bộ bài trên tay:'}
+                </p>
+              </>
+            )}
 
             {/* Bảng xếp hạng thứ tự 1, 2, 3, 4 */}
             <div className="w-full flex flex-col gap-2 mb-6">
@@ -2990,9 +3114,20 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       </span>
                       <span className="text-xl">{contender.avatar}</span>
                       <div className="flex flex-col text-left">
-                        <span className={`text-xs font-bold ${isWinnerRank ? 'text-amber-300' : 'text-white'}`}>
-                          {contender.name}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-bold ${isWinnerRank ? 'text-amber-300' : 'text-white'}`}>
+                            {contender.name}
+                          </span>
+                          {isTeamMode && (
+                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded-full border ${
+                              contender.id === 'player' || contender.id === 'bot_top'
+                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40'
+                                : 'bg-rose-500/20 text-rose-300 border-rose-400/40'
+                            }`}>
+                              {contender.id === 'player' || contender.id === 'bot_top' ? 'Team Alpha' : 'Team Omega'}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] text-slate-400">
                           {contender.isHuman ? 'Người chơi' : contender.badge || 'Bot AI'}
                         </span>
