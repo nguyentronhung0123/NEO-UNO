@@ -422,11 +422,11 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(28,31,42,0.6)_0%,rgba(10,14,24,0.95)_100%)]"></div>
       </div>
 
-      {/* ================= HEADER FULL-WIDTH CỰC ĐẸP ================= */}
+      {/* ================= HEADER FULL-WIDTH CỰC ĐẸP ĐỐI XỨNG ================= */}
       <header className="relative z-30 w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-2 sm:px-6 pt-1 pb-4">
         
-        {/* GÓC TRÊN TRÁI: LOGO GAME & CHẾ ĐỘ CHƠI */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* 1. GÓC TRÊN TRÁI: LOGO GAME & CHẾ ĐỘ CHƠI */}
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
           <div className="flex bg-surface-container-low/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-outline-variant/30 items-center gap-2 shadow-sm">
             <span className="material-symbols-outlined text-primary-container text-xl">
               style
@@ -436,30 +436,29 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             </span>
           </div>
 
-          <div className="hidden sm:flex bg-tertiary-container/15 border border-tertiary-container/40 text-tertiary px-3 py-1 rounded-full items-center gap-1.5 text-[10px] font-bold uppercase shadow-[0_0_10px_rgba(72,217,158,0.2)]">
+          <div className="hidden md:flex bg-tertiary-container/15 border border-tertiary-container/40 text-tertiary px-3 py-1 rounded-full items-center gap-1.5 text-[10px] font-bold uppercase shadow-[0_0_10px_rgba(72,217,158,0.2)]">
             <span className="w-1.5 h-1.5 bg-tertiary-container rounded-full animate-pulse"></span>
             OFFLINE AI ARENA
           </div>
         </div>
 
-        {/* GÓC TRÊN PHẢI: DUY NHẤT 1 KHU VỰC ĐĂNG NHẬP / PROFILE DROPDOWN TAB */}
-        <div className="flex items-center gap-2.5">
-          
+        {/* 2. CHÍNH GIỮA: CỤM TÍNH NĂNG NHANH CĂN TÂM TRỤC HOÀN HẢO (CYBER QUICK DOCK) */}
+        <div className="hidden lg:flex items-center gap-1 sm:gap-1.5 bg-[#101524]/80 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-inner">
           {/* NÚT VÒNG QUAY MAY MẮN (TASK 3 - TUẦN 5) */}
           <button
             onClick={() => {
               soundEngine.playCardSlide();
               setIsWheelOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
             title="Vòng quay Cyberpunk - Mỗi ngày 1 lượt Free"
           >
             <span className="text-sm group-hover:scale-110 transition-transform">
               🎡
             </span>
-            <span className="hidden sm:inline">Vòng Quay</span>
+            <span className="hidden 2xl:inline">Vòng Quay</span>
             {canFreeSpin && (
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
             )}
           </button>
 
@@ -469,15 +468,15 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               soundEngine.playCardSlide();
               setIsCheckInOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
             title="Điểm danh nhận quà 7 ngày & Khung Bí Ngô"
           >
             <span className="text-sm group-hover:scale-110 transition-transform">
               📅
             </span>
-            <span className="hidden sm:inline">Điểm Danh</span>
+            <span className="hidden 2xl:inline">Điểm Danh</span>
             {hasUnclaimedCheckIn && (
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
             )}
           </button>
 
@@ -487,18 +486,18 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               soundEngine.playCardSlide();
               setIsBattlePassOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
             title="Sổ Sứ Mệnh Mùa 1: Neon Overdrive - 30 Cấp Độ"
           >
             <span className="text-sm group-hover:scale-110 transition-transform">
               🎖️
             </span>
-            <span className="hidden sm:inline">Sứ Mệnh</span>
-            <span className="px-1.5 py-0.2 rounded-md bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-black">
+            <span className="hidden 2xl:inline">Sứ Mệnh</span>
+            <span className="px-1.5 py-0.2 rounded-md bg-cyan-500/20 text-cyan-300 text-[9px] font-mono font-black">
               Lv.{battlePassLevel}
             </span>
             {canClaimBattlePass && (
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
             )}
           </button>
 
@@ -508,13 +507,13 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               soundEngine.playCardSlide();
               setIsGuildOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
             title="Bang Hội & Quân Đoàn Cyberpunk - Buff +10% Vàng & EXP"
           >
             <span className="text-sm group-hover:scale-110 transition-transform">
               🛡️
             </span>
-            <span className="hidden sm:inline">
+            <span className="hidden 2xl:inline">
               {user?.guild?.guildTag ? `[${user.guild.guildTag}]` : 'Bang Hội'}
             </span>
             {user?.guild?.guildTag && (
@@ -522,39 +521,43 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             )}
           </button>
 
-          {/* NÚT NHIỆM VỤ & THÀNH TỰU - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE */}
+          {/* NÚT NHIỆM VỤ & THÀNH TỰU */}
           <button
             onClick={() => setIsQuestOpen(true)}
-            className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-amber-500/40 hover:border-amber-400 text-amber-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
             title="Nhiệm vụ hằng ngày & Huy hiệu thành tựu"
           >
             <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-amber-400">
               assignment
             </span>
-            <span className="hidden md:inline">Nhiệm Vụ</span>
+            <span className="hidden 2xl:inline">Nhiệm Vụ</span>
             {hasClaimableQuest && (
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
             )}
           </button>
+        </div>
 
-          {/* NÚT BẠN BÈ & LỜI MỜI - ẨN TRÊN MOBILE, CÓ TRONG MENU PROFILE & CHAT MESSENGER */}
+        {/* 3. GÓC TRÊN PHẢI: BẠN BÈ, ÂM THANH & PROFILE DROPDOWN */}
+        <div className="flex items-center gap-2 shrink-0">
+          
+          {/* NÚT BẠN BÈ & LỜI MỜI */}
           <button
             onClick={() => handleOpenFriends()}
-            className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
             title="Hệ thống bạn bè & lời mời đấu trực tuyến"
           >
             <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform">
               group
             </span>
-            <span className="hidden md:inline">Bạn Bè</span>
+            <span className="hidden xl:inline">Bạn Bè</span>
             {pendingRequestsCount > 0 && (
-              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-mono font-bold animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]">
+              <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[9px] font-mono font-bold animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]">
                 {pendingRequestsCount}
               </span>
             )}
           </button>
 
-          {/* NÚT CÀI ĐẶT ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
+          {/* NÚT CÀI ĐẶT ÂM THANH & BGM MIXER */}
           <button
             onClick={() => {
               soundEngine.playCardSlide();
@@ -566,7 +569,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             <span className={`material-symbols-outlined text-base ${audioSettings.isMuted ? 'text-rose-400' : 'text-cyan-400 group-hover:scale-110'} transition-transform`}>
               {audioSettings.isMuted ? 'volume_off' : 'tune'}
             </span>
-            <span className="hidden lg:inline">Âm Thanh</span>
+            <span className="hidden xl:inline">Âm Thanh</span>
             {audioSettings.bgmEnabled && !audioSettings.isMuted && audioSettings.currentTrack && (
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             )}
@@ -576,20 +579,20 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           {user?.role === 'admin' && (
             <button
               onClick={() => setIsAdminModalOpen(true)}
-              className="hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-900/70 to-rose-900/70 hover:from-purple-800 hover:to-rose-800 border border-purple-400/60 hover:border-cyan-400 text-purple-200 font-headline font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.4)] group relative hover:scale-105 active:scale-95 animate-pulse"
+              className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gradient-to-r from-purple-900/70 to-rose-900/70 hover:from-purple-800 hover:to-rose-800 border border-purple-400/60 hover:border-cyan-400 text-purple-200 font-headline font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_15px_rgba(168,85,247,0.4)] group relative hover:scale-105 active:scale-95 animate-pulse shrink-0"
               title="Trung Tâm Quản Trị Bảo Mật & Chống Gian Lận (Admin SOC)"
             >
               <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform text-cyan-300">
                 shield
               </span>
-              <span className="hidden sm:inline">Quản Trị</span>
+              <span className="hidden 2xl:inline">Quản Trị</span>
               <span className="px-1.5 py-0.2 rounded-full bg-purple-500/30 text-purple-200 text-[9px] font-mono font-bold border border-purple-400/40">
                 SOC
               </span>
             </button>
           )}
 
-          {/* Nút Đăng Nhập Duy Nhất Góc Trên Phải (chỉ hiện khi là Khách) */}
+          {/* Nút Đăng Nhập Duy Nhất Góc Trên PhẢi (chỉ hiện khi là Khách) */}
           {isGuest && (
             <button
               onClick={() => onOpenAuth && onOpenAuth()}
@@ -1217,31 +1220,31 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       <main className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center my-auto">
         
         {/* HERO SHOWCASE */}
-        <div className="relative mb-5 flex flex-col items-center">
-          {/* Card Fan (Xòe 4 lá bài Neon biểu tượng) */}
-          <div className="relative h-40 sm:h-48 w-72 sm:w-80 flex items-center justify-center">
+        <div className="relative mb-5 flex flex-col items-center text-center">
+          {/* Card Fan (Xòe 4 lá bài Neon biểu tượng đối xứng hoàn hảo) */}
+          <div className="relative h-40 sm:h-48 w-72 sm:w-80 flex items-center justify-center mx-auto">
             {/* Lá 1 (Red Skip) */}
-            <div className="absolute transform -translate-x-16 -rotate-15 hover:-translate-y-4 hover:-rotate-12 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(255,43,112,0.3)]">
+            <div className="absolute transform -translate-x-16 -rotate-12 hover:-translate-y-4 hover:-rotate-6 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(255,43,112,0.3)] z-10">
               <UnoCard color="red" value="skip" />
             </div>
 
             {/* Lá 2 (Blue 7) */}
-            <div className="absolute transform -translate-x-5 -rotate-5 hover:-translate-y-4 hover:rotate-0 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(0,210,255,0.3)] z-10">
+            <div className="absolute transform -translate-x-5 -rotate-4 hover:-translate-y-4 hover:rotate-0 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(0,210,255,0.3)] z-20">
               <UnoCard color="blue" value="7" />
             </div>
 
             {/* Lá 3 (Green Reverse) */}
-            <div className="absolute transform translate-x-5 rotate-5 hover:-translate-y-4 hover:rotate-0 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(72,217,158,0.3)] z-20">
+            <div className="absolute transform translate-x-5 rotate-4 hover:-translate-y-4 hover:rotate-0 transition-all duration-300 cursor-pointer shadow-[0_0_72,217,158,0.3)] z-20">
               <UnoCard color="green" value="reverse" />
             </div>
 
             {/* Lá 4 (Wild +4) */}
-            <div className="absolute transform translate-x-16 rotate-15 hover:-translate-y-4 hover:rotate-12 transition-all duration-300 cursor-pointer shadow-[0_0_40px_rgba(255,255,255,0.25)] z-30">
+            <div className="absolute transform translate-x-16 rotate-12 hover:-translate-y-4 hover:rotate-6 transition-all duration-300 cursor-pointer shadow-[0_0_40px_rgba(255,255,255,0.25)] z-10">
               <UnoCard color="wild" value="wild_draw_four" />
             </div>
           </div>
 
-          <h1 className="font-headline text-4xl sm:text-5xl font-black italic tracking-tighter text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] mt-1">
+          <h1 className="font-headline text-4xl sm:text-5xl font-black tracking-wide uppercase text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] mt-1 text-center">
             NEO <span className="text-secondary-container">UNO</span>
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-0.5 max-w-md text-center font-medium">
