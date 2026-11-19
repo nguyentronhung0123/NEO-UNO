@@ -119,10 +119,15 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const [gameResult, setGameResult] = useState(null);
   const [autoReturnCountdown, setAutoReturnCountdown] = useState(120);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => soundEngine.isEnabled());
   const [isAudioSettingsOpen, setIsAudioSettingsOpen] = useState(false);
   const [isReplayOpen, setIsReplayOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
+
+  const handleToggleSound = () => {
+    const newState = soundEngine.toggle();
+    setSoundEnabled(newState);
+  };
 
   const isTeamMode = Boolean(
     gameState?.isTeamMode ||
@@ -447,6 +452,12 @@ export default function OnlineGameBoard({ room, user, onBack }) {
     const handleTimerTick = ({ turnTimeRemaining, matchTimeRemaining }) => {
       setGameState((prev) => {
         if (!prev) return prev;
+        const isMyTurnNow = prev.currentTurnIndex === prev.mySeatIndex;
+        if (turnTimeRemaining <= 5 && turnTimeRemaining > 0 && isMyTurnNow && soundEnabledRef.current) {
+          try {
+            soundEngine.playTickTock(turnTimeRemaining % 2 === 0);
+          } catch {}
+        }
         return {
           ...prev,
           turnTimeRemaining,
@@ -1369,14 +1380,15 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
           {/* Right Controls */}
           <div className="flex items-center gap-2">
+            {/* Nút bật/tắt nhanh âm thanh */}
             <button
-              onClick={() => setSoundEnabled((prev) => !prev)}
+              onClick={handleToggleSound}
               className={`p-1.5 rounded-full border transition-all cursor-pointer ${
                 soundEnabled
-                  ? 'bg-primary-container/10 border-primary-container/40 text-primary-container'
+                  ? 'bg-primary-container/10 border-primary-container/40 text-primary-container shadow-[0_0_10px_rgba(0,210,255,0.4)]'
                   : 'bg-surface-container-low border-white/10 text-slate-500'
               }`}
-              title={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+              title={soundEnabled ? 'Tắt âm thanh (Mute)' : 'Bật âm thanh (Unmute)'}
             >
               <span className="material-symbols-outlined text-base">
                 {soundEnabled ? 'volume_up' : 'volume_off'}

@@ -1,7 +1,8 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import LobbyPage from './pages/LobbyPage';
 import { clearActiveMatch } from './utils/activeMatchStorage.js';
+import { soundEngine } from './utils/audioFx';
 
 // Tối ưu Tải Trang: Code-Splitting các màn hình game nặng bằng React.lazy (Task 5)
 const AuthPage = lazy(() => import('./pages/AuthPage'));
@@ -41,6 +42,25 @@ function MainApp() {
   }); // 'lobby' | 'auth' | 'forgot_password' | 'game' | 'online_game' | 'rules'
   const [matchConfig, setMatchConfig] = useState({ botCount: 3, timeLimit: 300 });
   const [restoredMatchState, setRestoredMatchState] = useState(null);
+
+  // KÍCH HOẠT HỆ THỐNG ÂM THANH NGAY KHI NGƯỜI DÙNG TƯƠNG TÁC ĐẦU TIÊN (TASK 1 - TUẦN 6 POLISH)
+  useEffect(() => {
+    const unlockAudio = () => {
+      try {
+        soundEngine.init();
+        if (soundEngine.ctx && soundEngine.ctx.state === 'suspended') {
+          soundEngine.ctx.resume().catch(() => {});
+        }
+      } catch {}
+    };
+
+    window.addEventListener('pointerdown', unlockAudio, { once: true, passive: true });
+    window.addEventListener('keydown', unlockAudio, { once: true, passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlockAudio);
+      window.removeEventListener('keydown', unlockAudio);
+    };
+  }, []);
 
   const handleStartGame = (config, restoredState = null) => {
     if (config) setMatchConfig(config);
