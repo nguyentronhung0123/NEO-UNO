@@ -2,17 +2,13 @@
 
 export function validateNickname(nickname) {
   if (!nickname || nickname.trim() === '') {
-    return { isValid: false, error: 'Vui lòng nhập biệt danh đấu trường' };
+    return { isValid: false, error: 'Vui lòng nhập tên người chơi' };
   }
-  if (nickname.length < 3) {
-    return { isValid: false, error: 'Biệt danh phải có ít nhất 3 ký tự' };
+  if (nickname.trim().length < 1) {
+    return { isValid: false, error: 'Tên người chơi phải có ít nhất 1 ký tự' };
   }
-  if (nickname.length > 20) {
-    return { isValid: false, error: 'Biệt danh không được vượt quá 20 ký tự' };
-  }
-  const validPattern = /^[a-zA-Z0-9_]+$/;
-  if (!validPattern.test(nickname)) {
-    return { isValid: false, error: 'Chỉ chấp nhận chữ cái, số và dấu gạch dưới (_)' };
+  if (nickname.length > 30) {
+    return { isValid: false, error: 'Tên người chơi không được vượt quá 30 ký tự' };
   }
   return { isValid: true, error: null };
 }

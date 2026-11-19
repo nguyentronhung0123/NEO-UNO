@@ -746,34 +746,35 @@ export default function GuildModal({
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Tên Bang Hội (3 - 30 ký tự):
+                  Tên Bang Hội:
                 </label>
                 <input
                   type="text"
                   required
+                  maxLength={60}
                   value={createForm.name}
                   onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  placeholder="VD: Cyber Warriors 2026"
+                  placeholder="VD: One Piece, Cyber Warriors, AE Mình..."
                   className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white text-xs focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Tag Viết Tắt (2 - 6 ký tự viết hoa):
+                <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
+                  <span>Tag Viết Tắt (Tùy chọn):</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Tự do đặt bất kỳ ký tự nào (VD: VICECITY)</span>
                 </label>
                 <input
                   type="text"
-                  required
-                  maxLength={6}
+                  maxLength={30}
                   value={createForm.tag}
                   onChange={(e) =>
                     setCreateForm({
                       ...createForm,
-                      tag: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+                      tag: e.target.value,
                     })
                   }
-                  placeholder="VD: CYBER"
+                  placeholder="VD: VICECITY, OP, CYBER..."
                   className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 text-white font-mono text-xs uppercase tracking-wider focus:outline-none focus:border-cyan-400"
                 />
               </div>

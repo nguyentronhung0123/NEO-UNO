@@ -160,20 +160,35 @@ exports.createGuild = async (req, res) => {
       });
     }
 
-    // 3. Chuẩn hóa & Xác thực Tag và Tên Bang
-    if (!name || name.trim().length < 3 || name.trim().length > 30) {
+    // 3. Chuẩn hóa & Xác thực Tag và Tên Bang (Tự do đặt tên theo ý muốn)
+    const cleanName = (name || '').trim();
+    if (!cleanName) {
       return res.status(400).json({
         success: false,
-        message: 'Tên Bang Hội phải từ 3 đến 30 ký tự!',
+        message: 'Vui lòng nhập Tên Bang Hội!',
       });
     }
 
-    const cleanTag = (tag || '').trim().toUpperCase();
-    if (!cleanTag || cleanTag.length < 2 || cleanTag.length > 6 || !/^[A-Z0-9]+$/.test(cleanTag)) {
+    if (cleanName.length > 60) {
       return res.status(400).json({
         success: false,
-        message: 'Tag Bang Hội phải từ 2 đến 6 ký tự chữ hoa hoặc số (VD: NEO, CYBER, TITAN)!',
+        message: 'Tên Bang Hội không được vượt quá 60 ký tự!',
       });
+    }
+
+    // Tag Bang Hội: Người chơi thích đặt gì cũng được (từ 1 đến 30 ký tự); nếu để trống sẽ tự động trích xuất từ Tên
+    let cleanTag = (tag || '').trim().toUpperCase();
+    if (!cleanTag) {
+      const words = cleanName.split(/\s+/).filter(Boolean);
+      if (words.length > 1) {
+        cleanTag = words.map((w) => w[0]).join('').slice(0, 10).toUpperCase();
+      } else {
+        cleanTag = cleanName.slice(0, 8).toUpperCase();
+      }
+    }
+
+    if (cleanTag.length > 30) {
+      cleanTag = cleanTag.slice(0, 30);
     }
 
     const existingTag = await Guild.findOne({ tag: cleanTag });

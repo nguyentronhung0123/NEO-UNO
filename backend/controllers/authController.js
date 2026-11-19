@@ -111,11 +111,11 @@ function validateStrongPassword(password) {
 }
 
 function validateNickname(nickname) {
-  if (!nickname || nickname.trim().length < 3) {
-    return 'Tên tài khoản (P1 TAG) phải có ít nhất 3 ký tự!';
+  if (!nickname || nickname.trim().length < 1) {
+    return 'Tên người chơi phải có ít nhất 1 ký tự!';
   }
-  if (nickname.trim().length > 30) {
-    return 'Tên tài khoản không được vượt quá 30 ký tự!';
+  if (nickname.trim().length > 40) {
+    return 'Tên người chơi không được vượt quá 40 ký tự!';
   }
   return null;
 }

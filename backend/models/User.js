@@ -6,8 +6,8 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Vui lòng nhập tên người dùng'],
       trim: true,
-      minlength: [3, 'Tên người dùng phải từ 3 ký tự trở lên'],
-      maxlength: [30, 'Tên người dùng không được quá 30 ký tự'],
+      minlength: [1, 'Tên người dùng phải từ 1 ký tự trở lên'],
+      maxlength: [40, 'Tên người dùng không được quá 40 ký tự'],
     },
     accountId: {
       type: String,
