@@ -369,6 +369,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   // Chuyển lượt sang người kế tiếp (Dọn dẹp triệt để timer cũ để chống nhảy lượt)
   const advanceTurn = useCallback(
     (steps = 1, forcedDirection = null) => {
+      if (winnerRef.current) return;
       if (botTimerRef.current) {
         clearTimeout(botTimerRef.current);
         botTimerRef.current = null;
@@ -539,15 +540,20 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
       if (isTeamMode) {
         const teamResult = checkTeamVictory({
-          playerHand,
-          bots,
+          winnerId: customWinnerId,
+          playerHand: current.playerHand || [],
+          bots: current.bots || [],
+          contenders: allContenders,
           reason,
         });
         finalWinner = teamResult.isPlayerWin ? 'TEAM_ALPHA' : 'TEAM_OMEGA';
         setWinner(finalWinner);
+        winnerRef.current = finalWinner;
       } else {
         setWinner(finalWinner);
+        winnerRef.current = finalWinner;
       }
+      isCardActionLockedRef.current = true;
 
       // Xóa phiên đấu dở dang vì ván đấu đã kết thúc chính thức
       clearActiveMatch();
@@ -948,6 +954,20 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
 
     return () => clearInterval(timer);
   }, [winner, isShuffling, isDealing, isReshufflingDeck, finalizeRankings]);
+
+  // BẢO VỆ CHẮC CHẮN 100%: Khi bất kỳ ai hết bài (0 lá) thì ngay lập tức End Game
+  useEffect(() => {
+    if (winnerRef.current || !gameState || isShuffling || isDealing) return;
+    const pCount = gameState.playerHand?.length ?? 99;
+    if (pCount === 0) {
+      finalizeRankings('player', 'out_of_cards');
+      return;
+    }
+    const zeroBot = (gameState.bots || []).find((b) => (b.hand?.length ?? 99) === 0);
+    if (zeroBot) {
+      finalizeRankings(zeroBot.id, 'out_of_cards');
+    }
+  }, [gameState, isShuffling, isDealing, finalizeRankings]);
 
   const activeDiscard = useMemo(() => {
     if (!gameState || !gameState.discardPile.length) return null;

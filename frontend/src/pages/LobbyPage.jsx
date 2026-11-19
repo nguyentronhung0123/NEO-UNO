@@ -40,6 +40,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isOnlineRoomOpen, setIsOnlineRoomOpen] = useState(false);
   const [isMatchmakingOpen, setIsMatchmakingOpen] = useState(false);
+  const [isTeam2v2ModalOpen, setIsTeam2v2ModalOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isQuestOpen, setIsQuestOpen] = useState(false);
@@ -1279,12 +1280,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               </button>
               <button
                 onClick={() => {
-                  onJoinOfflineMatch({
-                    botCount: 3,
-                    timeLimit: 300,
-                    gameMode: '2V2',
-                    isTeamMode: true,
-                  });
+                  setIsTeam2v2ModalOpen(true);
                 }}
                 className="flex-1 min-w-[120px] py-1.5 px-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-200 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer shadow-[0_0_15px_rgba(0,210,255,0.25)] hover:shadow-[0_0_20px_rgba(0,210,255,0.45)] hover:scale-105"
               >
@@ -1778,6 +1774,83 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             }}
           />
         </Suspense>
+      )}
+
+      {/* MODAL LỰA CHỌN CHẾ ĐỘ ĐỒNG ĐỘI 2V2: ONLINE GHÉP NGƯỜI vs OFFLINE ĐẤU BOT */}
+      {isTeam2v2ModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="relative w-full max-w-lg p-6 sm:p-8 rounded-3xl bg-[#121622] border-2 border-cyan-500/40 shadow-[0_0_80px_rgba(0,210,255,0.35)] flex flex-col items-center text-center">
+            <button
+              onClick={() => setIsTeam2v2ModalOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-3xl shadow-[0_0_35px_rgba(0,210,255,0.6)] mb-3 animate-bounce">
+              🤝
+            </div>
+
+            <h2 className="font-headline font-black text-2xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-rose-400 uppercase tracking-wider mb-2">
+              ĐỒNG ĐỘI 2V2 (TAG-TEAM)
+            </h2>
+            <p className="text-xs text-slate-300 max-w-md mb-6 leading-relaxed">
+              Chiến thuật song sát 2v2: Bạn và Đồng đội lập thành <strong>Team Alpha</strong>, đối đầu <strong>Team Omega</strong>. Chỉ cần 1 thành viên xả hết bài là cả đội giành chiến thắng!
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full mb-2">
+              {/* Card 1: Ghép người Online */}
+              <button
+                onClick={() => {
+                  setIsTeam2v2ModalOpen(false);
+                  setMatchmakingMode('2V2_TEAM');
+                  setIsMatchmakingOpen(true);
+                }}
+                className="p-5 rounded-2xl bg-gradient-to-b from-cyan-500/20 to-blue-600/10 hover:from-cyan-500/30 hover:to-blue-600/20 border-2 border-cyan-400/50 hover:border-cyan-300 transition-all flex flex-col items-center text-center group cursor-pointer shadow-[0_0_25px_rgba(0,210,255,0.2)] hover:scale-102"
+              >
+                <div className="w-12 h-12 rounded-full bg-cyan-500/30 border border-cyan-400/60 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                  🌐
+                </div>
+                <h3 className="font-headline font-black text-base text-cyan-200 mb-1 group-hover:text-white">
+                  GHÉP NGƯỜI ONLINE
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-[9px] font-black uppercase mb-2">
+                  RANK ELO 2V2
+                </span>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Ghép trận nhanh tự động cùng đấu thủ thật theo ELO. Tự động điền Bot AI sau 60s.
+                </p>
+              </button>
+
+              {/* Card 2: Đấu Bot AI Offline */}
+              <button
+                onClick={() => {
+                  setIsTeam2v2ModalOpen(false);
+                  onJoinOfflineMatch({
+                    botCount: 3,
+                    timeLimit: 300,
+                    gameMode: '2V2',
+                    isTeamMode: true,
+                  });
+                }}
+                className="p-5 rounded-2xl bg-gradient-to-b from-purple-500/20 to-slate-800/20 hover:from-purple-500/30 hover:to-slate-800/30 border-2 border-purple-400/40 hover:border-purple-300 transition-all flex flex-col items-center text-center group cursor-pointer shadow-[0_0_25px_rgba(168,85,247,0.15)] hover:scale-102"
+              >
+                <div className="w-12 h-12 rounded-full bg-purple-500/30 border border-purple-400/60 flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform">
+                  🤖
+                </div>
+                <h3 className="font-headline font-black text-base text-purple-200 mb-1 group-hover:text-white">
+                  ĐẤU BOT OFFLINE
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-purple-400 text-slate-950 text-[9px] font-black uppercase mb-2">
+                  LUYỆN TẬP
+                </span>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Phối hợp cùng Bot Neon (Alpha) đối đầu Bot Titan & Bot Cyber (Omega) không cần mạng.
+                </p>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL HỆ THỐNG BẠN BÈ & LỜI MỜI ĐẤU (TASK 2) */}

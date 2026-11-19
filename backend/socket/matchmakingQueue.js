@@ -12,6 +12,7 @@ const MATCHMAKING_TIMEOUT_MS = 60000;
 // Các chế độ và số người yêu cầu
 const MODE_CAPACITY = {
   '4_PLAYERS': 4,
+  '2V2_TEAM': 4,
   '3_PLAYERS': 3,
   'SOLO_1V1': 2,
 };
@@ -19,6 +20,7 @@ const MODE_CAPACITY = {
 // Hàng chờ in-memory cho từng chế độ: Map<mode, Array<QueueItem>>
 const queues = {
   '4_PLAYERS': [],
+  '2V2_TEAM': [],
   '3_PLAYERS': [],
   'SOLO_1V1': [],
 };
@@ -145,9 +147,11 @@ function createMatchedRoom(humanPlayers, mode, io, botCount = 0) {
     host.socketId
   );
 
+  const isTeam = mode === '2V2_TEAM';
   room.maxPlayers = MODE_CAPACITY[mode] || 4;
   room.isRanked = true; // Ghép trận nhanh tự động là trận tính ELO!
   room.mode = mode;
+  room.isTeamMode = isTeam;
 
   // Thêm các người chơi thật còn lại vào phòng
   for (let i = 1; i < humanPlayers.length; i++) {
@@ -167,15 +171,27 @@ function createMatchedRoom(humanPlayers, mode, io, botCount = 0) {
   // Thêm Bot AI vào nếu còn thiếu
   for (let b = 0; b < botCount; b++) {
     const botTemplate = BOT_TEMPLATES[b % BOT_TEMPLATES.length];
+    const seatIdx = room.players.length;
+    const isAlpha = seatIdx % 2 === 0;
+    const teamSuffix = isTeam ? (isAlpha ? ' (Alpha)' : ' (Omega)') : '';
     room.players.push({
       socketId: null,
       userId: `bot_mm_${Date.now()}_${b + 1}`,
-      name: botTemplate.name,
+      name: `${botTemplate.name}${teamSuffix}`,
       avatar: botTemplate.avatar,
       elo: botTemplate.baseElo + Math.floor(Math.random() * 50 - 25),
       isHost: false,
       isReady: true,
       isBot: true,
+    });
+  }
+
+  // Phân chia đội nếu là chế độ Đồng Đội 2v2 (Ghế 0 & 2: Alpha, Ghế 1 & 3: Omega)
+  if (isTeam) {
+    room.players.forEach((p, idx) => {
+      const isAlpha = idx % 2 === 0;
+      p.team = isAlpha ? 'ALPHA' : 'OMEGA';
+      p.teamName = isAlpha ? 'Team Alpha' : 'Team Omega';
     });
   }
 

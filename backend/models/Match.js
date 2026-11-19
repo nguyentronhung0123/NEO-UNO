@@ -8,7 +8,7 @@ const matchSchema = new mongoose.Schema(
     },
     mode: {
       type: String,
-      enum: ['1v1', '3p', '4p', 'custom'],
+      enum: ['1v1', '3p', '4p', 'custom', '2v2'],
       default: '4p',
     },
     winner: {

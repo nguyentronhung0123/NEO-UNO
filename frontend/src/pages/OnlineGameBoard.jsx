@@ -124,6 +124,15 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const [isReplayOpen, setIsReplayOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
 
+  const isTeamMode = Boolean(
+    gameState?.isTeamMode ||
+    gameState?.mode === '2V2_TEAM' ||
+    gameState?.mode === '2V2' ||
+    room?.mode === '2V2_TEAM' ||
+    room?.mode === '2V2' ||
+    room?.isTeamMode
+  );
+
   // QUẢN LÝ NHẠC NỀN BÀN ĐẤU ONLINE (TASK 1 - TUẦN 4)
   useEffect(() => {
     soundEngine.init();
@@ -1169,6 +1178,13 @@ export default function OnlineGameBoard({ room, user, onBack }) {
           </div>
         )}
 
+        {isTeamMode && (
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-200 text-[8px] font-black uppercase tracking-wider mb-0.5 shadow-sm">
+            <span>⚔️</span>
+            <span>TEAM OMEGA</span>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-1 mt-1 relative w-full justify-center">
           {renderAvatarFxBadge(player.seatIndex)}
           {renderPlayerAvatar(player.avatar, player.isBot, isCurrent, 'w-8 h-8 sm:w-9 sm:h-9', player.equippedAvatarFrame)}
@@ -1289,13 +1305,24 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               <span className="hidden sm:inline">Thoát</span>
             </button>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <span className="material-symbols-outlined text-primary-container text-lg sm:text-xl">
-                sports_soccer
+                {isTeamMode ? 'groups' : 'sports_soccer'}
               </span>
               <span className="font-headline font-black text-sm sm:text-base text-white tracking-wider">
-                NEO <span className="text-primary-container">UNO</span>
+                {isTeamMode ? (
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-300 to-rose-400">
+                    🤝 ĐỒNG ĐỘI 2V2: ALPHA vs OMEGA
+                  </span>
+                ) : (
+                  <>NEO <span className="text-primary-container">UNO</span></>
+                )}
               </span>
+              {isTeamMode && (
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-cyan-400 text-slate-950 text-[9px] font-black uppercase tracking-wider shadow-sm">
+                  TAG-TEAM 2V2
+                </span>
+              )}
             </div>
 
             {isSpectator ? (
@@ -1492,6 +1519,13 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                     </div>
                   )}
 
+                  {isTeamMode && (
+                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 text-[9px] font-black uppercase tracking-wider mb-0.5 shadow-sm">
+                      <span>🛡️</span>
+                      <span>ĐỒNG ĐỘI (TEAM ALPHA)</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-2.5 mt-0.5 relative">
                     {renderAvatarFxBadge(topOpponent.seatIndex)}
                     {renderPlayerAvatar(
@@ -1535,6 +1569,20 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                       );
                     })}
                   </div>
+
+                  {/* TACTICAL TEAMMATE CARD PEEK (TASK 2 - 2V2 MODE) */}
+                  {isTeamMode && gameState?.teammateCardSummary && (
+                    <div className="flex items-center gap-1.5 mt-1 px-2.5 py-0.5 rounded-full bg-black/70 border border-cyan-400/40 text-[9px] text-cyan-200 font-mono shadow-sm">
+                      <span className="font-bold text-slate-300">Bài đồng đội:</span>
+                      <div className="flex items-center gap-1 font-bold">
+                        <span className="text-rose-400">🔴{gameState.teammateCardSummary.red}</span>
+                        <span className="text-sky-400">🔵{gameState.teammateCardSummary.blue}</span>
+                        <span className="text-emerald-400">🟢{gameState.teammateCardSummary.green}</span>
+                        <span className="text-amber-400">🟡{gameState.teammateCardSummary.yellow}</span>
+                        <span className="text-purple-400">🌈{gameState.teammateCardSummary.wild}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -2078,13 +2126,20 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                     </span>
                   </div>
                   <div className="flex flex-col">
-                    <span
-                      className={`text-xs font-bold leading-tight ${
-                        isMyTurn ? 'text-primary-container font-black' : 'text-white'
-                      }`}
-                    >
-                      {myDisplayName} (Bạn)
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`text-xs font-bold leading-tight ${
+                          isMyTurn ? 'text-primary-container font-black' : 'text-white'
+                        }`}
+                      >
+                        {myDisplayName} (Bạn)
+                      </span>
+                      {isTeamMode && (
+                        <span className="px-1.5 py-0.2 rounded-full bg-cyan-500/25 border border-cyan-400/50 text-cyan-200 text-[8px] font-black uppercase">
+                          TEAM ALPHA
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-400">
                       {displayedPlayerHand.length} lá trên tay
                     </span>
@@ -2355,6 +2410,20 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               👑 Người chiến thắng: <strong className="text-amber-300">{gameResult.winner}</strong>
             </div>
 
+            {isTeamMode && (
+              <div className="w-full mb-3 flex flex-col items-center">
+                {gameResult.winner.includes('Team Alpha') ? (
+                  <div className="px-4 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/60 text-cyan-200 text-xs font-black uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.4)]">
+                    🛡️ TEAM ALPHA VÔ ĐỊCH
+                  </div>
+                ) : (
+                  <div className="px-4 py-1 rounded-full bg-rose-500/20 border border-rose-400/60 text-rose-200 text-xs font-black uppercase tracking-wider shadow-[0_0_20px_rgba(244,63,94,0.4)]">
+                    ⚔️ TEAM OMEGA CHIẾN THẮNG
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* THÔNG BÁO CHẾ ĐỘ XẾP HẠNG / GIAO HỮU */}
             {gameResult.isRanked ? (
               <div className="w-full mb-4">
@@ -2436,6 +2505,15 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                     <span>
                       {r.name} {r.isBot && '(Bot AI)'}
                     </span>
+                    {isTeamMode && (
+                      <span className={`text-[8px] font-black uppercase px-1.5 py-0.2 rounded-full border ${
+                        r.team === 'ALPHA' || idx < 2
+                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40'
+                          : 'bg-rose-500/20 text-rose-300 border-rose-400/40'
+                      }`}>
+                        {r.team === 'ALPHA' || idx < 2 ? 'Alpha' : 'Omega'}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     {gameResult.isRanked && !r.isBot && r.eloDelta !== undefined && (

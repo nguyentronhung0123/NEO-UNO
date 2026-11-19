@@ -118,10 +118,52 @@ export function getTeamForSeat(seatIndex) {
 
 /**
  * Kiểm tra kết quả chiến thắng theo luật Đồng Đội 2v2:
- * 1. Nếu bất kỳ thành viên nào hết bài -> Đội của thành viên đó thắng 100%!
+ * 1. Nếu có winnerId cụ thể hoặc bất kỳ thành viên nào hết bài -> Đội của thành viên đó thắng 100%!
  * 2. Nếu hết thời gian (Timeout) -> Đội nào có tổng số lá bài còn lại ít hơn thắng!
  */
-export function checkTeamVictory({ playerHand = [], bots = [], reason = 'out_of_cards' }) {
+export function checkTeamVictory({
+  winnerId = null,
+  playerHand = [],
+  bots = [],
+  contenders = [],
+  reason = 'out_of_cards',
+}) {
+  // 0. Nhận diện trực tiếp theo winnerId nếu được truyền vào
+  if (winnerId) {
+    if (winnerId === 'player' || winnerId === 'bot_top') {
+      return {
+        winningTeam: 'ALPHA',
+        isPlayerWin: true,
+        mvp: winnerId,
+        reason: 'out_of_cards',
+      };
+    }
+    if (winnerId === 'bot_right' || winnerId === 'bot_left') {
+      return {
+        winningTeam: 'OMEGA',
+        isPlayerWin: false,
+        mvp: winnerId,
+        reason: 'out_of_cards',
+      };
+    }
+  }
+
+  // 1. Kiểm tra danh sách contenders (đã được cập nhật số bài sau khi xả lá cuối)
+  if (contenders && contenders.length > 0) {
+    const zeroContender = contenders.find(
+      (c) => c.cardCount === 0 || (c.hand && c.hand.length === 0)
+    );
+    if (zeroContender) {
+      const isAlpha = zeroContender.id === 'player' || zeroContender.id === 'bot_top';
+      return {
+        winningTeam: isAlpha ? 'ALPHA' : 'OMEGA',
+        isPlayerWin: isAlpha,
+        mvp: zeroContender.id,
+        reason: 'out_of_cards',
+      };
+    }
+  }
+
   const topBot = bots.find((b) => b.position === 'top') || bots[1];
   const rightBot = bots.find((b) => b.position === 'right') || bots[0];
   const leftBot = bots.find((b) => b.position === 'left') || bots[2];
@@ -131,7 +173,7 @@ export function checkTeamVictory({ playerHand = [], bots = [], reason = 'out_of_
   const rightCount = rightBot?.hand?.length ?? 99;
   const leftCount = leftBot?.hand?.length ?? 99;
 
-  // 1. Luật hết bài: 1 người hết bài là cả đội thắng
+  // 2. Luật hết bài: 1 người hết bài là cả đội thắng
   if (reason === 'out_of_cards') {
     if (pCount === 0 || topCount === 0) {
       return {
@@ -151,7 +193,7 @@ export function checkTeamVictory({ playerHand = [], bots = [], reason = 'out_of_
     }
   }
 
-  // 2. Luật hết giờ (Timeout): Tổng số lá của đội
+  // 3. Luật hết giờ (Timeout): Tổng số lá của đội
   const alphaTotalCards = pCount + topCount;
   const omegaTotalCards = rightCount + leftCount;
 

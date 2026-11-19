@@ -176,6 +176,7 @@ class OnlineGame {
     this.io = io;
     this.isRanked = room.isRanked || false;
     this.mode = room.mode || '4_PLAYERS';
+    this.isTeamMode = Boolean(room.isTeamMode || this.mode === '2V2_TEAM' || this.mode === '2V2');
     this.startTime = Date.now();
 
     // Khởi tạo bộ bài
@@ -186,6 +187,8 @@ class OnlineGame {
     this.players = room.players.map((p, idx) => ({
       ...p,
       seatIndex: idx,
+      team: this.isTeamMode ? (p.team || (idx % 2 === 0 ? 'ALPHA' : 'OMEGA')) : null,
+      teamName: this.isTeamMode ? (p.teamName || (idx % 2 === 0 ? 'Team Alpha' : 'Team Omega')) : null,
       hand: this.drawPile.splice(0, 7),
       unoCalled: false,
       isAfk: false,
@@ -1473,6 +1476,31 @@ class OnlineGame {
       const rank = idx + 1;
       let { eloDelta, coinsDelta, expDelta, isWin, isLoss } = calculateDeltas(totalPlayerCount, rank);
 
+      // Điều chỉnh điểm số và thắng thua cho chế độ Đồng Đội 2v2
+      if (this.isTeamMode) {
+        if (rank <= 2) {
+          isWin = true;
+          isLoss = false;
+          if (rank === 2) {
+            eloDelta = +20;
+            coinsDelta = +100;
+            expDelta = +70;
+          }
+        } else {
+          isWin = false;
+          isLoss = true;
+          if (rank === 3) {
+            eloDelta = -10;
+            coinsDelta = +30;
+            expDelta = +20;
+          } else {
+            eloDelta = -20;
+            coinsDelta = +15;
+            expDelta = +10;
+          }
+        }
+      }
+
       // 1. KIỂM TRA TÌNH TRẠNG AFK / MÁY ĐÁNH HỘ (CHỐNG CÀY RANK BẰNG BOT AFK)
       const isAfkPlayer = !!(
         !p.isBot &&
@@ -1602,7 +1630,9 @@ class OnlineGame {
 
     try {
       const modeKey =
-        totalPlayerCount === 2
+        this.isTeamMode
+          ? '2v2'
+          : totalPlayerCount === 2
           ? '1v1'
           : totalPlayerCount === 3
           ? '3p'
@@ -1643,10 +1673,35 @@ class OnlineGame {
       }
     });
 
-    // Sắp xếp thứ hạng: Đảm bảo winnerPlayer luôn ở vị trí số 1 (rank 1)
-    const otherPlayers = this.players.filter((p) => p.seatIndex !== winnerPlayer.seatIndex);
-    otherPlayers.sort((a, b) => a.hand.length - b.hand.length);
-    const sortedRankings = [winnerPlayer, ...otherPlayers];
+    // Sắp xếp thứ hạng
+    let sortedRankings = [];
+    let winnerDisplayName = winnerPlayer.name;
+
+    if (this.isTeamMode) {
+      const winningTeam = winnerPlayer.team || (winnerPlayer.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA');
+      const winningTeamName = winningTeam === 'ALPHA' ? 'Team Alpha' : 'Team Omega';
+      winnerDisplayName = `${winningTeamName} (${winnerPlayer.name})`;
+
+      const winningMembers = this.players.filter(
+        (p) => (p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA')) === winningTeam
+      );
+      const losingMembers = this.players.filter(
+        (p) => (p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA')) !== winningTeam
+      );
+
+      // Sắp xếp đội thắng: winnerPlayer đầu tiên, đồng đội thứ hai
+      const teammate = winningMembers.find((p) => p.seatIndex !== winnerPlayer.seatIndex);
+      const sortedWinning = [winnerPlayer, ...(teammate ? [teammate] : [])];
+
+      // Sắp xếp đội thua: ít lá hơn xếp trước
+      losingMembers.sort((a, b) => a.hand.length - b.hand.length);
+
+      sortedRankings = [...sortedWinning, ...losingMembers];
+    } else {
+      const otherPlayers = this.players.filter((p) => p.seatIndex !== winnerPlayer.seatIndex);
+      otherPlayers.sort((a, b) => a.hand.length - b.hand.length);
+      sortedRankings = [winnerPlayer, ...otherPlayers];
+    }
 
     let finalRankings = [];
     if (this.isRanked) {
@@ -1659,12 +1714,13 @@ class OnlineGame {
         avatar: p.avatar,
         cardsRemaining: p.hand.length,
         isBot: p.isBot,
+        team: p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA'),
       }));
 
       // Lưu ván đấu thường (bao gồm đấu với Bot AI) để phục vụ Match Replay & Tố cáo
       try {
         const totalPlayerCount = this.players.length;
-        const modeKey = totalPlayerCount === 2 ? '1v1' : totalPlayerCount === 3 ? '3p' : '4p';
+        const modeKey = this.isTeamMode ? '2v2' : totalPlayerCount === 2 ? '1v1' : totalPlayerCount === 3 ? '3p' : '4p';
         const matchPlayers = this.players.map((p, idx) => {
           const rankIdx = sortedRankings.findIndex((sp) => sp.seatIndex === p.seatIndex);
           return {
@@ -1687,7 +1743,7 @@ class OnlineGame {
           mode: modeKey,
           winner: {
             id: String(winnerPlayer.userId || winnerPlayer.name),
-            name: winnerPlayer.name,
+            name: winnerDisplayName,
             isHuman: !winnerPlayer.isBot,
           },
           reason: 'out_of_cards',
@@ -1704,9 +1760,10 @@ class OnlineGame {
     }
 
     this.gameResult = {
-      winner: winnerPlayer.name,
+      winner: winnerDisplayName,
       rankings: finalRankings,
       isRanked: this.isRanked,
+      isTeamMode: this.isTeamMode,
       mode: this.mode,
       matchId: this.lastMatchId || null,
     };
@@ -1730,7 +1787,38 @@ class OnlineGame {
     this.status = 'finished';
     this.stopTimers();
 
-    const sortedRankings = [...this.players].sort((a, b) => a.hand.length - b.hand.length);
+    let sortedRankings = [];
+    let winnerDisplayName = '';
+
+    if (this.isTeamMode) {
+      const alphaCards = this.players
+        .filter((p) => (p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA')) === 'ALPHA')
+        .reduce((sum, p) => sum + p.hand.length, 0);
+      const omegaCards = this.players
+        .filter((p) => (p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA')) === 'OMEGA')
+        .reduce((sum, p) => sum + p.hand.length, 0);
+
+      const winningTeam = alphaCards <= omegaCards ? 'ALPHA' : 'OMEGA';
+      const winningTeamName = winningTeam === 'ALPHA' ? 'Team Alpha' : 'Team Omega';
+      const winningCards = winningTeam === 'ALPHA' ? alphaCards : omegaCards;
+      winnerDisplayName = `${winningTeamName} (Hết giờ: ${winningCards} lá)`;
+
+      const winningMembers = this.players.filter(
+        (p) => (p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA')) === winningTeam
+      );
+      const losingMembers = this.players.filter(
+        (p) => (p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA')) !== winningTeam
+      );
+
+      winningMembers.sort((a, b) => a.hand.length - b.hand.length);
+      losingMembers.sort((a, b) => a.hand.length - b.hand.length);
+
+      sortedRankings = [...winningMembers, ...losingMembers];
+    } else {
+      sortedRankings = [...this.players].sort((a, b) => a.hand.length - b.hand.length);
+      winnerDisplayName = `${sortedRankings[0].name} (Hết giờ)`;
+    }
+
     const winner = sortedRankings[0];
     this.winner = winner;
 
@@ -1745,13 +1833,15 @@ class OnlineGame {
         avatar: p.avatar,
         cardsRemaining: p.hand.length,
         isBot: p.isBot,
+        team: p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA'),
       }));
     }
 
     this.gameResult = {
-      winner: `${winner.name} (Hết giờ)`,
+      winner: winnerDisplayName,
       rankings: finalRankings,
       isRanked: this.isRanked,
+      isTeamMode: this.isTeamMode,
       mode: this.mode,
       matchId: this.lastMatchId || null,
     };
@@ -1773,11 +1863,30 @@ class OnlineGame {
 
   getClientStateForPlayer(player) {
     const topCard = this.discardPile[this.discardPile.length - 1];
+
+    let teammateCardSummary = null;
+    if (this.isTeamMode) {
+      const myTeam = player.team || (player.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA');
+      const teammate = this.players.find(
+        (p) => p.seatIndex !== player.seatIndex && (p.team || (p.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA')) === myTeam
+      );
+      if (teammate) {
+        teammateCardSummary = { red: 0, blue: 0, green: 0, yellow: 0, wild: 0, total: teammate.hand.length };
+        (teammate.hand || []).forEach((c) => {
+          if (teammateCardSummary[c.color] !== undefined) teammateCardSummary[c.color]++;
+          else teammateCardSummary.wild++;
+        });
+      }
+    }
+
     return {
       roomCode: this.roomCode,
       status: this.status,
       gameResult: this.gameResult || null,
       isRanked: this.isRanked,
+      mode: this.mode,
+      isTeamMode: this.isTeamMode,
+      teammateCardSummary,
       isDealing: this.isDealing,
       dealingCountdown: this.dealingCountdown,
       isTransitioning: this.isTransitioning,
@@ -1802,6 +1911,8 @@ class OnlineGame {
         userId: other.userId,
         name: other.name,
         avatar: other.avatar,
+        team: other.team || (other.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA'),
+        teamName: other.teamName || (other.seatIndex % 2 === 0 ? 'Team Alpha' : 'Team Omega'),
         equippedCardSkin: other.equippedCardSkin || 'skin_classic',
         equippedAvatarFrame: other.equippedAvatarFrame || 'frame_default',
         isHost: other.isHost,
@@ -2019,6 +2130,8 @@ class OnlineGame {
       status: this.status,
       gameResult: this.gameResult || null,
       isRanked: this.isRanked,
+      mode: this.mode,
+      isTeamMode: this.isTeamMode,
       isDealing: this.isDealing,
       dealingCountdown: this.dealingCountdown,
       isTransitioning: this.isTransitioning,
@@ -2050,6 +2163,8 @@ class OnlineGame {
         userId: other.userId,
         name: other.name,
         avatar: other.avatar,
+        team: other.team || (other.seatIndex % 2 === 0 ? 'ALPHA' : 'OMEGA'),
+        teamName: other.teamName || (other.seatIndex % 2 === 0 ? 'Team Alpha' : 'Team Omega'),
         equippedCardSkin: other.equippedCardSkin || 'skin_classic',
         equippedAvatarFrame: other.equippedAvatarFrame || 'frame_default',
         isHost: other.isHost,
@@ -2142,4 +2257,5 @@ module.exports = {
   getActiveGame,
   getGameEngineMetrics,
   activeGames,
+  OnlineGame,
 };

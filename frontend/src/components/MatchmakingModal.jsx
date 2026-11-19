@@ -32,6 +32,7 @@ export default function MatchmakingModal({
 
   const MODE_CONFIGS = {
     '4_PLAYERS': { label: 'Bàn 4 Người', capacity: 4, icon: 'groups', desc: 'Đấu trường chuẩn quốc tế' },
+    '2V2_TEAM': { label: 'Đồng Đội 2v2', capacity: 4, icon: 'diversity_3', desc: 'Team Alpha vs Team Omega' },
     '3_PLAYERS': { label: 'Đấu Tay Ba', capacity: 3, icon: 'group', desc: 'Trận chiến 3 người tốc độ cao' },
     'SOLO_1V1': { label: 'Solo 1v1', capacity: 2, icon: 'swords', desc: 'Đấu tay đôi sinh tử' },
   };
@@ -236,21 +237,27 @@ export default function MatchmakingModal({
             </div>
 
             {/* Slot Preview Indicators */}
-            <div className="flex items-center justify-center gap-3 my-4 w-full">
+            <div className="flex items-center justify-center gap-2 sm:gap-3 my-4 w-full">
               {Array.from({ length: currentCap }).map((_, idx) => {
                 const isFilled = idx < currentPlayers;
+                const isTeam2v2 = selectedMode === '2V2_TEAM';
+                const isAlpha = idx % 2 === 0;
                 return (
                   <div
                     key={idx}
                     className={`flex-1 max-w-[85px] py-2 px-1 rounded-xl border flex flex-col items-center transition-all ${
                       isFilled
-                        ? 'bg-primary-container/15 border-primary-container/60 shadow-[0_0_15px_rgba(0,210,255,0.3)]'
+                        ? isTeam2v2
+                          ? isAlpha
+                            ? 'bg-cyan-500/15 border-cyan-400/60 shadow-[0_0_15px_rgba(0,210,255,0.3)]'
+                            : 'bg-rose-500/15 border-rose-400/60 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                          : 'bg-primary-container/15 border-primary-container/60 shadow-[0_0_15px_rgba(0,210,255,0.3)]'
                         : 'bg-white/5 border-white/10 opacity-60'
                     }`}
                   >
                     <div className="w-8 h-8 rounded-full mb-1 flex items-center justify-center bg-black/40 overflow-hidden border border-white/20">
                       {isFilled ? (
-                        <span className="material-symbols-outlined text-sm text-primary-container">
+                        <span className={`material-symbols-outlined text-sm ${isTeam2v2 ? (isAlpha ? 'text-cyan-300' : 'text-rose-300') : 'text-primary-container'}`}>
                           person
                         </span>
                       ) : (
@@ -259,9 +266,22 @@ export default function MatchmakingModal({
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] font-bold text-slate-300">
-                      {isFilled ? (idx === 0 ? 'Bạn' : `Đấu thủ ${idx + 1}`) : 'Chờ...'}
+                    <span className="text-[10px] font-bold text-slate-300 truncate max-w-[75px]">
+                      {isFilled
+                        ? idx === 0
+                          ? 'Bạn'
+                          : isTeam2v2
+                          ? idx === 2
+                            ? 'Đồng đội'
+                            : `Đối thủ ${idx === 1 ? '1' : '2'}`
+                          : `Đấu thủ ${idx + 1}`
+                        : 'Chờ...'}
                     </span>
+                    {isTeam2v2 && (
+                      <span className={`text-[8px] font-black uppercase tracking-wider px-1 rounded mt-0.5 ${isAlpha ? 'text-cyan-300 bg-cyan-950/60 border border-cyan-400/40' : 'text-rose-300 bg-rose-950/60 border border-rose-400/40'}`}>
+                        {isAlpha ? 'ALPHA' : 'OMEGA'}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -304,27 +324,52 @@ export default function MatchmakingModal({
 
             {/* Danh sách đấu thủ trong trận */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full my-2">
-              {matchedRoom.players.map((p, idx) => (
-                <div
-                  key={idx}
-                  className="p-2.5 rounded-2xl bg-[#141a27] border border-cyan-500/40 flex flex-col items-center text-center shadow-[0_0_15px_rgba(6,182,212,0.15)]"
-                >
-                  <img
-                    src={p.avatar}
-                    alt={p.name}
-                    className="w-10 h-10 rounded-full bg-slate-800 border border-cyan-400/50 mb-1.5 p-0.5"
-                    onError={(e) => {
-                      e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`;
-                    }}
-                  />
-                  <span className="font-bold text-xs text-white truncate max-w-[90px]">
-                    {p.name}
-                  </span>
-                  <span className="text-[10px] text-cyan-300 font-medium">
-                    {p.isBot ? '🤖 Bot AI' : `${p.elo || 1000} ELO`}
-                  </span>
-                </div>
-              ))}
+              {matchedRoom.players.map((p, idx) => {
+                const isTeam2v2 = matchedRoom.isTeamMode || selectedMode === '2V2_TEAM';
+                const isAlpha = (p.team ? p.team === 'ALPHA' : idx % 2 === 0);
+                return (
+                  <div
+                    key={idx}
+                    className={`p-2.5 rounded-2xl bg-[#141a27] border flex flex-col items-center text-center shadow-[0_0_15px_rgba(6,182,212,0.15)] ${
+                      isTeam2v2
+                        ? isAlpha
+                          ? 'border-cyan-400/60 shadow-[0_0_15px_rgba(0,210,255,0.25)]'
+                          : 'border-rose-400/60 shadow-[0_0_15px_rgba(244,63,94,0.25)]'
+                        : 'border-cyan-500/40'
+                    }`}
+                  >
+                    <img
+                      src={p.avatar}
+                      alt={p.name}
+                      className={`w-10 h-10 rounded-full bg-slate-800 border mb-1.5 p-0.5 ${
+                        isTeam2v2
+                          ? isAlpha
+                            ? 'border-cyan-400/70'
+                            : 'border-rose-400/70'
+                          : 'border-cyan-400/50'
+                      }`}
+                      onError={(e) => {
+                        e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${p.name}`;
+                      }}
+                    />
+                    <span className="font-bold text-xs text-white truncate max-w-[90px]">
+                      {p.name}
+                    </span>
+                    <span className="text-[10px] text-cyan-300 font-medium">
+                      {p.isBot ? '🤖 Bot AI' : `${p.elo || 1000} ELO`}
+                    </span>
+                    {isTeam2v2 && (
+                      <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.2 rounded-full mt-1 ${
+                        isAlpha
+                          ? 'text-cyan-200 bg-cyan-950/70 border border-cyan-400/50'
+                          : 'text-rose-200 bg-rose-950/70 border border-rose-400/50'
+                      }`}>
+                        {isAlpha ? 'Team Alpha' : 'Team Omega'}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* Countdown Badge */}
