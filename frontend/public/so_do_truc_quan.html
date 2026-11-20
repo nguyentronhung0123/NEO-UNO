@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEO-UNO — Sơ Đồ Kiến Trúc Kỹ Thuật & CSDL ERD (Tuần 6)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Sora:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0e17;
+      --card-bg: #121726;
+      --border: rgba(255, 255, 255, 0.1);
+      --cyan: #00d2ff;
+      --rose: #f43f5e;
+      --amber: #f59e0b;
+      --emerald: #10b981;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: rgba(18, 23, 38, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--cyan), var(--rose));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-family: 'Sora', sans-serif;
+      color: #000;
+      font-size: 16px;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.5);
+    }
+    .brand-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .brand-title span { color: var(--cyan); }
+    .badge {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(0, 210, 255, 0.15);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      color: var(--cyan);
+      font-weight: 700;
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      padding: 16px 24px;
+      overflow-x: auto;
+      background: rgba(11, 14, 23, 0.8);
+      border-bottom: 1px solid var(--border);
+      scrollbar-width: none;
+    }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 10px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card-bg);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .tab-btn:hover {
+      border-color: rgba(0, 210, 255, 0.4);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(0, 210, 255, 0.2), rgba(0, 210, 255, 0.05));
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.25);
+    }
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .diagram-card {
+      display: none;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s ease;
+    }
+    .diagram-card.active { display: block; }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .card-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 22px;
+      color: #fff;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+    .btn-action {
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      background: rgba(0, 210, 255, 0.2);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .mermaid-wrapper {
+      background: #07090f;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 32px 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: auto;
+      min-height: 400px;
+    }
+    .mermaid {
+      max-width: 100%;
+    }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 16px 24px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(18, 23, 38, 0.6);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-logo">N</div>
+      <div>
+        <div class="brand-title">NEO <span>UNO</span> — KIẾN TRÚC & ERD</div>
+        <div style="font-size: 11px; color: var(--muted);">Bộ Hồ Sơ Thiết Kế Kỹ Thuật Đồ Án (Tuần 6)</div>
+      </div>
+    </div>
+    <div class="badge">PRODUCTION READY • MERMAID 10</div>
+  </header>
+
+  <nav class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab(0)">🌐 1. Kiến Trúc Hệ Thống</button>
+    <button class="tab-btn" onclick="switchTab(1)">🗄️ 2. Sơ Đồ CSDL ERD</button>
+    <button class="tab-btn" onclick="switchTab(2)">⚡ 3. Ghép Trận & 2v2</button>
+    <button class="tab-btn" onclick="switchTab(3)">🃏 4. Vòng Lặp Lượt Đánh</button>
+    <button class="tab-btn" onclick="switchTab(4)">🔔 5. Hô UNO & Kết Thúc</button>
+    <button class="tab-btn" onclick="switchTab(5)">👥 6. Ca Sử Dụng (Use Case)</button>
+    <button class="tab-btn" onclick="switchTab(6)">🔄 7. Máy Trạng Thái Bàn Đấu</button>
+    <button class="tab-btn" onclick="switchTab(7)">🌳 8. Cây Phân Rã Chức Năng</button>
+  </nav>
+
+  <main>
+    <!-- TAB 1: KIẾN TRÚC HỆ THỐNG -->
+    <div class="diagram-card active" id="tab-0">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">1. Tổng Quan Kiến Trúc Hệ Thống (System Architecture)</h2>
+          <p class="card-desc">Kiến trúc phân tán thời gian thực: Client PWA (React 19) ↔ Vercel CDN ↔ Gateway Render (Node.js 20, Socket.io) ↔ MongoDB Atlas.</p>
+        </div>
+        <button class="btn-action" onclick="copyDiagram(0)">📋 Copy Mermaid</button>
+      </div>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid" id="code-0">
+flowchart TD
+    subgraph CLIENT["TẦNG CLIENT (REACT 19 + PWA)"]
+        UI_LOBBY["Sảnh Chính (LobbyPage)<br/>Radar Ghép Trận / Bang Hội / Sổ Sứ Mệnh"]
+        UI_GAME["Đấu Trường Online (OnlineGameBoard)<br/>1v1 / 4P / 2v2 Tag-Team / Soi bài Đồng Đội"]
+        UI_AUDIO["Web Audio API Synthesizer<br/>Nhạc nền Synthwave & 18+ SFX Kỹ Thuật Số"]
+    end
+
+    subgraph CDN["CDN & DEPLOYMENT"]
+        VERCEL["Vercel Edge Global CDN<br/>neo-uno.vercel.app"]
+    end
+
+    subgraph SERVER["MÁY CHỦ TRUNG TÂM (NODE.JS 20 + EXPRESS 5)"]
+        GATEWAY["API Gateway (neo-uno-backend.onrender.com)"]
+        subgraph SOC["Bảo Mật & Anti-Cheat (SOC)"]
+            SEC["Helmet / Rate-Limit / JWT Auth / NoSQL Sanitize"]
+        end
+        subgraph REST["REST API Controllers"]
+            API["Auth / Guild / Tournament / BattlePass / Shop / SOC"]
+        end
+        subgraph SOCKET["Socket.io Stateful Engine"]
+            SE["MatchmakingQueue / RoomManager / OnlineGame / UserPresence"]
+        end
+    end
+
+    subgraph DB["CƠ SỞ DỮ LIỆU ĐÁM MÂY"]
+        ATLAS[("MongoDB Atlas M0 Replica Set<br/>11 Collections & Aggregation Pipelines")]
+    end
+
+    CLIENT <--> VERCEL
+    CLIENT <--"WSS WebSocket"--> SOCKET
+    CLIENT <--"HTTPS REST API"--> GATEWAY
+    GATEWAY --> SOC --> REST
+    REST <--> ATLAS
+    SOCKET <--> ATLAS
+        </pre>
+      </div>
+    </div>
+
+    <!-- TAB 2: ERD CSDL -->
+    <div class="diagram-card" id="tab-1">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">2. Sơ Đồ Thực Thể Quan Hệ CSDL (ERD - 11 Collections)</h2>
+          <p class="card-desc">Cấu trúc thực thể quan hệ chặt chẽ giữa User, Match Replay, Guild Bang Hội, Tournament Cúp, Friendship, DirectMessage, Report và SecurityLog.</p>
+        </div>
+        <button class="btn-action" onclick="copyDiagram(1)">📋 Copy Mermaid</button>
+      </div>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid" id="code-1">
+erDiagram
+    USER ||--o{ MATCH : "tham gia ván đấu"
+    USER ||--o| GUILD : "gia nhập / lãnh đạo"
+    USER ||--o{ FRIENDSHIP : "kết bạn"
+    USER ||--o{ DIRECT_MESSAGE : "nhắn tin riêng"
+    USER ||--o{ TOURNAMENT : "đoạt cúp vô địch"
+    USER ||--o{ REPORT : "tố cáo vi phạm"
+    USER ||--o{ SECURITY_LOG : "nhật ký an ninh"
+
+    USER {
+        ObjectId _id PK
+        string accountId UK "Mã Cyber ID 10 ký tự"
+        string nickname "Tên người chơi (1-40 ký tự)"
+        string email UK "Email đăng nhập"
+        string password "Mật khẩu băm Bcrypt"
+        number elo "Điểm ELO (0-4000)"
+        number coins "Số dư Vàng"
+        number level "Cấp độ tài khoản"
+        object battlePass "Embedded: 30 Cấp, VIP"
+        object guild "Embedded: ID, Tag, Chức vụ"
+    }
+
+    MATCH {
+        ObjectId _id PK
+        string roomCode "Mã phòng đấu"
+        string mode "1v1 | 3p | 4p | 2v2"
+        object winner "Đấu thủ chiến thắng"
+        string reason "out_of_cards | timeout"
+        number durationSeconds "Thời lượng (giây)"
+        array players "Embedded: 2-4 đấu thủ, Hạng 1-4, Delta ELO"
+        array turnLogs "Embedded: Lịch sử Replay"
+    }
+
+    GUILD {
+        ObjectId _id PK
+        string name "Tên Bang Hội"
+        string tag UK "Tag viết tắt (VD: VICECITY)"
+        ObjectId leaderId FK "Bang Chủ"
+        number level "Cấp độ Bang (1-10)"
+        number treasuryCoins "Quỹ Vàng"
+        array members "Danh sách thành viên"
+        array chatMessages "Kênh chat nội bộ"
+    }
+
+    TOURNAMENT {
+        ObjectId _id PK
+        string tournamentId UK "Mã giải đấu"
+        string creatorId FK "Người tạo giải"
+        number currentRound "1: Tứ kết, 2: Bán kết, 3: Chung kết"
+        array participants "8 Đấu thủ hạt giống"
+        array matches "7 Trận đấu phân nhánh"
+        object champion "Đoạt Cúp Vô Địch"
+    }
+
+    FRIENDSHIP {
+        ObjectId _id PK
+        ObjectId requester FK "Người gửi"
+        ObjectId recipient FK "Người nhận"
+        string status "pending | accepted"
+    }
+
+    DIRECT_MESSAGE {
+        ObjectId _id PK
+        ObjectId sender FK "Người gửi"
+        ObjectId recipient FK "Người nhận"
+        string content "Nội dung tin nhắn"
+        boolean isRead "Đã đọc"
+    }
+
+    REPORT {
+        ObjectId _id PK
+        ObjectId reporter FK "Người tố cáo"
+        ObjectId targetUser FK "Đối tượng bị tố cáo"
+        string reason "afk | cheat | toxic"
+        string status "pending | resolved"
+    }
+
+    SECURITY_LOG {
+        ObjectId _id PK
+        ObjectId userId FK "Người chơi"
+        string action "Hành động an ninh"
+        string severity "info | warning | critical"
+    }
+        </pre>
+      </div>
+    </div>
+
+    <!-- TAB 3: GHÉP TRẬN & 2V2 -->
+    <div class="diagram-card" id="tab-2">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">3. Sơ Đồ Tuần Tự Ghép Trận Online 2v2 Tag-Team</h2>
+          <p class="card-desc">Luồng điều phối hàng chờ MatchmakingQueue: phân cặp đối xứng Team Alpha (Ghế 0 & 2) vs Team Omega (Ghế 1 & 3) và khởi tạo bàn đấu.</p>
+        </div>
+        <button class="btn-action" onclick="copyDiagram(2)">📋 Copy Mermaid</button>
+      </div>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid" id="code-2">
+sequenceDiagram
+    autonumber
+    actor PlayerA as Đấu thủ A (Ghế 0)
+    actor PlayerB as Đấu thủ B (Ghế 1)
+    participant ClientA as Client UI (A)
+    participant ClientB as Client UI (B)
+    participant Gateway as Socket Gateway
+    participant Queue as MatchmakingQueue
+    participant Engine as OnlineGame Engine
+
+    PlayerA->>ClientA: Bấm "Ghép Người Online 2v2"
+    ClientA->>Gateway: emit("matchmaking:join", { mode: "2V2_TEAM" })
+    Gateway->>Queue: addToQueue("2V2_TEAM", playerA)
+    Queue-->>ClientA: emit("matchmaking:searching", { queueSize: 1 })
+
+    PlayerB->>ClientB: Bấm "Ghép Người Online 2v2"
+    ClientB->>Gateway: emit("matchmaking:join", { mode: "2V2_TEAM" })
+    Gateway->>Queue: addToQueue("2V2_TEAM", playerB)
+
+    alt Quá 60s chờ -> Tự động chèn Bot
+        Queue->>Queue: Auto-fill Bot Neon (Alpha) & Bot Titan (Omega)
+    end
+
+    Queue->>Queue: createMatchedRoom("2V2_TEAM")
+    Note over Queue: Ghế 0 & 2: Team ALPHA (Cyan)<br/>Ghế 1 & 3: Team OMEGA (Rose)
+
+    Queue->>Engine: new OnlineGame(room)
+    Engine->>Engine: Khởi tạo bộ bài 108 lá, chia 7 lá/đấu thủ
+
+    Queue-->>ClientA: emit("matchmaking:found", { roomCode, seatIndex: 0, team: "ALPHA" })
+    Queue-->>ClientB: emit("matchmaking:found", { roomCode, seatIndex: 1, team: "OMEGA" })
+
+    Engine-->>ClientA: emit("game:state_sync", { fullClientState, teammateCardSummary })
+    Engine-->>ClientB: emit("game:state_sync", { fullClientState, teammateCardSummary })
+
+    ClientA->>ClientA: Bật màn hình 2v2, hiển thị Soi bài Đồng Đội
+    ClientB->>ClientB: Bật màn hình 2v2, hiển thị Soi bài Đồng Đội
+        </pre>
+      </div>
+    </div>
+
+    <!-- TAB 4: VÒNG LẶP LƯỢT ĐÁNH -->
+    <div class="diagram-card" id="tab-3">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">4. Sơ Đồ Tuần Tự Vòng Lặp Lượt Đánh & Xử Lý Lá Bài</h2>
+          <p class="card-desc">Cơ chế xác thực quyền lượt đi, luật bài UNO chống gian lận, áp dụng lá bài phạt (+2, +4, Skip, Reverse) và chuyển lượt 15s.</p>
+        </div>
+        <button class="btn-action" onclick="copyDiagram(3)">📋 Copy Mermaid</button>
+      </div>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid" id="code-3">
+sequenceDiagram
+    autonumber
+    actor Player as Đấu thủ (Đến lượt)
+    participant Client as Client GameBoard
+    participant Gateway as Socket Gateway
+    participant Engine as OnlineGame Engine
+    participant Timer as Turn Timer (15s)
+
+    Timer-->>Client: emit("game:timer_tick", { turnTimeRemaining: 15..0 })
+    Player->>Client: Bấm chọn lá bài (+2 Đỏ)
+    Client->>Gateway: emit("game:play_card", { cardId })
+
+    Gateway->>Engine: handlePlayCard(userId, cardId)
+    Engine->>Engine: Xác thực quyền lượt đi & lá bài trên tay
+    Engine->>Engine: Kiểm tra luật UNO: trùng màu hoặc trùng ký hiệu
+
+    alt Lá bài HỢP LỆ
+        Engine->>Engine: Rút lá bài khỏi tay -> Đặt lên Discard Pile
+        opt Nếu là lá bài phạt (+2, +4, Skip, Reverse)
+            Engine->>Engine: Cộng dồn drawStack += 2 hoặc Đảo chiều vòng
+            Engine-->>Client: emit("game:action_event", { type: "draw_two" })
+        end
+        Engine->>Timer: Đặt lại đồng hồ 15s
+        Engine->>Engine: advanceTurn(nextSeatIndex)
+        Engine-->>Gateway: Broadcast trạng thái bàn cờ
+        Gateway-->>Client: emit("game:card_played", { playerSeat, card })
+        Gateway-->>Client: emit("game:state_sync", { activeDiscard, currentTurnIndex })
+    else Lá bài KHÔNG HỢP LỆ
+        Engine-->>Client: emit("game:action_error", { message: "Nước đi không hợp lệ!" })
+    end
+        </pre>
+      </div>
+    </div>
+
+    <!-- TAB 5: HÔ UNO & KẾT THÚC -->
+    <div class="diagram-card" id="tab-4">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">5. Sơ Đồ Tuần Tự Báo UNO & Kết Thúc Trận Đấu</h2>
+          <p class="card-desc">Đếm ngược 5 giây bắt buộc hô UNO khi còn 1 lá bài, phạt bốc 2 lá khi bị bắt quả tang, và quy trình tính thưởng ELO khi ván kết thúc.</p>
+        </div>
+        <button class="btn-action" onclick="copyDiagram(4)">📋 Copy Mermaid</button>
+      </div>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid" id="code-4">
+sequenceDiagram
+    autonumber
+    actor PlayerA as Đấu thủ A (Còn 1 lá)
+    actor PlayerB as Đấu thủ B (Đối thủ)
+    participant ClientA as Client UI (A)
+    participant ClientB as Client UI (B)
+    participant Engine as OnlineGame Engine
+    participant DB as MongoDB Atlas
+
+    PlayerA->>ClientA: Đánh lá áp chót (Còn đúng 1 lá)
+    ClientA->>Engine: emit("game:play_card", card)
+    Engine-->>ClientA: emit("game:uno_warning", { timeLimit: 5 })
+    Engine-->>ClientB: emit("game:uno_warning", { timeLimit: 5 })
+
+    alt Kịch bản 1: Bấm Báo UNO kịp thời (< 5s)
+        PlayerA->>ClientA: Bấm "BÁO UNO"
+        ClientA->>Engine: emit("game:call_uno")
+        Engine-->>ClientA: emit("game:uno_called", { success: true })
+    else Kịch bản 2: Quên bấm (> 5s) -> Bị bắt quả tang
+        PlayerB->>ClientB: Bấm "BẮT UNO"
+        ClientB->>Engine: emit("game:catch_uno", { targetSeat: 0 })
+        Engine->>Engine: Phạt PlayerA bốc thêm 2 lá bài
+        Engine-->>ClientA: emit("game:uno_penalized", { penaltyCards: 2 })
+    end
+
+    Note over PlayerA,Engine: Đấu thủ A đánh lá bài cuối cùng (0 lá)
+    PlayerA->>ClientA: Đánh lá cuối
+    ClientA->>Engine: emit("game:play_card", finalCard)
+    Engine->>Engine: finishGame(winnerPlayerA)
+
+    Engine->>DB: Match.create(replayData)
+    Engine->>DB: User.updateMany(Cộng/Trừ ELO, Vàng, EXP)
+
+    Engine-->>ClientA: emit("game:finished", { winner, rankings, rewards })
+    Engine-->>ClientB: emit("game:finished", { winner, rankings, rewards })
+    ClientA->>ClientA: Bật Modal Chiến Thắng Vô Địch
+    ClientB->>ClientB: Bật Modal Kết Quả Trận Đấu
+        </pre>
+      </div>
+    </div>
+
+    <!-- TAB 6: CA SỬ DỤNG (USE CASE) -->
+    <div class="diagram-card" id="tab-5">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">6. Sơ Đồ Ca Sử Dụng Tổng Quát (Use Case Diagram)</h2>
+          <p class="card-desc">Bao quát toàn bộ hành vi của 3 nhóm tác nhân: Đấu thủ (Player), Khán giả (Spectator), và Quản trị viên An ninh (Admin SOC).</p>
+        </div>
+        <button class="btn-action" onclick="copyDiagram(5)">📋 Copy Mermaid</button>
+      </div>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid" id="code-5">
+flowchart LR
+    subgraph ACTORS["TÁC NHÂN"]
+        P["👤 ĐẤU THỦ"]
+        S["👁️ KHÁN GIẢ"]
+        A["🛡️ ADMIN SOC"]
+    end
+
+    subgraph AUTH["Tài Khoản"]
+        UC1["Đăng nhập / Đăng ký / Khách"]
+        UC2["Đổi Skin Bài & Khung Avatar"]
+        UC3["Hồ Sơ & Radar Kỹ Năng 6 Trục"]
+    end
+
+    subgraph GAME["Đấu Trường"]
+        UC4["Ghép Trận Online 1v1 / 4P / 2v2"]
+        UC5["Đấu Cúp Vô Địch Tournament"]
+        UC6["Đánh Bài / Hô UNO / Bắt Phạt"]
+        UC7["Bắn Biểu Cảm & Ném Đồ Vật"]
+        UC8["Xem Lại Ván Đấu Replay"]
+        UC9["Xem Trực Tiếp Spectator"]
+    end
+
+    subgraph GUILD["Cộng Đồng & Kinh Tế"]
+        UC10["Kết Bạn & Chat Riêng DM"]
+        UC11["Thành Lập & Quỹ Bang Hội"]
+        UC12["Vòng Quay & Điểm Danh 7 Ngày"]
+        UC13["Sổ Sứ Mệnh 30 Cấp Độ"]
+    end
+
+    subgraph ADMIN["Bảo Mật & Quản Trị"]
+        UC14["Tố Cáo Vi Phạm"]
+        UC15["Giám Sát SOC & Nhật Ký Truy Vết"]
+        UC16["Khóa Tài Khoản (Ban/Unban)"]
+    end
+
+    P --> UC1
+    P --> UC2
+    P --> UC3
+    P --> UC4
+    P --> UC5
+    P --> UC6
+    P --> UC7
+    P --> UC8
+    P --> UC10
+    P --> UC11
+    P --> UC12
+    P --> UC13
+    P --> UC14
+
+    S --> UC9
+    S --> UC7
+
+    A --> UC15
+    A --> UC16
+    A --> UC8
+        </pre>
+      </div>
+    </div>
+
+    <!-- TAB 7: MÁY TRẠNG THÁI BÀN ĐẤU -->
+    <div class="diagram-card" id="tab-6">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">7. Sơ Đồ Máy Trạng Thái Bàn Đấu (State Machine Diagram)</h2>
+          <p class="card-desc">Chu trình vòng đời của bàn cờ: Sảnh chờ → Ghép trận → Chia bài → Vòng lặp lượt đánh → Báo UNO → Kết thúc và ghi nhận Replay.</p>
+        </div>
+        <button class="btn-action" onclick="copyDiagram(6)">📋 Copy Mermaid</button>
+      </div>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid" id="code-6">
+stateDiagram-v2
+    [*] --> LOBBY : Ở Sảnh Chính
+
+    LOBBY --> MATCHMAKING : Bấm Ghép Trận (1v1, 4P, 2v2)
+    MATCHMAKING --> IN_ROOM : Đủ Đấu Thủ / Chèn Bot
+
+    LOBBY --> IN_ROOM : Tạo / Vào Phòng Bạn Bè
+
+    IN_ROOM --> DEALING : Bắt Đầu Trận
+    DEALING --> TURN_WAITING : Chia Xong 7 Lá Bài
+
+    state TURN_ACTIVE {
+        [*] --> WAITING_INPUT : Đếm Ngược 15 Giây
+        WAITING_INPUT --> CARD_PLAYED : Đánh Lá Hợp Lệ
+        WAITING_INPUT --> DRAW_CARD : Bốc Bài (Tối Đa 2 Lá)
+        WAITING_INPUT --> AFK_WARNING : Hết 15 Giây
+
+        AFK_WARNING --> BOT_TAKEOVER : Bot Đánh Hộ
+        BOT_TAKEOVER --> WAITING_INPUT : Lấy Lại Quyền
+
+        CARD_PLAYED --> RESOLVE_ACTION : Áp Dụng +2, +4, Skip, Reverse
+        RESOLVE_ACTION --> CHECK_UNO : Kiểm Tra Số Lá Trên Tay
+
+        CHECK_UNO --> UNO_ALERT : Còn 1 Lá (Đếm Ngược 5s)
+        UNO_ALERT --> UNO_SAFE : Báo UNO Kịp Thời
+        UNO_ALERT --> UNO_CAUGHT : Bị Bắt Quả Tang (+2 Lá)
+
+        UNO_SAFE --> NEXT_TURN
+        UNO_CAUGHT --> NEXT_TURN
+        DRAW_CARD --> NEXT_TURN
+    }
+
+    TURN_WAITING --> TURN_ACTIVE
+    NEXT_TURN --> TURN_ACTIVE : Chuyển Lượt Đi
+
+    TURN_ACTIVE --> GAME_OVER : Có Người Hết Bài (0 Lá) / Hết Giờ 5 Phút
+
+    state GAME_OVER {
+        [*] --> COMPUTE_REWARDS : Tính ELO, Vàng, EXP
+        COMPUTE_REWARDS --> PERSIST_REPLAY : Lưu MongoDB Match
+        PERSIST_REPLAY --> VICTORY_MODAL : Bật Modal Vinh Danh
+    }
+
+    GAME_OVER --> LOBBY : Quay Về Sảnh
+        </pre>
+      </div>
+    </div>
+
+    <!-- TAB 8: CÂY PHÂN RÃ CHỨC NĂNG -->
+    <div class="diagram-card" id="tab-7">
+      <div class="card-header">
+        <div>
+          <h2 class="card-title">8. Sơ Đồ Cây Phân Rã Chức Năng (Functional Hierarchy)</h2>
+          <p class="card-desc">Bản đồ cấu trúc 7 module chức năng nền tảng của hệ thống trò chơi NEO-UNO.</p>
+        </div>
+        <button class="btn-action" onclick="copyDiagram(7)">📋 Copy Mermaid</button>
+      </div>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid" id="code-7">
+flowchart TD
+    ROOT["HỆ THỐNG TRÒ CHƠI NEO-UNO"]
+
+    M1["1. SẢNH & TÀI KHOẢN"]
+    M2["2. ĐỘNG CƠ BÀN CỜ UNO"]
+    M3["3. ĐẤU MẠNG REALTIME"]
+    M4["4. GIẢI ĐẤU TOURNAMENT"]
+    M5["5. CỘNG ĐỒNG & BANG HỘI"]
+    M6["6. KINH TẾ & TIẾN TRÌNH"]
+    M7["7. BẢO MẬT & SOC"]
+
+    ROOT --> M1
+    ROOT --> M2
+    ROOT --> M3
+    ROOT --> M4
+    ROOT --> M5
+    ROOT --> M6
+    ROOT --> M7
+
+    M1 --> M1_1["Auth JWT / Khách"]
+    M1 --> M1_2["Hồ Sơ & Radar 6 Trục"]
+    M1 --> M1_3["Kho Skin & Khung Avatar"]
+
+    M2 --> M2_1["Bộ Bài 108 Lá Tiêu Chuẩn"]
+    M2 --> M2_2["Lượt 15s & Ván 5 Phút"]
+    M2 --> M2_3["Hô UNO & Bắt Quả Tang 5s"]
+    M2 --> M2_4["Bot AI Chiến Thuật Đồng Đội"]
+
+    M3 --> M3_1["Ghép Trận 1v1, 4P, 2v2 Tag-Team"]
+    M3 --> M3_2["Phòng Bạn Bè 6 Ký Tự"]
+    M3 --> M3_3["Khán Giả Spectator Xem Trực Tiếp"]
+    M3 --> M3_4["Bánh Xe Biểu Cảm & Ném Đồ Vật"]
+
+    M4 --> M4_1["Nhánh Đấu Knockout 8 Đấu Thủ"]
+    M4 --> M4_2["Thuật Toán Xếp Hạt Giống"]
+    M4 --> M4_3["Trao Cúp Vô Địch & Danh Hiệu"]
+
+    M5 --> M5_1["Thành Lập Bang (Tự Do Tên/Tag)"]
+    M5 --> M5_2["Quỹ Bang & Thăng Cấp 1-10"]
+    M5 --> M5_3["Kênh Chat Nội Bộ Thời Gian Thực"]
+    M5 --> M5_4["Hệ Thống Bạn Bè & Chat DM"]
+
+    M6 --> M6_1["Vòng Quay May Mắn (24h Cooldown)"]
+    M6 --> M6_2["Điểm Danh 7 Ngày Streak"]
+    M6 --> M6_3["Sổ Sứ Mệnh 30 Cấp Độ"]
+    M6 --> M6_4["Bảng Xếp Hạng Top 50 ELO"]
+
+    M7 --> M7_1["Nhật Ký An Ninh SOC (SecurityLog)"]
+    M7 --> M7_2["Tố Cáo Vi Phạm & Xử Phạt"]
+    M7 --> M7_3["Chống NoSQL Injection & Rate-Limit"]
+        </pre>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    NEO-UNO ARCHITECTURE & ERD SPECIFICATION • HỒ SƠ NGHIỆM THU ĐỒ ÁN (TUẦN 6)
+  </footer>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        darkMode: true,
+        background: '#07090f',
+        primaryColor: '#121726',
+        primaryTextColor: '#00d2ff',
+        primaryBorderColor: '#00d2ff',
+        lineColor: '#00d2ff',
+        secondaryColor: '#1c1f2a',
+        tertiaryColor: '#0b0e17',
+        fontFamily: 'Plus Jakarta Sans',
+      }
+    });
+
+    function switchTab(index) {
+      document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i === index);
+      });
+      document.querySelectorAll('.diagram-card').forEach((card, i) => {
+        card.classList.toggle('active', i === index);
+      });
+    }
+
+    function copyDiagram(index) {
+      const code = document.getElementById('code-' + index).innerText.trim();
+      navigator.clipboard.writeText(code).then(() => {
+        alert('Đã sao chép mã Mermaid của sơ đồ ' + (index + 1) + ' vào Clipboard!');
+      });
+    }
+  </script>
+</body>
+</html>

@@ -478,4 +478,196 @@ Hệ thống sự kiện Socket.io hai chiều giữa Client và Server:
 | `game:finished` | Server $\rightarrow$ Client | `{ winner, rankings, rewards }` | Kết thúc trận đấu và trao thưởng |
 
 ---
+
+## 8. SƠ ĐỒ CA SỬ DỤNG TỔNG QUÁT (USE CASE DIAGRAM)
+
+Hệ thống NEO-UNO phục vụ 3 nhóm tác nhân chính (Actors): **Đấu Thủ Thường (Player)**, **Khán Giả (Spectator)**, và **Quản Trị Viên An Ninh (Admin SOC)**:
+
+```mermaid
+flowchart LR
+    subgraph ACTORS["CÁC TÁC NHÂN HỆ THỐNG"]
+        P["👤 ĐẤU THỦ (PLAYER)"]
+        S["👁️ KHÁN GIẢ (SPECTATOR)"]
+        A["🛡️ QUẢN TRỊ VIÊN (ADMIN SOC)"]
+    end
+
+    subgraph UC_AUTH["Phân Hệ Xác Thực & Tài Khoản"]
+        UC1["UC-01: Đăng nhập / Đăng ký / Khách"]
+        UC2["UC-02: Xem & Đổi Ngoại Hình (Skin, Khung)"]
+        UC3["UC-03: Xem Hồ Sơ & Radar Kỹ Năng 6 Trục"]
+    end
+
+    subgraph UC_GAME["Phân Hệ Đấu Trường & Bàn Đấu"]
+        UC4["UC-04: Ghép Trận Online 1v1 / 4P / 2v2"]
+        UC5["UC-05: Đấu Giải Cúp Vô Địch (Tournament)"]
+        UC6["UC-06: Đánh Bài / Bốc Bài / Hô UNO"]
+        UC7["UC-07: Bắn Biểu Cảm & Ném Vật Thể"]
+        UC8["UC-08: Xem Lại Trận Đấu (Replay)"]
+        UC9["UC-09: Xem Trực Tiếp Trận Đấu (Spectate)"]
+    end
+
+    subgraph UC_COMMUNITY["Phân Hệ Cộng Đồng & Kinh Tế"]
+        UC10["UC-10: Kết Bạn & Nhắn Tin Riêng (Chat DM)"]
+        UC11["UC-11: Thành Lập & Sinh Hoạt Bang Hội"]
+        UC12["UC-12: Điểm Danh 7 Ngày & Vòng Quay May Mắn"]
+        UC13["UC-13: Thăng Cấp Sổ Sứ Mệnh (Battle Pass)"]
+        UC14["UC-14: Mua Sắm Vật Phẩm Cửa Hàng (Shop)"]
+    end
+
+    subgraph UC_SECURITY["Phân Hệ An Toàn & Quản Trị"]
+        UC15["UC-15: Gửi Tố Cáo Vi Phạm / Gian Lận"]
+        UC16["UC-16: Giám Sát SOC & Nhật Ký Bảo Mật"]
+        UC17["UC-17: Khóa Tài Khoản (Ban/Unban) & Cảnh Cáo"]
+        UC18["UC-18: Điều Chỉnh ELO & Vàng Hệ Thống"]
+    end
+
+    P --> UC1
+    P --> UC2
+    P --> UC3
+    P --> UC4
+    P --> UC5
+    P --> UC6
+    P --> UC7
+    P --> UC8
+    P --> UC10
+    P --> UC11
+    P --> UC12
+    P --> UC13
+    P --> UC14
+    P --> UC15
+
+    S --> UC9
+    S --> UC7
+
+    A --> UC16
+    A --> UC17
+    A --> UC18
+    A --> UC8
+```
+
+---
+
+## 9. SƠ ĐỒ MÁY TRẠNG THÁI BÀN ĐẤU (STATE MACHINE DIAGRAM)
+
+Vòng đời của một bàn cờ thời gian thực trong động cơ `OnlineGame` từ khi khởi tạo đến khi lưu trữ dữ liệu Replay:
+
+```mermaid
+stateDiagram-v2
+    [*] --> LOBBY : Người chơi ở Sảnh chính
+
+    LOBBY --> MATCHMAKING : Bấm Ghép trận (1v1, 4P, 2v2)
+    MATCHMAKING --> MATCHMAKING : Radar quét hàng chờ (1..60s)
+    MATCHMAKING --> IN_ROOM : Đủ đấu thủ hoặc Auto-fill Bots
+
+    LOBBY --> IN_ROOM : Tạo phòng / Vào phòng Bạn bè
+
+    IN_ROOM --> DEALING : Chủ phòng bấm Bắt đầu
+    DEALING --> TURN_WAITING : Chia 7 lá bài / Xáo bài hoàn tất
+
+    state TURN_ACTIVE {
+        [*] --> WAITING_INPUT : Đặt đồng hồ 15s lượt đi
+        WAITING_INPUT --> CARD_PLAYED : Đấu thủ đánh lá bài hợp lệ
+        WAITING_INPUT --> DRAW_CARD : Đấu thủ bốc bài (Tối đa 2 lá)
+        WAITING_INPUT --> AFK_WARNING : Hết 15s không thao tác
+        
+        AFK_WARNING --> BOT_TAKEOVER : Chuyển sang Bot đánh hộ
+        BOT_TAKEOVER --> WAITING_INPUT : Người chơi bấm Lấy lại quyền
+
+        DRAW_CARD --> CARD_PLAYED : Có bài hợp lệ và đánh ngay
+        DRAW_CARD --> PASS_TURN : Không có bài hợp lệ -> Bỏ lượt
+
+        CARD_PLAYED --> RESOLVE_ACTION : Áp dụng +2, +4, Skip, Reverse, Wild
+        RESOLVE_ACTION --> CHECK_UNO : Kiểm tra số bài còn lại trên tay
+
+        CHECK_UNO --> UNO_ALERT : Còn đúng 1 lá bài
+        UNO_ALERT --> UNO_SAFE : Bấm Báo UNO trong 5s
+        UNO_ALERT --> UNO_CAUGHT : Đối thủ bấm Bắt UNO -> Phạt bốc 2 lá
+
+        UNO_SAFE --> NEXT_TURN
+        UNO_CAUGHT --> NEXT_TURN
+        PASS_TURN --> NEXT_TURN
+    }
+
+    TURN_WAITING --> TURN_ACTIVE
+    NEXT_TURN --> TURN_ACTIVE : Chuyển lượt (advanceTurn)
+
+    TURN_ACTIVE --> GAME_OVER : Có người hết bài (0 lá) HOẶC Hết giờ 5 phút
+
+    state GAME_OVER {
+        [*] --> RANKING_COMPUTATION : Xếp hạng Rank 1..4 hoặc Team Alpha/Omega
+        RANKING_COMPUTATION --> ELO_REWARD_CALC : Tính toán biến động ELO & Vàng/EXP
+        ELO_REWARD_CALC --> DB_PERSISTENCE : Lưu Match Replay & Cập nhật User
+        DB_PERSISTENCE --> VICTORY_MODAL : Bật Modal Vinh Danh trên Client
+    }
+
+    GAME_OVER --> LOBBY : Đấu thủ bấm Quay về Sảnh (hoặc hết 120s)
+```
+
+---
+
+## 10. SƠ ĐỒ CÂY PHÂN RÃ CHỨC NĂNG HỆ THỐNG (FUNCTIONAL DECOMPOSITION)
+
+Cấu trúc phân rã 7 phân hệ chức năng toàn diện của nền tảng NEO-UNO:
+
+```mermaid
+flowchart TD
+    ROOT["NỀN TẢNG WEB GAME NEO-UNO"]
+
+    M1["1. PHÂN HỆ SẢNH & TÀI KHOẢN"]
+    M2["2. ĐỘNG CƠ BÀN ĐẤU & LUẬT UNO"]
+    M3["3. ĐẤU MẠNG & PHÒNG BẠN BÈ"]
+    M4["4. GIẢI ĐẤU TOURNAMENT CUP"]
+    M5["5. CỘNG ĐỒNG & BANG HỘI"]
+    M6["6. KINH TẾ & TIẾN TRÌNH GAME"]
+    M7["7. BẢO MẬT SOC & QUẢN TRỊ"]
+
+    ROOT --> M1
+    ROOT --> M2
+    ROOT --> M3
+    ROOT --> M4
+    ROOT --> M5
+    ROOT --> M6
+    ROOT --> M7
+
+    M1 --> M1_1["Đăng ký / Đăng nhập JWT / Khách"]
+    M1 --> M1_2["Hồ sơ Sự Nghiệp & Radar 6 Trục"]
+    M1 --> M1_3["Kho Đồ: Skin Mặt Lưng & Khung Avatar"]
+    M1 --> M1_4["Cài đặt Âm thanh Đa kênh BGM/SFX"]
+
+    M2 --> M2_1["Bộ bài 108 lá UNO tiêu chuẩn"]
+    M2 --> M2_2["Vòng lặp 15s & Đếm ngược 5 phút"]
+    M2 --> M2_3["Xử lý bài phạt: +2, +4, Skip, Reverse"]
+    M2 --> M2_4["Cơ chế 5s Hô UNO & Bắt Quả Tang"]
+    M2 --> M2_5["Bot AI Offline & Chống AFK đánh hộ"]
+
+    M3 --> M3_1["Radar Ghép trận 1v1, 4P, 2v2"]
+    M3 --> M3_2["Phòng Bạn Bè 6 Ký Tự (Custom Room)"]
+    M3 --> M3_3["Chế độ Khán Giả xem trực tiếp (Spectator)"]
+    M3 --> M3_4["Bánh xe Biểu cảm & Ném Cà chua/Pháo hoa"]
+    M3 --> M3_5["Xem lại ván đấu (Match Replay)"]
+
+    M4 --> M4_1["Sơ đồ Phân Nhánh Knockout 8 Đấu Thủ"]
+    M4 --> M4_2["Thuật toán Xếp Hạt Giống (Seed 1-8)"]
+    M4 --> M4_3["Mô phỏng nhánh Bot song song thông minh"]
+    M4 --> M4_4["Trao Cúp Quán Quân & Điểm ELO Đỉnh Cao"]
+
+    M5 --> M5_1["Thành Lập Bang Hội (Tự do tên & Tag)"]
+    M5 --> M5_2["Quỹ Cống Hiến & Thăng Cấp Bang 1-10"]
+    M5 --> M5_3["Kênh Chat Nội Bộ Bang thời gian thực"]
+    M5 --> M5_4["Bảng Xếp Hạng Bang Toàn Server"]
+    M5 --> M5_5["Hệ thống Bạn bè & Nhắn tin riêng DM"]
+
+    M6 --> M6_1["Vòng Quay May Mắn Cyber (Cooldown 24h)"]
+    M6 --> M6_2["Điểm Danh 7 Ngày Tích Lũy Streak"]
+    M6 --> M6_3["Sổ Sứ Mệnh Battle Pass 30 Cấp Độ"]
+    M6 --> M6_4["Nhiệm Vụ Hàng Ngày & Rương Thưởng"]
+    M6 --> M6_5["Bảng Xếp Hạng ELO Top 50 Server"]
+
+    M7 --> M7_1["Trung Tâm An Ninh SOC & Nhật Ký Truy Vết"]
+    M7 --> M7_2["Hệ Thống Tố Cáo Vi Phạm (Report Modal)"]
+    M7 --> M7_3["Chặn Gian Lận ELO / Tiêu Âm Tiền Vàng"]
+    M7 --> M7_4["Chống NoSQL Injection & Rate-Limiting"]
+```
+
+---
 **Tài liệu này là một phần của Hồ Sơ Nghiệm Thu Kỹ Thuật Đồ Án NEO-UNO (Tuần 6).**
