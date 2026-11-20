@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEO-UNO — Slide Thuyết Trình Bảo Vệ Đồ Án (Tuần 6)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Sora:wght@700;800;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090c15;
+      --card-bg: rgba(18, 23, 38, 0.85);
+      --border: rgba(255, 255, 255, 0.12);
+      --cyan: #00d2ff;
+      --rose: #f43f5e;
+      --amber: #f59e0b;
+      --emerald: #10b981;
+      --purple: #a855f7;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Ambient Cyber Background */
+    .ambient-glow {
+      position: absolute;
+      top: -20%;
+      left: 20%;
+      width: 60vw;
+      height: 60vh;
+      background: radial-gradient(circle, rgba(0, 210, 255, 0.12) 0%, rgba(244, 63, 94, 0.05) 50%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Top Progress Bar */
+    .progress-bar-container {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      width: 100%;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--rose));
+      width: 8.33%;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 12px var(--cyan);
+    }
+
+    /* Header Bar */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      background: rgba(14, 18, 30, 0.7);
+      backdrop-filter: blur(10px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--cyan), var(--rose));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-family: 'Sora', sans-serif;
+      color: #000;
+      font-size: 15px;
+      box-shadow: 0 0 15px rgba(0, 210, 255, 0.4);
+    }
+    .brand-text {
+      font-family: 'Sora', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .brand-text span { color: var(--cyan); }
+    .slide-counter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--cyan);
+      background: rgba(0, 210, 255, 0.12);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    /* Main Slide Container */
+    main {
+      flex: 1;
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 32px;
+    }
+    .slide {
+      display: none;
+      width: 100%;
+      max-width: 1280px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(16px);
+      animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .slide.active { display: block; }
+
+    /* Slide Content Typography */
+    .slide-tag {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(0, 210, 255, 0.15);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 210, 255, 0.3);
+      margin-bottom: 12px;
+    }
+    .slide-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1.25;
+      color: #fff;
+      margin-bottom: 24px;
+      letter-spacing: -0.5px;
+    }
+    .slide-title span {
+      background: linear-gradient(90deg, var(--cyan), #7dd3fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Grid Layouts inside slides */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+    .feature-card:hover {
+      border-color: rgba(0, 210, 255, 0.4);
+      background: rgba(0, 210, 255, 0.04);
+      transform: translateY(-2px);
+    }
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .feature-title {
+      font-family: 'Sora', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+    .feature-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Speaker Notes Modal / Drawer */
+    .speaker-drawer {
+      display: none;
+      background: rgba(10, 14, 24, 0.96);
+      border-top: 1px solid var(--border);
+      padding: 16px 32px;
+      position: sticky;
+      bottom: 0;
+      z-index: 90;
+      max-height: 160px;
+      overflow-y: auto;
+      border-left: 4px solid var(--amber);
+    }
+    .speaker-drawer.open { display: block; }
+    .speaker-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--amber);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .speaker-text {
+      font-size: 13px;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    /* Bottom Controls */
+    footer {
+      position: relative;
+      z-index: 10;
+      padding: 14px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(14, 18, 30, 0.8);
+      border-top: 1px solid var(--border);
+    }
+    .nav-btn {
+      padding: 8px 18px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .nav-btn:hover {
+      background: rgba(0, 210, 255, 0.2);
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+    .hint-keys {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .hint-keys kbd {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: scale(0.98) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-glow"></div>
+  <div class="progress-bar-container">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <header>
+    <div class="brand">
+      <div class="logo-badge">N</div>
+      <div>
+        <div class="brand-text">NEO <span>UNO</span></div>
+        <div style="font-size: 11px; color: var(--muted);">Báo Cáo Đồ Án Chuyên Ngành (Tuần 6)</div>
+      </div>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <button class="nav-btn" onclick="toggleSpeakerNotes()">🎙️ Speaker Notes [S]</button>
+      <button class="nav-btn" onclick="toggleFullScreen()">⛶ Toàn Màn Hình [F]</button>
+      <div class="slide-counter" id="slideCounter">01 / 12</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- SLIDE 1: TRANG BÌA -->
+    <div class="slide active" id="slide-0" data-notes="Kính thưa Quý Thầy Cô trong Hội đồng, hôm nay nhóm em xin được báo cáo đề tài: NEO-UNO — Nền tảng trò chơi thẻ bài trực tuyến đa người chơi thời gian thực mang phong cách Cyberpunk, phát triển trên nền React 19, Node.js 20, Socket.io và MongoDB Atlas.">
+      <div style="text-align: center; padding: 40px 0;">
+        <span class="slide-tag">BẢO VỆ ĐỒ ÁN TỐT NGHIỆP / CUỐI KỲ • TUẦN 6</span>
+        <h1 style="font-family: 'Sora', sans-serif; font-size: 44px; font-weight: 900; line-height: 1.2; color: #fff; margin: 16px 0 20px;">
+          NEO <span style="color: var(--cyan);">UNO</span>: CYBERPUNK ARENA
+        </h1>
+        <p style="font-size: 18px; color: #94a3b8; max-width: 700px; margin: 0 auto 36px; line-height: 1.6;">
+          Nền Tảng Trò Chơi Thẻ Bài Trực Tuyến Đa Người Chơi Thời Gian Thực & Thể Thao Điện Tử
+        </p>
+        <div style="display: inline-flex; gap: 24px; padding: 16px 32px; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 16px; text-align: left;">
+          <div>
+            <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Sinh Viên Thực Hiện</div>
+            <div style="font-size: 14px; font-weight: 700; color: #fff;">Nhóm Đồ Án NEO-UNO</div>
+          </div>
+          <div style="border-left: 1px solid var(--border); padding-left: 24px;">
+            <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Công Nghệ Cốt Lõi</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--cyan);">React 19 • Node.js 20 • Socket.io • MongoDB Atlas</div>
+          </div>
+          <div style="border-left: 1px solid var(--border); padding-left: 24px;">
+            <div style="font-size: 11px; color: var(--muted); text-transform: uppercase;">Hạ Tầng Triển Khai</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--rose);">Vercel Edge & Render Cloud</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: ĐẶT VẤN ĐỀ -->
+    <div class="slide" id="slide-1" data-notes="Mục tiêu của đề tài là số hóa trò chơi thẻ bài UNO quen thuộc thành một đấu trường thể thao điện tử hiện đại, giải quyết triệt để vấn đề gian lận, rớt mạng và thiếu tính năng cộng đồng ở các phiên bản web cũ.">
+      <span class="slide-tag">02. BỐI CẢNH & MỤC TIÊU</span>
+      <h2 class="slide-title">Đặt Vấn Đề & <span>Mục Tiêu Đề Tài</span></h2>
+      <div class="grid-2">
+        <div class="feature-card" style="border-left: 4px solid var(--rose);">
+          <span class="feature-icon">⚠️</span>
+          <h3 class="feature-title">Hạn Chế Của Các Web Game Hiện Nay</h3>
+          <p class="feature-desc" style="margin-bottom: 8px;">• Đồ họa cũ kỹ, không tối ưu cho thiết bị di động (Mobile PWA).</p>
+          <p class="feature-desc" style="margin-bottom: 8px;">• Trận đấu dễ bị phá vỡ khi có người chơi AFK hoặc thoát trận đột ngột.</p>
+          <p class="feature-desc">• Dễ bị gian lận xem trộm bài đối thủ do tính toán bài ở Client.</p>
+        </div>
+        <div class="feature-card" style="border-left: 4px solid var(--cyan);">
+          <span class="feature-icon">🎯</span>
+          <h3 class="feature-title">Mục Tiêu Đột Phá Của NEO-UNO</h3>
+          <p class="feature-desc" style="margin-bottom: 8px;">• <strong>Server-Authoritative Authority</strong>: Bảo mật sương mù Fog of War 100%.</p>
+          <p class="feature-desc" style="margin-bottom: 8px;">• <strong>Đồng đội 2v2 & Đấu Cúp 8 người</strong>: Nâng tầm giải đấu thể thao điện tử.</p>
+          <p class="feature-desc">• <strong>Hệ sinh thái Cyberpunk</strong>: Âm thanh Web Audio, Sổ Sứ Mệnh, Bang Hội.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: KIẾN TRÚC HỆ THỐNG -->
+    <div class="slide" id="slide-2" data-notes="Về mặt kiến trúc, hệ thống được phân tách thành 2 luồng: REST API cho dữ liệu tài khoản bền vững và WebSocket Stateful Cluster cho bàn đấu thời gian thực.">
+      <span class="slide-tag">03. HỆ THỐNG PHÂN TÁN</span>
+      <h2 class="slide-title">Kiến Trúc Tổng Thể & <span>Ngăn Xếp Công Nghệ</span></h2>
+      <div class="grid-3">
+        <div class="feature-card">
+          <span class="feature-icon">⚛️</span>
+          <h3 class="feature-title">Tầng Giao Diện Client</h3>
+          <p class="feature-desc">• <strong>React 19 + Tailwind CSS</strong>: Code-splitting lazy bundle chỉ 182 kB.</p>
+          <p class="feature-desc">• <strong>Web Audio API Synthesizer</strong>: 18+ SFX kỹ thuật số & BGM Synthwave.</p>
+          <p class="feature-desc">• <strong>PWA Service Worker</strong>: Khả năng chơi mượt mà trên di động.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3 class="feature-title">Tầng Máy Chủ Thời Gian Thực</h3>
+          <p class="feature-desc">• <strong>Node.js 20 + Express 5</strong>: Kiến trúc REST API module hóa.</p>
+          <p class="feature-desc">• <strong>Socket.io Stateful Engine</strong>: Quản lý RAM bàn cờ, Ping 45-65ms.</p>
+          <p class="feature-desc">• <strong>Trung tâm SOC</strong>: Helmet, Rate-Limit, JWT HMAC-SHA256.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">☁️</span>
+          <h3 class="feature-title">Tầng CSDL & Cloud Deploy</h3>
+          <p class="feature-desc">• <strong>MongoDB Atlas M0 Replica Set</strong>: 11 Collections định chuẩn.</p>
+          <p class="feature-desc">• <strong>Vercel Global Edge CDN</strong>: TTFB 38ms, HTTP/2 & HTTP/3.</p>
+          <p class="feature-desc">• <strong>Render Cloud Container</strong>: Giám sát uptime tự động 24/7.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: ĐỘNG CƠ LUẬT BÀI -->
+    <div class="slide" id="slide-3" data-notes="Động cơ luật bài 108 lá quản lý hoàn toàn trên RAM Server. Cơ chế Fog of War che bài đối thủ ngăn chặn hoàn toàn gian lận bằng DevTools F12.">
+      <span class="slide-tag">04. ĐỘNG CƠ TRÒ CHƠI</span>
+      <h2 class="slide-title">Động Cơ Luật Bài UNO & <span>Bảo Mật Sương Mù</span></h2>
+      <div class="grid-3">
+        <div class="feature-card">
+          <span class="feature-icon">🃏</span>
+          <h3 class="feature-title">Bộ Bài 108 Lá Tiêu Chuẩn</h3>
+          <p class="feature-desc">• 76 lá số (0-9) phân chia 4 màu rực rỡ.</p>
+          <p class="feature-desc">• 24 lá chức năng: Cấm lượt (Skip), Đổi chiều (Reverse), Phạt +2 (Draw Two).</p>
+          <p class="feature-desc">• 8 lá quyền lực: Wild Đổi màu & Wild Draw Four +4.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🛡️</span>
+          <h3 class="feature-title">Server Authority (Fog of War)</h3>
+          <p class="feature-desc">• Toàn bộ 108 lá bài lưu trữ trong RAM của Server.</p>
+          <p class="feature-desc">• Client chỉ nhận thông tin các lá bài của mình; đối thủ chỉ nhận số lượng thẻ.</p>
+          <p class="feature-desc">• Ngăn chặn 100% gian lận nhìn bài qua DevTools.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⏱️</span>
+          <h3 class="feature-title">Vòng Lặp 15s & Hô UNO 5s</h3>
+          <p class="feature-desc">• Đồng hồ 15 giây đếm ngược nghiêm ngặt mỗi lượt đi.</p>
+          <p class="feature-desc">• Giới hạn trận đấu 5 phút tránh cù cưa kéo dài.</p>
+          <p class="feature-desc">• Đếm ngược 5 giây bắt buộc Hô UNO; phạt bốc 2 lá nếu bị bắt quả tang.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: ĐỒNG ĐỘI 2V2 -->
+    <div class="slide" id="slide-4" data-notes="Chế độ 2v2 Tag-Team phân chia 4 ghế ngồi đối xứng Team Alpha vs Team Omega. Tính năng soi bài đồng đội giúp người chơi đổi màu chiến thuật hỗ trợ nhau về nhất.">
+      <span class="slide-tag">05. ĐỘT PHÁ ESPORTS #1</span>
+      <h2 class="slide-title">Chế Độ Đồng Đội <span>Tag-Team 2v2 (Duo Mode)</span></h2>
+      <div class="grid-2">
+        <div class="feature-card">
+          <span class="feature-icon">🤝</span>
+          <h3 class="feature-title">Hình Học Đối Đỉnh & Co-op Victory</h3>
+          <p class="feature-desc">• <strong>Ghế 0 & 2</strong>: Team Alpha (Xanh Cyan) | <strong>Ghế 1 & 3</strong>: Team Omega (Đỏ Rose).</p>
+          <p class="feature-desc">• <strong>Co-op Victory</strong>: Chỉ cần 1 người hết bài, cả 2 thành viên trong đội cùng thắng.</p>
+          <p class="feature-desc">• <strong>Cộng dồn timeout 5 phút</strong>: Đội nào có tổng số bài còn lại ít hơn sẽ thắng.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">👁️</span>
+          <h3 class="feature-title">Tactical Teammate Card Peek</h3>
+          <p class="feature-desc">• HUD hiển thị tổng số bài theo từng màu của đồng đội đối diện.</p>
+          <p class="feature-desc">• Người chơi chủ động đổi màu sang màu bài đồng đội sở hữu nhiều nhất.</p>
+          <p class="feature-desc">• Cơ chế tính ELO theo đội: Thắng nhận +30 & +20 ELO; Thua trừ -10 & -20 ELO.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: ĐẤU CÚP TOURNAMENT -->
+    <div class="slide" id="slide-5" data-notes="Giải đấu Cúp Knockout 8 người mô phỏng các cặp Bot song song theo tỷ lệ ELO, tạo cảm giác thi đấu căng thẳng liên tục 3 vòng để đoạt Cúp Vàng.">
+      <span class="slide-tag">06. ĐỘT PHÁ ESPORTS #2</span>
+      <h2 class="slide-title">Đấu Giải Cúp Vô Địch <span>8 Đấu Thủ (Tournament)</span></h2>
+      <div class="grid-3">
+        <div class="feature-card">
+          <span class="feature-icon">🏆</span>
+          <h3 class="feature-title">Phân Nhánh Knockout 3 Vòng</h3>
+          <p class="feature-desc">• 8 đấu thủ chia thành 4 cặp Tứ Kết $\rightarrow$ 2 cặp Bán Kết $\rightarrow$ Chung Kết.</p>
+          <p class="feature-desc">• Thua bị loại ngay lập tức; Thắng tiến thẳng vào vòng trong.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🤖</span>
+          <h3 class="feature-title">Mô Phỏng Bot Song Song</h3>
+          <p class="feature-desc">• Trong khi người chơi thi đấu, Server mô phỏng các cặp Bot theo điểm ELO.</p>
+          <p class="feature-desc">• Xác định đối thủ tiếp theo ngay khi người chơi thắng trận.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">👑</span>
+          <h3 class="feature-title">Đại Thưởng Quán Quân</h3>
+          <p class="feature-desc">• Nhận 5,000 Vàng, 800 EXP và +60 ELO.</p>
+          <p class="feature-desc">• Cúp Vô Địch lưu vĩnh viễn vào Hồ Sơ Sự Nghiệp và Danh hiệu Cyber.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: BANG HỘI -->
+    <div class="slide" id="slide-6" data-notes="Hệ thống Bang Hội tạo gắn kết cộng đồng với Quỹ cống hiến nâng cấp Level 1-10, Kênh chat nội bộ và Bảng xếp hạng vinh danh Quân Đoàn toàn server.">
+      <span class="slide-tag">07. HỆ SINH THÁI XÃ HỘI</span>
+      <h2 class="slide-title">Bang Hội & Quân Đoàn <span>Cyberpunk (Guild / Clan)</span></h2>
+      <div class="grid-3">
+        <div class="feature-card">
+          <span class="feature-icon">🛡️</span>
+          <h3 class="feature-title">Thành Lập Bang Tự Do</h3>
+          <p class="feature-desc">• Phí thành lập: 2,000 Vàng.</p>
+          <p class="feature-desc">• Tự do đặt tên Bang & Tag viết tắt (VD: <code>[VICECITY]</code>, <code>[ONE PIECE]</code>).</p>
+          <p class="feature-desc">• Hỗ trợ tiếng Việt có dấu, ký hiệu và độ dài mở rộng.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🪙</span>
+          <h3 class="feature-title">Quỹ Cống Hiến & Thăng Hạng</h3>
+          <p class="feature-desc">• Thành viên đóng góp Vàng để nâng cấp Bang từ Level 1 đến 10.</p>
+          <p class="feature-desc">• Mở rộng giới hạn thành viên: 15 $\rightarrow$ 25 $\rightarrow$ 40 thành viên.</p>
+          <p class="feature-desc">• Nhận Buff nội tại +10% Vàng & EXP khi thi đấu.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">💬</span>
+          <h3 class="feature-title">Kênh Chat & Kế Thừa An Toàn</h3>
+          <p class="feature-desc">• Kênh chat nội bộ thời gian thực có bộ lọc từ cấm.</p>
+          <p class="feature-desc">• Tự động chuyển giao chức Bang Chủ khi người đứng đầu rời Bang.</p>
+          <p class="feature-desc">• Bảng xếp hạng Quân Đoàn vinh danh Top 10 toàn server.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: KINH TẾ & RETENTION -->
+    <div class="slide" id="slide-7" data-notes="Ứng dụng mô hình Battle Pass 30 cấp độ, Daily Check-in Streak và Gacha Wheel chuẩn ngành game để tối đa hóa tỷ lệ giữ chân người chơi.">
+      <span class="slide-tag">08. KINH TẾ GAME & GIỮ CHÂN</span>
+      <h2 class="slide-title">Sổ Sứ Mệnh 30 Cấp, <span>Vòng Quay & Điểm Danh</span></h2>
+      <div class="grid-3">
+        <div class="feature-card">
+          <span class="feature-icon">📜</span>
+          <h3 class="feature-title">Sổ Sứ Mệnh Mùa 1 (Battle Pass)</h3>
+          <p class="feature-desc">• 30 cấp độ tiến trình với 2 tuyến Miễn Phí & Tuyến VIP Premium.</p>
+          <p class="feature-desc">• Tích lũy Season EXP từ trận đấu và cúp Tournament; nút "Nhận Tất Cả" 1-click.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🎡</span>
+          <h3 class="feature-title">Vòng Quay May Mắn (Lucky Wheel)</h3>
+          <p class="feature-desc">• 8 cung phần thưởng theo tỷ lệ xác suất thực tế.</p>
+          <p class="feature-desc">• Miễn phí 1 lượt mỗi 24 giờ; âm thanh kim quay sống động.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📅</span>
+          <h3 class="feature-title">Điểm Danh 7 Ngày Tích Lũy</h3>
+          <p class="feature-desc">• Chuỗi Streak 7 ngày nhận quà tăng dần.</p>
+          <p class="feature-desc">• Đại thưởng Ngày 7: Khung Avatar Vàng Hoàng Kim độc quyền.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 9: BẢO MẬT & SOC -->
+    <div class="slide" id="slide-8" data-notes="Mô hình an ninh 5 lớp bảo vệ hệ thống khỏi tấn công DDoS, NoSQL Injection, gian lận số dư; cùng cơ chế Bot đánh hộ khi người chơi AFK.">
+      <span class="slide-tag">09. AN TOÀN & CHỐNG GIAN LẬN</span>
+      <h2 class="slide-title">Trung Tâm An Ninh SOC & <span>Bảo Mật 5 Lớp</span></h2>
+      <div class="grid-2">
+        <div class="feature-card">
+          <span class="feature-icon">🛡️</span>
+          <h3 class="feature-title">Kiến Trúc Bảo Mật 5 Lớp Phòng Thủ</h3>
+          <p class="feature-desc">• <strong>Lớp Mạng</strong>: Helmet HTTP Headers, CORS Whitelist, Clickjacking Protection.</p>
+          <p class="feature-desc">• <strong>Lớp Rate Limit</strong>: Giới hạn tần suất gọi API, chặn Spam gói tin.</p>
+          <p class="feature-desc">• <strong>Lớp Xác Thực</strong>: JWT HMAC-SHA256 & Băm mật khẩu Bcrypt 10 rounds.</p>
+          <p class="feature-desc">• <strong>Lớp CSDL</strong>: Khử toàn diện NoSQL Injection ($ và .).</p>
+          <p class="feature-desc">• <strong>Lớp SOC Audit</strong>: Ghi vết toàn bộ giao dịch kinh tế vào SecurityLog.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <h3 class="feature-title">Chống AFK & Bot Đánh Hộ (Anti-AFK)</h3>
+          <p class="feature-desc">• Sau 15 giây không ra bài, Bot AI tự động đánh hộ để bảo toàn ván cờ.</p>
+          <p class="feature-desc">• Người chơi có thể bấm 1-click để lấy lại quyền điều khiển bất cứ lúc nào.</p>
+          <p class="feature-desc">• Hệ thống Tố Cáo Vi Phạm (Report Modal) phục vụ xử phạt minh bạch.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 10: KIỂM THỬ & HIỆU NĂNG -->
+    <div class="slide" id="slide-9" data-notes="Hệ thống đạt kết quả kiểm thử 159/159 tests PASS tuyệt đối. Chỉ số đo đạc trên mạng thật Vercel cho thấy TTFB chỉ 38ms và RAM server dưới 80MB.">
+      <span class="slide-tag">10. ĐỘ TIN CẬY & THÔNG SỐ</span>
+      <h2 class="slide-title">Kết Quả Kiểm Thử E2E & <span>Hiệu Năng Production</span></h2>
+      <div class="grid-4">
+        <div class="feature-card" style="text-align: center;">
+          <div style="font-size: 32px; font-weight: 900; color: var(--emerald); font-family: 'JetBrains Mono';">159 / 159</div>
+          <div style="font-size: 13px; font-weight: 700; color: #fff; margin-top: 4px;">Tests PASS (100%)</div>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">6 Suites Kiểm Thử E2E</div>
+        </div>
+        <div class="feature-card" style="text-align: center;">
+          <div style="font-size: 32px; font-weight: 900; color: var(--cyan); font-family: 'JetBrains Mono';">38 ms</div>
+          <div style="font-size: 13px; font-weight: 700; color: #fff; margin-top: 4px;">TTFB Phản Hồi</div>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Vercel Edge CDN Global</div>
+        </div>
+        <div class="feature-card" style="text-align: center;">
+          <div style="font-size: 32px; font-weight: 900; color: var(--purple); font-family: 'JetBrains Mono';">182 kB</div>
+          <div style="font-size: 13px; font-weight: 700; color: #fff; margin-top: 4px;">Bundle JS Ban Đầu</div>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Tối ưu Code-Splitting</div>
+        </div>
+        <div class="feature-card" style="text-align: center;">
+          <div style="font-size: 32px; font-weight: 900; color: var(--amber); font-family: 'JetBrains Mono';">68 MB</div>
+          <div style="font-size: 13px; font-weight: 700; color: #fff; margin-top: 4px;">RAM Máy Chủ</div>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Node.js RAM Siêu Nhẹ</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 11: DEMO TRỰC TIẾP -->
+    <div class="slide" id="slide-10" data-notes="Kính mời Quý Thầy Cô cùng theo dõi phần Live Demo trực tiếp các tính năng: Ghép trận 2v2 Tag-Team, Sổ Sứ Mệnh và Hồ Sơ Radar 6 Trục.">
+      <span class="slide-tag">11. MINH CHỨNG THỰC TẾ</span>
+      <h2 class="slide-title">Trình Diễn Trực Tiếp <span>(Live Demo Showcase)</span></h2>
+      <div class="grid-3">
+        <div class="feature-card">
+          <span class="feature-icon">🌐</span>
+          <h3 class="feature-title">Trải Nghiệm Sảnh Chính</h3>
+          <p class="feature-desc">• Vòng Quay May Mắn & Điểm Danh 7 Ngày.</p>
+          <p class="feature-desc">• Sổ Sứ Mệnh Cyber Mùa 1 (30 Cấp).</p>
+          <p class="feature-desc">• Hồ Sơ Sự Nghiệp & Radar Kỹ Năng 6 Trục.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🤝</span>
+          <h3 class="feature-title">Đấu Trường 2v2 Tag-Team</h3>
+          <p class="feature-desc">• Ghép trận 2v2 thời gian thực (Alpha vs Omega).</p>
+          <p class="feature-desc">• Soi bài đồng đội & phối hợp đổi màu.</p>
+          <p class="feature-desc">• Đánh bài phạt +4, Hô UNO 5 giây & Vinh danh.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🏆</span>
+          <h3 class="feature-title">Đấu Giải Cúp Tournament</h3>
+          <p class="feature-desc">• Cây phân nhánh Knockout 8 đấu thủ.</p>
+          <p class="feature-desc">• Mô phỏng Bot thông minh theo ELO.</p>
+          <p class="feature-desc">• Đoạt Cúp Vàng Quán Quân.</p>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 32px;">
+        <a href="https://neo-uno.vercel.app" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; background: linear-gradient(90deg, var(--cyan), #38bdf8); color: #000; font-weight: 800; border-radius: 999px; text-decoration: none; box-shadow: 0 0 25px rgba(0,210,255,0.5);">
+          🚀 TRUY CẬP TRỰC TIẾP: NEO-UNO.VERCEL.APP
+        </a>
+      </div>
+    </div>
+
+    <!-- SLIDE 12: KẾT LUẬN & Q&A -->
+    <div class="slide" id="slide-11" data-notes="Nhóm xin chân thành cảm ơn Quý Thầy Cô đã lắng nghe. Nhóm sẵn sàng giải đáp toàn bộ các câu hỏi phản biện của Hội đồng!">
+      <span class="slide-tag">12. TỔNG KẾT & CẢM ƠN</span>
+      <h2 class="slide-title">Kết Luận, Hướng Phát Triển & <span>Hỏi Đáp (Q&A)</span></h2>
+      <div class="grid-2">
+        <div class="feature-card">
+          <span class="feature-icon">📚</span>
+          <h3 class="feature-title">Bài Học Thu Nhận Được</h3>
+          <p class="feature-desc">• Thành thạo kiến trúc Server-Authoritative trong game đối kháng nhiều người.</p>
+          <p class="feature-desc">• Kỹ năng làm chủ WebSocket, tối ưu bù trễ mạng (Ping) và âm thanh Web Audio.</p>
+          <p class="feature-desc">• Quy trình kiểm thử tự động E2E và CI/CD Cloud Production.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🚀</span>
+          <h3 class="feature-title">Định Hướng Tương Lai</h3>
+          <p class="feature-desc">• Đóng gói ứng dụng di động Native (Android & iOS qua Capacitor).</p>
+          <p class="feature-desc">• Huấn luyện Bot AI bằng mô hình học tăng cường (Deep Reinforcement Learning).</p>
+          <p class="feature-desc">• Giải đấu xếp hạng tuần có phát sóng trực tiếp (Livestream Spectator).</p>
+        </div>
+      </div>
+      <div style="text-align: center; margin-top: 36px;">
+        <h3 style="font-family: 'Sora', sans-serif; font-size: 24px; color: #fff; margin-bottom: 8px;">
+          XIN CHÂN THÀNH CẢM ƠN QUÝ THẦY CÔ VÀ HỘI ĐỒNG!
+        </h3>
+        <p style="font-size: 14px; color: var(--cyan); font-weight: 700;">Nhóm sẵn sàng lắng nghe câu hỏi phản biện của Thầy/Cô ạ! 🎙️</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Speaker Drawer -->
+  <div class="speaker-drawer" id="speakerDrawer">
+    <div class="speaker-label">🎙️ Lời Thoại Thuyết Trình (Speaker Notes)</div>
+    <div class="speaker-text" id="speakerText">...</div>
+  </div>
+
+  <footer>
+    <button class="nav-btn" onclick="prevSlide()">◀ Slide Trước [←]</button>
+    <div class="hint-keys">
+      Phím tắt: <kbd>←</kbd> <kbd>→</kbd> <kbd>Space</kbd> Chuyển trang • <kbd>F</kbd> Toàn màn hình • <kbd>S</kbd> Speaker Notes
+    </div>
+    <button class="nav-btn" onclick="nextSlide()">Slide Sau [→] ▶</button>
+  </footer>
+
+  <script>
+    let currentSlide = 0;
+    const totalSlides = 12;
+
+    function updateSlide() {
+      document.querySelectorAll('.slide').forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentSlide);
+      });
+      document.getElementById('slideCounter').textContent = 
+        String(currentSlide + 1).padStart(2, '0') + ' / ' + String(totalSlides).padStart(2, '0');
+      document.getElementById('progressBar').style.width = ((currentSlide + 1) / totalSlides * 100) + '%';
+      
+      const activeSlideEl = document.getElementById('slide-' + currentSlide);
+      const notes = activeSlideEl?.getAttribute('data-notes') || 'Không có ghi chú cho slide này.';
+      document.getElementById('speakerText').textContent = notes;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function toggleSpeakerNotes() {
+      document.getElementById('speakerDrawer').classList.toggle('open');
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        toggleFullScreen();
+      } else if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        toggleSpeakerNotes();
+      }
+    });
+
+    // Mobile Swipe Gesture
+    let touchStartX = 0;
+    window.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    window.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      if (touchEndX - touchStartX > 50) prevSlide();
+      if (touchStartX - touchEndX > 50) nextSlide();
+    }, { passive: true });
+
+    updateSlide();
+  </script>
+</body>
+</html>
