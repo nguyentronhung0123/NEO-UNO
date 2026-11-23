@@ -120,7 +120,16 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const [gameResult, setGameResult] = useState(null);
   const [autoReturnCountdown, setAutoReturnCountdown] = useState(120);
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(() => soundEngine.isEnabled());
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    try {
+      if (typeof soundEngine?.isEnabled === 'function') {
+        return soundEngine.isEnabled();
+      }
+      return Boolean(soundEngine?.enabled ?? true);
+    } catch {
+      return true;
+    }
+  });
   const [isAudioSettingsOpen, setIsAudioSettingsOpen] = useState(false);
   const [isReplayOpen, setIsReplayOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState(null);
@@ -1739,12 +1748,12 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 }
               >
                 <div
-                  className={`absolute -top-1.5 -left-1.5 w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] bg-[#660022] border border-white/10 opacity-70 pointer-events-none ${
+                  className={`absolute -top-1.5 -left-1.5 w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] bg-[#660022] border border-white/10 opacity-70 pointer-events-none ${
                     isShuffling ? 'animate-shuffle-left' : ''
                   }`}
                 />
                 <div
-                  className={`absolute -top-0.5 -left-0.5 w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] bg-[#88002d] border border-white/15 opacity-85 pointer-events-none ${
+                  className={`absolute -top-0.5 -left-0.5 w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] bg-[#88002d] border border-white/15 opacity-85 pointer-events-none ${
                     isShuffling ? 'animate-shuffle-right' : ''
                   }`}
                 />
@@ -1771,7 +1780,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 )}
 
                 <div
-                  className={`relative w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] transition-transform duration-200 select-none ${
+                  className={`relative w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] transition-transform duration-200 select-none ${
                     isMyTurn && !isShuffling && !isDealing ? 'hover:scale-105 active:scale-95 cursor-pointer ring-2 ring-cyan-400/80 shadow-[0_0_20px_rgba(0,210,255,0.4)]' : ''
                   }`}
                 >
@@ -1796,7 +1805,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               </div>
 
               {/* Discard Pile: Chồng bài đã đánh */}
-              <div className="relative flex items-center justify-center min-w-[90px] sm:min-w-[100px] min-h-[130px] sm:min-h-[140px]">
+              <div className="relative flex items-center justify-center min-w-[70px] sm:min-w-[90px] md:min-w-[100px] min-h-[100px] sm:min-h-[125px] md:min-h-[140px]">
                 {/* Hiệu ứng đánh bài bay vào chồng bài bỏ */}
                 {flyingPlay && (
                   <div
@@ -2005,7 +2014,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
             <>
               {/* Player Hand - TRÊN */}
               <div
-                className={`flex items-end justify-center -space-x-3 md:-space-x-5 hover:-space-x-1 transition-all duration-300 px-4 py-2 overflow-x-auto max-w-full min-h-[140px] rounded-3xl ${
+                className={`flex items-end justify-center -space-x-4 sm:-space-x-3 md:-space-x-5 hover:-space-x-1 transition-all duration-300 px-2 sm:px-4 py-1.5 sm:py-2 overflow-x-auto max-w-full min-h-[105px] sm:min-h-[135px] rounded-3xl ${
                   isMyTurn
                     ? 'bg-primary-container/10 border-2 border-primary-container/40 shadow-[0_0_35px_rgba(0,210,255,0.25)]'
                     : ''

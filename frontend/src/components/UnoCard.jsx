@@ -161,47 +161,47 @@ function renderClassicContent(value, isCorner = false) {
   switch (value) {
     case 'skip':
       return isCorner ? (
-        <span className="font-black text-[11px] leading-none">⊘</span>
+        <span className="font-black text-[10px] sm:text-[11px] leading-none">⊘</span>
       ) : (
         <div className="flex flex-col items-center justify-center">
-          <span className="material-symbols-outlined text-3xl sm:text-4xl font-black">
+          <span className="material-symbols-outlined text-2xl sm:text-3xl md:text-4xl font-black">
             block
           </span>
-          <span className="text-[9px] font-black tracking-widest uppercase mt-0.5">SKIP</span>
+          <span className="text-[8px] sm:text-[9px] font-black tracking-widest uppercase mt-0.5">SKIP</span>
         </div>
       );
 
     case 'reverse':
       return isCorner ? (
-        <span className="font-black text-[11px] leading-none">⇄</span>
+        <span className="font-black text-[10px] sm:text-[11px] leading-none">⇄</span>
       ) : (
         <div className="flex flex-col items-center justify-center">
-          <span className="material-symbols-outlined text-3xl sm:text-4xl font-black">
+          <span className="material-symbols-outlined text-2xl sm:text-3xl md:text-4xl font-black">
             sync_alt
           </span>
-          <span className="text-[9px] font-black tracking-widest uppercase mt-0.5">REVERSE</span>
+          <span className="text-[8px] sm:text-[9px] font-black tracking-widest uppercase mt-0.5">REVERSE</span>
         </div>
       );
 
     case 'draw_two':
       return isCorner ? (
-        <span className="font-black text-[11px] sm:text-xs leading-none">+2</span>
+        <span className="font-black text-[10px] sm:text-[11px] md:text-xs leading-none">+2</span>
       ) : (
         <div className="flex flex-col items-center justify-center">
-          <span className="font-headline text-3xl sm:text-4xl font-black italic tracking-tighter drop-shadow-md">
+          <span className="font-headline text-2xl sm:text-3xl md:text-4xl font-black italic tracking-tighter drop-shadow-md">
             +2
           </span>
-          <span className="text-[8px] font-black tracking-wider uppercase mt-0.5 opacity-90">RÚT 2</span>
+          <span className="text-[7px] sm:text-[8px] font-black tracking-wider uppercase mt-0.5 opacity-90">RÚT 2</span>
         </div>
       );
 
     case 'wild':
       return isCorner ? (
-        <span className="font-headline font-black text-xs sm:text-sm text-white drop-shadow leading-none">
+        <span className="font-headline font-black text-[11px] sm:text-xs md:text-sm text-white drop-shadow leading-none">
           W
         </span>
       ) : (
-        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden grid grid-cols-2 grid-rows-2 shadow-[0_2px_12px_rgba(0,0,0,0.5)] border-2 border-white/90">
+        <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full overflow-hidden grid grid-cols-2 grid-rows-2 shadow-[0_2px_12px_rgba(0,0,0,0.5)] border-2 border-white/90">
           <div className="bg-rose-500"></div>
           <div className="bg-sky-400"></div>
           <div className="bg-amber-400"></div>
@@ -211,17 +211,17 @@ function renderClassicContent(value, isCorner = false) {
 
     case 'wild_draw_four':
       return isCorner ? (
-        <span className="font-headline font-black text-xs sm:text-sm text-white drop-shadow leading-none">
+        <span className="font-headline font-black text-[11px] sm:text-xs md:text-sm text-white drop-shadow leading-none">
           +4
         </span>
       ) : (
-        <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden grid grid-cols-2 grid-rows-2 shadow-[0_2px_12px_rgba(0,0,0,0.5)] border-2 border-white/90">
+        <div className="relative w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full overflow-hidden grid grid-cols-2 grid-rows-2 shadow-[0_2px_12px_rgba(0,0,0,0.5)] border-2 border-white/90">
           <div className="bg-rose-500"></div>
           <div className="bg-sky-400"></div>
           <div className="bg-amber-400"></div>
           <div className="bg-emerald-500"></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-headline text-3xl sm:text-4xl font-black italic text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+            <span className="font-headline text-2xl sm:text-3xl md:text-4xl font-black italic text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
               +4
             </span>
           </div>
@@ -230,11 +230,11 @@ function renderClassicContent(value, isCorner = false) {
 
     default:
       return isCorner ? (
-        <span className="font-headline font-black text-xs sm:text-sm leading-none">
+        <span className="font-headline font-black text-[10px] sm:text-xs md:text-sm leading-none">
           {value}
         </span>
       ) : (
-        <span className="font-headline text-4xl sm:text-5xl font-black italic tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
+        <span className="font-headline text-3xl sm:text-4xl md:text-5xl font-black italic tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.4)]">
           {value}
         </span>
       );
@@ -605,7 +605,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${hTheme.border} ${hTheme.bg} ${hTheme.shadow}
           transition-all duration-200 ease-out transform-gpu
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -644,7 +644,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${cTheme.border} ${cTheme.bg} ${cTheme.shadow}
           transition-all duration-200 ease-out transform-gpu
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -691,7 +691,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${gTheme.border} ${gTheme.bg} ${gTheme.shadow}
           transition-all duration-200 ease-out transform-gpu
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -738,7 +738,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${dTheme.border} ${dTheme.bg} ${dTheme.shadow}
           transition-all duration-200 ease-out transform-gpu
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -785,7 +785,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-1.5 select-none flex flex-col justify-between
+          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${lTheme.border} ${lTheme.bg} ${lTheme.shadow}
           transition-all duration-200 ease-out transform-gpu
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -832,7 +832,7 @@ function UnoCard({
     <div
       onClick={!disabled && onClick ? onClick : undefined}
       className={`
-        relative w-20 h-32 sm:w-24 sm:h-36 rounded-2xl p-2 select-none flex flex-col justify-between
+        relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
         border ${theme.border} ${theme.bg} ${theme.textColor} ${theme.shadow}
         transition-all duration-200 ease-out transform-gpu
         ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}

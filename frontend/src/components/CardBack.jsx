@@ -32,7 +32,7 @@ export function CardBack({
   // Bản đồ kích thước tiêu chuẩn
   const sizeClasses = {
     sm: 'w-7 h-10 sm:w-8 sm:h-11 rounded-[6px] text-[7px]',
-    md: 'w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] text-[10px]',
+    md: 'w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] text-[8px] sm:text-[10px]',
     lg: 'w-56 h-84 sm:w-64 sm:h-96 rounded-[28px] text-xs',
     deck: 'w-full h-full rounded-[18px]',
     custom: '',

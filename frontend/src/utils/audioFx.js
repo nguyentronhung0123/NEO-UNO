@@ -75,6 +75,11 @@ class SoundEngine {
     this.setMasterVolume(val ? (this.settings.masterVolume || 0.8) : 0);
   }
 
+  // Phương thức kiểm tra âm thanh có bật hay không
+  isEnabled() {
+    return this.enabled;
+  }
+
   // Tương thích ngược với hàm toggle cũ
   toggle() {
     this.toggleMute();
