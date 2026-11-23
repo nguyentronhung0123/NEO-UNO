@@ -16,6 +16,7 @@ import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch }
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
 import AudioSettingsModal from '../components/AudioSettingsModal';
+import OrientationNotice from '../components/OrientationNotice';
 import {
   getBotAttackEmote,
   getBotPenaltyEmote,
@@ -2175,6 +2176,9 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
         unoCountdown !== null ? 'animate-emergency-border' : ''
       }`}
     >
+      {/* RÀNG BUỘC XOAY NGANG MÀN HÌNH TRÊN MOBILE KHI VÀO TRẬN ĐẤU */}
+      <OrientationNotice onExit={handleRequestExit} />
+
       {/* LỚP PHỦ BIỂU CẢM & CHAT NHANH (TASK 3) */}
       <EmoteOverlay activeEmotes={activeEmotes} getSeatPosition={getSeatPosition} />
 

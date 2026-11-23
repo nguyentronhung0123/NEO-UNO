@@ -878,4 +878,32 @@ html, body {
   animation: spinSlow 3s ease-in-out infinite;
 }
 
+@keyframes phoneRotateGuide {
+  0% {
+    transform: rotate(0deg) scale(1);
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+  }
+  20% {
+    transform: rotate(0deg) scale(1);
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.5);
+  }
+  45% {
+    transform: rotate(90deg) scale(1.05);
+    box-shadow: 0 0 35px rgba(244, 63, 94, 0.6);
+  }
+  75% {
+    transform: rotate(90deg) scale(1.05);
+    box-shadow: 0 0 35px rgba(244, 63, 94, 0.6);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+  }
+}
+
+.animate-phone-rotate {
+  animation: phoneRotateGuide 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+
 

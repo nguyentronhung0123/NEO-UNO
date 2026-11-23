@@ -9,6 +9,7 @@ import EmoteOverlay from '../components/EmoteOverlay';
 import AudioSettingsModal from '../components/AudioSettingsModal';
 import MatchReplayModal from '../components/MatchReplayModal';
 import ReportModal from '../components/ReportModal';
+import OrientationNotice from '../components/OrientationNotice';
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -1285,6 +1286,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   if (!gameState) {
     return (
       <main className="w-full min-h-screen bg-background relative overflow-x-hidden flex items-center justify-center">
+        <OrientationNotice onExit={onBack} />
         <div className="text-primary-container font-headline font-bold text-lg animate-pulse flex items-center gap-2">
           <span className="material-symbols-outlined animate-spin text-2xl">autorenew</span>
           <span>ĐANG CHUẨN BỊ BÀN ĐẤU ONLINE...</span>
@@ -1299,6 +1301,9 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         unoCountdown !== null ? 'animate-emergency-border' : ''
       }`}
     >
+      {/* RÀNG BUỘC XOAY NGANG MÀN HÌNH TRÊN MOBILE KHI VÀO TRẬN ĐẤU */}
+      <OrientationNotice onExit={() => setIsExitModalOpen(true)} />
+
       {/* LỚP PHỦ BIỂU CẢM & CHAT NHANH (TASK 3) */}
       <EmoteOverlay activeEmotes={activeEmotes} getSeatPosition={getSeatPosition} />
 
