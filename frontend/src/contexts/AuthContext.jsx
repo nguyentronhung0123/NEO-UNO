@@ -57,12 +57,12 @@ export function AuthProvider({ children }) {
           const verifyRes = await authApi.getMe(savedToken);
           if (verifyRes.success && verifyRes.user) {
             setUser(verifyRes.user);
-          } else {
+          } else if (verifyRes.status === 401 || verifyRes.status === 403) {
             console.warn('[Auth] Token không còn hợp lệ hoặc đã hết hạn!');
             clearSession();
           }
         } catch {
-          clearSession();
+          // Giữ nguyên phiên cục bộ nếu chỉ bị lỗi mạng tạm thời khi server đang khởi động
         }
       }
       setIsLoading(false);

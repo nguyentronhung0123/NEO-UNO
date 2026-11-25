@@ -11,7 +11,8 @@ export function getSocket() {
       (derivedUrl ? derivedUrl : (window.location.hostname === 'localhost' ? 'http://localhost:5001' : '/'));
     socket = io(serverUrl, {
       autoConnect: true,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
+      timeout: 20000,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
     });

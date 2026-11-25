@@ -905,5 +905,20 @@ html, body {
   animation: phoneRotateGuide 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
+/* Tối ưu hiệu năng GPU trên điện thoại (giảm lag do blur/backdrop-filter quá nặng) */
+@media (max-width: 768px) {
+  .backdrop-blur-xl {
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+  .backdrop-blur-md {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+  }
+  .blur-3xl {
+    filter: blur(28px) !important;
+  }
+}
+
 
 

@@ -17,12 +17,16 @@ async function safeFetchJson(url, options = {}) {
     if (!res.ok && data && !data.message) {
       data.message = `Lỗi từ máy chủ (HTTP ${res.status})!`;
     }
+    if (data && typeof data === 'object') {
+      data.status = res.status;
+    }
 
     return data;
   } catch (error) {
     console.error(`[API Network Error] ${url}:`, error);
     return {
       success: false,
+      isNetworkError: true,
       message: 'Không thể kết nối đến máy chủ Backend (Port 5001)! Vui lòng kiểm tra mạng hoặc khởi động server.',
     };
   }
