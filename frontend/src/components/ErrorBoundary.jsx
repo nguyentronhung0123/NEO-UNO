@@ -22,6 +22,25 @@ export default class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.error('[ErrorBoundary] 🚨 Đã phát hiện sự cố giao diện:', error, errorInfo);
     this.setState({ errorInfo });
+
+    const msg = String(error?.message || '');
+    const isChunkError =
+      msg.includes('Failed to fetch dynamically imported module') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('Loading chunk') ||
+      msg.includes('Unable to preload CSS');
+
+    if (isChunkError) {
+      try {
+        const lastReload = Number(sessionStorage.getItem('neo_chunk_reload_at') || '0');
+        if (Date.now() - lastReload > 10000) {
+          sessionStorage.setItem('neo_chunk_reload_at', String(Date.now()));
+          window.location.reload();
+        }
+      } catch {
+        window.location.reload();
+      }
+    }
   }
 
   handleReload = () => {
