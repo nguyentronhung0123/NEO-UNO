@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense, lazy } from 'react';
 import UnoCard from '../components/UnoCard';
 import { CardBack } from '../components/CardBack';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { getSocket } from '../services/socket';
 import { soundEngine } from '../utils/audioFx';
+import { applyCardDragStyle, resetCardDragStyle } from '../helpers/cardHelpers';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
-import AudioSettingsModal from '../components/AudioSettingsModal';
-import MatchReplayModal from '../components/MatchReplayModal';
-import ReportModal from '../components/ReportModal';
 import OrientationNotice from '../components/OrientationNotice';
+
+const AudioSettingsModal = lazy(() => import('../components/AudioSettingsModal'));
+const MatchReplayModal = lazy(() => import('../components/MatchReplayModal'));
+const ReportModal = lazy(() => import('../components/ReportModal'));
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -112,9 +114,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
   const lastTurnNumberRef = useRef(-1);
   const cardActionLockTimeoutRef = useRef(null);
 
-  // Cử chỉ chạm vuốt bài lên để đánh (Task 7: Mobile Touch Gestures)
-  const [swipingCardId, setSwipingCardId] = useState(null);
-  const [swipeDeltaY, setSwipeDeltaY] = useState(0);
+  // Cử chỉ chạm vuốt bài lên để đánh (Task 7: Mobile Touch Gestures - cập nhật trực tiếp DOM ref, không re-render 60fps)
+  const swipeCardRef = useRef({ id: null, el: null, deltaY: 0 });
   const touchStartPosRef = useRef({ x: 0, y: 0, time: 0 });
 
   const [gameResult, setGameResult] = useState(null);
@@ -1831,7 +1832,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 {gameState?.topCard && !isDealing && !isShuffling ? (
                   <>
                     <div
-                      className={`absolute -inset-4 rounded-full blur-2xl animate-pulse pointer-events-none transition-colors duration-500 ${
+                      className={`absolute -inset-4 rounded-full pointer-events-none transition-colors duration-500 ${
                         COLOR_GLOW_MAP[gameState.activeColor || gameState.topCard?.color] || COLOR_GLOW_MAP.red
                       }`}
                     />
@@ -2051,24 +2052,27 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                           y: touch.clientY,
                           time: Date.now(),
                         };
-                        setSwipingCardId(card.id);
-                        setSwipeDeltaY(0);
+                        swipeCardRef.current = { id: card.id, el: e.currentTarget, deltaY: 0 };
                       }}
                       onTouchMove={(e) => {
-                        if (swipingCardId !== card.id) return;
+                        const cur = swipeCardRef.current;
+                        if (cur.id !== card.id || !cur.el) return;
                         const touch = e.touches[0];
                         const deltaY = touch.clientY - touchStartPosRef.current.y;
                         if (deltaY < 0) {
-                          setSwipeDeltaY(deltaY);
+                          cur.deltaY = deltaY;
+                          applyCardDragStyle(cur.el, deltaY);
                         } else {
-                          setSwipeDeltaY(0);
+                          cur.deltaY = 0;
+                          resetCardDragStyle(cur.el);
                         }
                       }}
                       onTouchEnd={() => {
-                        if (swipingCardId !== card.id) return;
-                        const swipedDistance = -swipeDeltaY;
-                        setSwipingCardId(null);
-                        setSwipeDeltaY(0);
+                        const cur = swipeCardRef.current;
+                        if (cur.id !== card.id) return;
+                        const swipedDistance = -cur.deltaY;
+                        resetCardDragStyle(cur.el);
+                        swipeCardRef.current = { id: null, el: null, deltaY: 0 };
 
                         // Nếu vuốt lên từ 40px trở lên: ĐÁNH BÀI NGAY! (Task 7: Swipe to Play)
                         if (swipedDistance >= 40) {
@@ -2085,20 +2089,13 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                           }
                         }
                       }}
-                      style={
-                        swipingCardId === card.id && swipeDeltaY < 0
-                          ? {
-                              transform: `translateY(${Math.max(-90, swipeDeltaY)}px) scale(1.12)`,
-                              zIndex: 60,
-                              boxShadow: '0 0 35px rgba(0, 210, 255, 0.95)',
-                              transition: 'none',
-                            }
-                          : undefined
-                      }
-                      className={`touch-card transform transition-all duration-200 shrink-0 transform-gpu select-none ${
-                        swipingCardId === card.id && swipeDeltaY < 0
-                          ? 'is-dragging ring-4 ring-cyan-300'
-                          : isNewlyDealt
+                      onTouchCancel={() => {
+                        const cur = swipeCardRef.current;
+                        resetCardDragStyle(cur.el);
+                        swipeCardRef.current = { id: null, el: null, deltaY: 0 };
+                      }}
+                      className={`touch-card transform transition-transform duration-200 shrink-0 transform-gpu select-none ${
+                        isNewlyDealt
                           ? 'animate-deal-to-player'
                           : isSelectedWild
                           ? '-translate-y-7 scale-110 z-40 ring-4 ring-primary-container rounded-2xl shadow-[0_0_30px_rgba(0,210,255,0.8)] cursor-pointer'
@@ -2683,31 +2680,39 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       )}
 
       {/* MODAL CÀI ĐẶT ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
-      <AudioSettingsModal
-        isOpen={isAudioSettingsOpen}
-        onClose={() => setIsAudioSettingsOpen(false)}
-      />
+      {isAudioSettingsOpen && (
+        <Suspense fallback={null}>
+          <AudioSettingsModal
+            isOpen={isAudioSettingsOpen}
+            onClose={() => setIsAudioSettingsOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* MODAL XEM LẠI TRẬN ĐẤU (TASK 3 - TUẦN 4) */}
       {isReplayOpen && gameResult?.matchId && (
-        <MatchReplayModal
-          isOpen={isReplayOpen}
-          onClose={() => setIsReplayOpen(false)}
-          matchId={gameResult.matchId}
-          onOpenReport={(reportInfo) => setReportTarget(reportInfo)}
-        />
+        <Suspense fallback={null}>
+          <MatchReplayModal
+            isOpen={isReplayOpen}
+            onClose={() => setIsReplayOpen(false)}
+            matchId={gameResult.matchId}
+            onOpenReport={(reportInfo) => setReportTarget(reportInfo)}
+          />
+        </Suspense>
       )}
 
       {/* MODAL TỐ CÁO VI PHẠM (TASK 3 - TUẦN 4) */}
       {reportTarget && (
-        <ReportModal
-          isOpen={Boolean(reportTarget)}
-          onClose={() => setReportTarget(null)}
-          targetUser={reportTarget}
-          matchId={reportTarget.matchId}
-          roomCode={reportTarget.roomCode}
-          evidenceTurn={reportTarget.evidenceTurn}
-        />
+        <Suspense fallback={null}>
+          <ReportModal
+            isOpen={Boolean(reportTarget)}
+            onClose={() => setReportTarget(null)}
+            targetUser={reportTarget}
+            matchId={reportTarget.matchId}
+            roomCode={reportTarget.roomCode}
+            evidenceTurn={reportTarget.evidenceTurn}
+          />
+        </Suspense>
       )}
     </main>
   );

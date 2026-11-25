@@ -607,7 +607,7 @@ function UnoCard({
         className={`
           relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${hTheme.border} ${hTheme.bg} ${hTheme.shadow}
-          transition-all duration-200 ease-out transform-gpu
+          transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
           ${selected ? 'ring-4 ring-amber-400 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(249,115,22,0.9)]' : ''}
           ${className}
@@ -646,7 +646,7 @@ function UnoCard({
         className={`
           relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${cTheme.border} ${cTheme.bg} ${cTheme.shadow}
-          transition-all duration-200 ease-out transform-gpu
+          transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
           ${selected ? 'ring-4 ring-cyan-400 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(0,210,255,0.9)]' : ''}
           ${className}
@@ -693,7 +693,7 @@ function UnoCard({
         className={`
           relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${gTheme.border} ${gTheme.bg} ${gTheme.shadow}
-          transition-all duration-200 ease-out transform-gpu
+          transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
           ${selected ? 'ring-4 ring-purple-400 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(168,85,247,0.9)]' : ''}
           ${className}
@@ -740,7 +740,7 @@ function UnoCard({
         className={`
           relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${dTheme.border} ${dTheme.bg} ${dTheme.shadow}
-          transition-all duration-200 ease-out transform-gpu
+          transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
           ${selected ? 'ring-4 ring-orange-500 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(249,115,22,0.9)]' : ''}
           ${className}
@@ -787,7 +787,7 @@ function UnoCard({
         className={`
           relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${lTheme.border} ${lTheme.bg} ${lTheme.shadow}
-          transition-all duration-200 ease-out transform-gpu
+          transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
           ${selected ? 'ring-4 ring-amber-300 ring-offset-2 ring-offset-[#0b0e17] -translate-y-3 shadow-[0_0_25px_rgba(251,191,36,0.95)]' : ''}
           ${className}
@@ -834,7 +834,7 @@ function UnoCard({
       className={`
         relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
         border ${theme.border} ${theme.bg} ${theme.textColor} ${theme.shadow}
-        transition-all duration-200 ease-out transform-gpu
+        transition-transform duration-200 ease-out transform-gpu contain-card
         ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
         ${selected ? 'ring-4 ring-white ring-offset-2 ring-offset-[#0b0e17] -translate-y-3' : ''}
         ${className}
@@ -849,7 +849,7 @@ function UnoCard({
         <div
           className={`
             w-[86%] h-[78%] rounded-full -rotate-12 flex items-center justify-center
-            border ${theme.ovalBorder} ${theme.ovalBg} backdrop-blur-xs shadow-inner
+            border ${theme.ovalBorder} ${theme.ovalBg} shadow-inner
           `}
         >
           <div className="rotate-12 flex items-center justify-center">

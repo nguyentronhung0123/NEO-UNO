@@ -101,8 +101,8 @@ export default function OrientationNotice({ onExit }) {
       className="fixed inset-0 z-[999999] bg-[#07090e]/96 backdrop-blur-xl flex flex-col items-center justify-center p-4 sm:p-6 text-center select-none overflow-y-auto"
     >
       {/* Vòng sáng nền Neon Cyberpunk */}
-      <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none -top-10 -left-10" />
-      <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-rose-500/10 blur-3xl pointer-events-none -bottom-10 -right-10" />
+      <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-[radial-gradient(closest-side,rgba(6,182,212,0.16),transparent)] pointer-events-none -top-10 -left-10" />
+      <div className="absolute w-72 h-72 sm:w-96 sm:h-96 rounded-full bg-[radial-gradient(closest-side,rgba(244,63,94,0.14),transparent)] pointer-events-none -bottom-10 -right-10" />
 
       <div className="relative z-10 max-w-xs sm:max-w-sm w-full flex flex-col items-center gap-3 sm:gap-4">
         

@@ -446,7 +446,7 @@ export function CardBack({
 
         <div
           className={`
-            relative rounded-[50%] -rotate-12 bg-black/35 border border-white/35 backdrop-blur-xs flex items-center justify-center shadow-lg
+            relative rounded-[50%] -rotate-12 bg-black/40 border border-white/35 flex items-center justify-center shadow-lg contain-card
             ${isSmall ? 'w-5 h-7' : isLarge ? 'w-44 h-60' : 'w-12 h-16 sm:w-14 sm:h-18'}
           `}
         >

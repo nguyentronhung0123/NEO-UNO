@@ -12,10 +12,12 @@ export default function MessengerDrawer({
   const [isOpen, setIsOpen] = useState(false);
   const [friends, setFriends] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // 1. Tải danh sách bạn bè & hội thoại
   const fetchConversations = useCallback(async () => {
     if (!user || user.role === 'guest') return;
+    setIsLoading(true);
     try {
       const res = await friendApi.getFriends();
       if (res && res.success) {
@@ -23,13 +25,21 @@ export default function MessengerDrawer({
       }
     } catch (err) {
       console.warn('[MessengerDrawer] Lỗi tải hội thoại:', err);
+    } finally {
+      setIsLoading(false);
     }
   }, [user]);
 
-  // Tải danh sách khi mount hoặc khi mở Drawer
+  // Tải danh sách trì hoãn nhẹ sau lần vẽ đầu tiên để không nghẽn đường truyền khởi tạo trên mobile, hoặc tải ngay khi mở Drawer
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations, isOpen]);
+    if (!user || user.role === 'guest') return;
+    if (isOpen) {
+      fetchConversations();
+      return;
+    }
+    const timer = setTimeout(fetchConversations, 450);
+    return () => clearTimeout(timer);
+  }, [fetchConversations, isOpen, user]);
 
   // 2. Lắng nghe sự kiện Realtime từ Socket (tin nhắn mới, cập nhật unread, trạng thái online)
   useEffect(() => {

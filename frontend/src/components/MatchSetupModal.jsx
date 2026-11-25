@@ -80,8 +80,8 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
       }`}>
         
         {/* Glow hiệu ứng nền */}
-        <div className="absolute -top-24 -left-24 w-60 h-60 bg-primary-container/15 rounded-full blur-[90px] pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-secondary-container/15 rounded-full blur-[90px] pointer-events-none" />
+        <div className="absolute -top-24 -left-24 w-60 h-60 bg-[radial-gradient(closest-side,rgba(0,210,255,0.18),transparent)] rounded-full pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-[radial-gradient(closest-side,rgba(212,0,75,0.18),transparent)] rounded-full pointer-events-none" />
 
         {/* Header Modal */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4">

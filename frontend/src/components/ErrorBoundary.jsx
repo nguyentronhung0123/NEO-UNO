@@ -61,8 +61,8 @@ export default class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen w-full bg-[#0b0e17] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 font-body select-none relative overflow-hidden">
           {/* Background Ambient Glows */}
-          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-rose-500/10 blur-[120px] rounded-full pointer-events-none" />
-          <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[radial-gradient(closest-side,rgba(244,63,94,0.14),transparent)] rounded-full pointer-events-none" />
+          <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-[radial-gradient(closest-side,rgba(6,182,212,0.14),transparent)] rounded-full pointer-events-none" />
 
           <div className="relative z-10 w-full max-w-sm sm:max-w-md bg-[#111728]/95 border-2 border-rose-500/50 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-[0_0_60px_rgba(244,63,94,0.3)] backdrop-blur-xl flex flex-col items-center text-center">
             {/* Warning Icon Badge */}

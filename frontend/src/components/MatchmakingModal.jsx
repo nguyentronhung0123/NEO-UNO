@@ -168,7 +168,7 @@ export default function MatchmakingModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-xl animate-fade-in font-body">
       {/* Background radial glow */}
-      <div className="absolute w-[500px] h-[500px] bg-primary-container/10 blur-[130px] rounded-full pointer-events-none"></div>
+      <div className="absolute w-[500px] h-[500px] bg-[radial-gradient(closest-side,rgba(0,210,255,0.14),transparent)] rounded-full pointer-events-none"></div>
 
       <div className="relative z-10 w-full max-w-lg bg-[#0e121d]/95 border border-primary-container/40 rounded-3xl p-6 sm:p-8 shadow-[0_0_60px_rgba(0,210,255,0.25)] flex flex-col items-center text-center overflow-hidden">
         

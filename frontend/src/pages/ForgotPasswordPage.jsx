@@ -203,8 +203,8 @@ export default function ForgotPasswordPage({ onBackToLogin, onSuccessLogin }) {
       
       {/* Background Soft Glows */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-primary-container/10 blur-[130px]"></div>
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-secondary-container/15 blur-[130px]"></div>
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-[radial-gradient(closest-side,rgba(0,210,255,0.14),transparent)]"></div>
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-[radial-gradient(closest-side,rgba(212,0,75,0.16),transparent)]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(10,14,24,0.85)_100%)]"></div>
       </div>
 

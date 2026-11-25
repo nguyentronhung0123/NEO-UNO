@@ -42,7 +42,7 @@ app.use(helmetShield); // HTTP Headers phòng thủ: CSP, HSTS, NoSniff, Clickja
 app.use(compression()); // Nén dữ liệu mạng Gzip/Brotli giảm 60-80% băng thông
 app.use(honeypotTripwire); // Cạm bẫy dò quét lỗ hổng .env, wp-admin, sql
 
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ origin: true, credentials: true, maxAge: 86400 }));
 app.use(express.json({ limit: '64kb' })); // Chặn payload JSON khổng lồ chống cạn kiệt RAM
 app.use(express.urlencoded({ extended: true, limit: '64kb' }));
 app.use(noSqlInjectionShield); // Lọc sạch toán tử NoSQL Injection ($gt, $ne, $where)

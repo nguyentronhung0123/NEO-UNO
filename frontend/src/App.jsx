@@ -43,13 +43,35 @@ function MainApp() {
   const [matchConfig, setMatchConfig] = useState({ botCount: 3, timeLimit: 300 });
   const [restoredMatchState, setRestoredMatchState] = useState(null);
 
-  // KÍCH HOẠT HỆ THỐNG ÂM THANH NGAY KHI NGƯỜI DÙNG TƯƠNG TÁC ĐẦU TIÊN (TASK 1 - TUẦN 6 POLISH)
+  // KÍCH HOẠT HỆ THỐNG ÂM THANH NHẸ NHÀNG KHÔNG CHẶN LẦN CHẠM ĐẦU TIÊN TRÊN MOBILE (TASK 1 - TUẦN 6 POLISH)
   useEffect(() => {
+    let idleId = null;
+    const prewarmTimer = setTimeout(() => {
+      const doPrewarm = () => {
+        try {
+          soundEngine.prewarm();
+        } catch {}
+      };
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(doPrewarm, { timeout: 1000 });
+      } else {
+        doPrewarm();
+      }
+    }, 1500);
+
     const unlockAudio = () => {
       try {
-        soundEngine.init();
-        if (soundEngine.ctx && soundEngine.ctx.state === 'suspended') {
-          soundEngine.ctx.resume().catch(() => {});
+        if (soundEngine.ctx) {
+          if (soundEngine.ctx.state === 'suspended') {
+            soundEngine.ctx.resume().catch(() => {});
+          }
+        } else {
+          // Tránh khởi tạo AudioContext đồng bộ gây khựng frame ngay lúc user chạm nút
+          setTimeout(() => {
+            try {
+              soundEngine.init();
+            } catch {}
+          }, 0);
         }
       } catch {}
     };
@@ -57,6 +79,10 @@ function MainApp() {
     window.addEventListener('pointerdown', unlockAudio, { once: true, passive: true });
     window.addEventListener('keydown', unlockAudio, { once: true, passive: true });
     return () => {
+      clearTimeout(prewarmTimer);
+      if (idleId !== null && 'cancelIdleCallback' in window) {
+        window.cancelIdleCallback(idleId);
+      }
       window.removeEventListener('pointerdown', unlockAudio);
       window.removeEventListener('keydown', unlockAudio);
     };

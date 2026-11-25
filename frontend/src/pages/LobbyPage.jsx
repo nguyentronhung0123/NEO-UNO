@@ -6,13 +6,22 @@ import MessengerDrawer from '../components/MessengerDrawer';
 import MatchInviteNotification from '../components/MatchInviteNotification';
 import { soundEngine } from '../utils/audioFx';
 import { AvatarFrame } from '../components/AvatarFrame';
-import { getSocket } from '../services/socket';
 import { friendApi } from '../apis/friendApi';
 import { questApi } from '../apis/questApi';
 import { rewardApi } from '../apis/rewardApi';
 import { battlePassApi } from '../apis/battlePassApi';
 import { getActiveMatch, forfeitActiveMatch, clearActiveMatch } from '../utils/activeMatchStorage.js';
 import { getRankTier } from '../utils/rankTiers';
+import { DEFAULT_CYBER_AVATAR } from '../constants/gameConstants';
+
+// Lazy loader cho Socket.io để không chặn đường tải đầu tiên (Critical Path) trên mobile
+let socketModulePromise = null;
+function loadSocketClient() {
+  if (!socketModulePromise) {
+    socketModulePromise = import('../services/socket');
+  }
+  return socketModulePromise.then((m) => m.getSocket());
+}
 
 // Tối ưu Tải Trang & Tối Ưu Src: Code-Splitting Modal động (Lazy-Loaded Modals)
 const CardShowcaseModal = lazy(() => import('../features/deckTest/components/CardShowcaseModal'));
@@ -74,13 +83,42 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   const activeChatFriendRef = useRef(activeChatFriend);
   activeChatFriendRef.current = activeChatFriend;
 
+  // Socket instance được khởi tạo sau lần paint đầu tiên để tối ưu tốc độ tải trên điện thoại
+  const [lobbySocket, setLobbySocket] = useState(null);
+
   // PHÁT HIỆN TRẬN ĐẤU DỞ DANG ĐỂ TIẾP TỤC CHƠI (RECONNECT / AFK)
-  const [rejoinMatch, setRejoinMatch] = useState(null);
+  const [rejoinMatch, setRejoinMatch] = useState(() => getActiveMatch());
   const [rejoinOnlineRoomCode, setRejoinOnlineRoomCode] = useState(null);
   const [isForfeiting, setIsForfeiting] = useState(false);
   const [forfeitToast, setForfeitToast] = useState(null);
 
   const profileMenuRef = useRef(null);
+
+  // Khởi tạo Socket sau khi giao diện Sảnh chính đã hiển thị xong (tránh tải/handshake đồng thời làm chậm FCP/LCP mobile)
+  useEffect(() => {
+    let cancelled = false;
+    const startSocket = () => {
+      loadSocketClient()
+        .then((s) => {
+          if (!cancelled && s) setLobbySocket(s);
+        })
+        .catch(() => {});
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(startSocket, { timeout: 300 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(idleId);
+      };
+    }
+
+    const timer = setTimeout(startSocket, 120);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
 
   // QUẢN LÝ NHẠC NỀN BGM & ÂM THANH SẢNH (TASK 1 - TUẦN 4)
   useEffect(() => {
@@ -88,40 +126,41 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       setAudioSettings(newSettings);
     });
 
-    // Kích hoạt BGM Sảnh (Chillwave) ngay khi có tương tác đầu tiên của người dùng
+    // Kích hoạt BGM Sảnh (Chillwave) sau khi frame chạm/click hoàn tất để không làm trễ phản hồi nút bấm trên mobile
+    let bgmTimer = null;
     const handleFirstInteraction = () => {
-      soundEngine.init();
-      const current = soundEngine.getSettings();
-      if (!current.currentTrack && current.bgmEnabled && !current.isMuted) {
-        soundEngine.playLobbyBGM();
-      }
       window.removeEventListener('click', handleFirstInteraction);
       window.removeEventListener('keydown', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
+
+      bgmTimer = setTimeout(() => {
+        soundEngine.init();
+        const current = soundEngine.getSettings();
+        if (!current.currentTrack && current.bgmEnabled && !current.isMuted) {
+          soundEngine.playLobbyBGM();
+        }
+      }, 40);
     };
 
-    window.addEventListener('click', handleFirstInteraction);
-    window.addEventListener('keydown', handleFirstInteraction);
-    window.addEventListener('touchstart', handleFirstInteraction);
+    window.addEventListener('click', handleFirstInteraction, { once: true, passive: true });
+    window.addEventListener('keydown', handleFirstInteraction, { once: true, passive: true });
 
     return () => {
       unsub();
+      if (bgmTimer !== null) clearTimeout(bgmTimer);
       window.removeEventListener('click', handleFirstInteraction);
       window.removeEventListener('keydown', handleFirstInteraction);
-      window.removeEventListener('touchstart', handleFirstInteraction);
     };
   }, []);
 
   // PHÁT HIỆN TRẬN ĐẤU ONLINE DỞ DANG ĐỂ RECONNECT (TASK 4)
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    if (!lobbySocket) return;
 
     const checkActiveOnline = () => {
       const myId = user?.id || user?._id || localStorage.getItem('neo_user_id');
       const myName = user?.nickname || user?.name || localStorage.getItem('neo_player_name');
       if (!myId && !myName) return;
-      socket.emit('game:check_active', { userId: myId, playerName: myName }, (res) => {
+      lobbySocket.emit('game:check_active', { userId: myId, playerName: myName }, (res) => {
         if (res && res.hasActiveGame && res.roomCode) {
           setRejoinOnlineRoomCode(res.roomCode);
         } else {
@@ -130,16 +169,73 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       });
     };
 
-    checkActiveOnline();
-    const interval = setInterval(checkActiveOnline, 4000);
-    return () => clearInterval(interval);
+    if (lobbySocket.connected) {
+      checkActiveOnline();
+    }
+    lobbySocket.on('connect', checkActiveOnline);
+    window.addEventListener('focus', checkActiveOnline);
+    return () => {
+      lobbySocket.off('connect', checkActiveOnline);
+      window.removeEventListener('focus', checkActiveOnline);
+    };
+  }, [user, lobbySocket]);
+
+  // TRÌ HOÃN NHẸ CÁC API HUY HIỆU PHỤ ĐỂ ƯU TIÊN RENDER GIAO DIỆN MOBILE TRƯỚC
+  useEffect(() => {
+    if (!user || user.role === 'guest') return;
+    let cancelled = false;
+    const userId = user.id || user._id;
+
+    const fetchLobbyBadges = () => {
+      if (cancelled) return;
+      friendApi.getFriendRequests().then((res) => {
+        if (!cancelled && res && res.success) {
+          setPendingRequestsCount(res.received?.length || 0);
+        }
+      });
+
+      // Kiểm tra trạng thái quà nhiệm vụ chờ nhận (Task 6)
+      questApi.getDailyQuests().then((res) => {
+        if (!cancelled && res && res.success && res.stats?.hasClaimableReward) {
+          setHasClaimableQuest(true);
+        } else if (!cancelled) {
+          setHasClaimableQuest(false);
+        }
+      });
+
+      // Kiểm tra trạng thái Vòng quay may mắn & Chuỗi điểm danh (Task 3 Tuần 5)
+      rewardApi.getWheelStatus(userId).then((res) => {
+        if (!cancelled && res && res.success) {
+          setCanFreeSpin(res.canFreeSpin);
+        }
+      });
+      rewardApi.getCheckInStatus(userId).then((res) => {
+        if (!cancelled && res && res.success) {
+          setHasUnclaimedCheckIn(!res.isClaimedToday);
+        }
+      });
+
+      // Kiểm tra trạng thái Sổ Sứ Mệnh Mùa 1 (Task 4 Tuần 5)
+      battlePassApi.getStatus(userId).then((res) => {
+        if (!cancelled && res && res.success) {
+          setBattlePassLevel(res.pass?.level || 1);
+          setCanClaimBattlePass(res.canClaimAny);
+        }
+      });
+    };
+
+    const timer = setTimeout(fetchLobbyBadges, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [user]);
 
   // ĐĂNG KÝ PRESENCE VÀ LẮNG NGHE LỜI MỜI ĐẤU REALTIME (TASK 2)
   useEffect(() => {
-    const socket = getSocket();
+    if (!lobbySocket) return;
     if (user && user.role !== 'guest') {
-      socket.emit('user:register', {
+      lobbySocket.emit('user:register', {
         userId: user.id || user._id,
         user: {
           id: user.id || user._id,
@@ -148,41 +244,6 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           elo: user.elo,
           level: user.level,
         },
-      });
-
-      friendApi.getFriendRequests().then((res) => {
-        if (res && res.success) {
-          setPendingRequestsCount(res.received?.length || 0);
-        }
-      });
-
-      // Kiểm tra trạng thái quà nhiệm vụ chờ nhận (Task 6)
-      questApi.getDailyQuests().then((res) => {
-        if (res && res.success && res.stats?.hasClaimableReward) {
-          setHasClaimableQuest(true);
-        } else {
-          setHasClaimableQuest(false);
-        }
-      });
-
-      // Kiểm tra trạng thái Vòng quay may mắn & Chuỗi điểm danh (Task 3 Tuần 5)
-      rewardApi.getWheelStatus(user.id || user._id).then((res) => {
-        if (res && res.success) {
-          setCanFreeSpin(res.canFreeSpin);
-        }
-      });
-      rewardApi.getCheckInStatus(user.id || user._id).then((res) => {
-        if (res && res.success) {
-          setHasUnclaimedCheckIn(!res.isClaimedToday);
-        }
-      });
-
-      // Kiểm tra trạng thái Sổ Sứ Mệnh Mùa 1 (Task 4 Tuần 5)
-      battlePassApi.getStatus(user.id || user._id).then((res) => {
-        if (res && res.success) {
-          setBattlePassLevel(res.pass?.level || 1);
-          setCanClaimBattlePass(res.canClaimAny);
-        }
       });
     }
 
@@ -219,18 +280,18 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       }
     };
 
-    socket.on('invite:received', handleInviteReceived);
-    socket.on('friend:request_received', handleFriendRequestReceived);
-    socket.on('dm:receive', handleDmReceivedGlobally);
-    socket.on('user:balance_updated', handleBalanceUpdated);
+    lobbySocket.on('invite:received', handleInviteReceived);
+    lobbySocket.on('friend:request_received', handleFriendRequestReceived);
+    lobbySocket.on('dm:receive', handleDmReceivedGlobally);
+    lobbySocket.on('user:balance_updated', handleBalanceUpdated);
 
     return () => {
-      socket.off('invite:received', handleInviteReceived);
-      socket.off('friend:request_received', handleFriendRequestReceived);
-      socket.off('dm:receive', handleDmReceivedGlobally);
-      socket.off('user:balance_updated', handleBalanceUpdated);
+      lobbySocket.off('invite:received', handleInviteReceived);
+      lobbySocket.off('friend:request_received', handleFriendRequestReceived);
+      lobbySocket.off('dm:receive', handleDmReceivedGlobally);
+      lobbySocket.off('user:balance_updated', handleBalanceUpdated);
     };
-  }, [user]);
+  }, [user, lobbySocket]);
 
   const handleAcceptInvite = (invite) => {
     setIncomingInvite(null);
@@ -240,9 +301,9 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
     setIsOnlineRoomOpen(true);
   };
 
-  const handleDeclineInvite = (invite) => {
+  const handleDeclineInvite = async (invite) => {
     setIncomingInvite(null);
-    const socket = getSocket();
+    const socket = lobbySocket || (await loadSocketClient());
     socket.emit('invite:decline', {
       senderUserId: invite.fromUser?.id,
       user: {
@@ -263,8 +324,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   };
 
   // TẠO PHÒNG VÀ GỬI LỜI MỜI ĐẤU TRỰC TIẾP TỚI BẠN BÈ 1-CLICK (TASK 2)
-  const handleCreateRoomAndInvite = (friend) => {
-    const socket = getSocket();
+  const handleCreateRoomAndInvite = async (friend) => {
+    const socket = lobbySocket || (await loadSocketClient());
     if (!socket) return;
 
     let localUserId = localStorage.getItem('neo_user_id');
@@ -311,21 +372,30 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
     });
   };
 
-  // Tự động kiểm tra và đồng bộ trực tiếp trận đấu dở dang theo thời gian thực (1s/lần)
+  // Tự động kiểm tra và đồng bộ trực tiếp trận đấu dở dang (chỉ đếm 1s khi thực sự có ván đang diễn ra)
+  const hasActiveRejoinInProgress = Boolean(rejoinMatch && rejoinMatch.status === 'in_progress');
   useEffect(() => {
     const updateActive = () => {
       const active = getActiveMatch();
       if (active && (active.status === 'in_progress' || active.status === 'finished') && active.playerHand) {
         setRejoinMatch(active);
       } else {
-        setRejoinMatch(null);
+        setRejoinMatch((prev) => (prev ? null : prev));
       }
     };
 
     updateActive();
+    window.addEventListener('focus', updateActive);
+    if (!hasActiveRejoinInProgress) {
+      return () => window.removeEventListener('focus', updateActive);
+    }
+
     const interval = setInterval(updateActive, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', updateActive);
+    };
+  }, [hasActiveRejoinInProgress]);
 
   const handleConfirmRejoin = () => {
     if (!rejoinMatch) return;
@@ -381,11 +451,11 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
   return (
     <div className="min-h-screen bg-[#0b0e17] flex flex-col justify-between p-3 sm:p-5 text-slate-100 relative overflow-hidden font-body selection:bg-primary-container selection:text-black">
-      {/* Background Soft Glows */}
+      {/* Background Soft Glows (Radial gradients - Zero GPU blur pass trên mobile) */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[340px] bg-primary-container/10 blur-[130px] rounded-full"></div>
-        <div className="absolute -bottom-40 -left-20 w-[480px] h-[480px] bg-secondary-container/15 blur-[140px] rounded-full"></div>
-        <div className="absolute top-1/3 -right-20 w-[420px] h-[420px] bg-tertiary-container/10 blur-[120px] rounded-full"></div>
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[340px] bg-[radial-gradient(closest-side,rgba(0,210,255,0.12),transparent)] rounded-full"></div>
+        <div className="absolute -bottom-40 -left-20 w-[480px] h-[480px] bg-[radial-gradient(closest-side,rgba(212,0,75,0.16),transparent)] rounded-full"></div>
+        <div className="absolute top-1/3 -right-20 w-[420px] h-[420px] bg-[radial-gradient(closest-side,rgba(72,217,158,0.12),transparent)] rounded-full"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(28,31,42,0.6)_0%,rgba(10,14,24,0.95)_100%)]"></div>
       </div>
 
@@ -598,8 +668,11 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                 className="flex-shrink-0"
               >
                 <img
-                  src={user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.nickname || 'Guest'}`}
+                  src={user?.avatar || DEFAULT_CYBER_AVATAR}
                   alt="Avatar"
+                  width="36"
+                  height="36"
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
               </AvatarFrame>
@@ -675,8 +748,11 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                   className="flex-shrink-0"
                 >
                   <img
-                    src={user?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.nickname || 'Guest'}`}
+                    src={user?.avatar || DEFAULT_CYBER_AVATAR}
                     alt="Avatar"
+                    width="56"
+                    height="56"
+                    decoding="async"
                     className="w-full h-full object-cover"
                   />
                 </AvatarFrame>
@@ -1480,9 +1556,9 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           <MatchSetupModal
             isOpen={isSetupOpen}
             onClose={() => setIsSetupOpen(false)}
-            onStartMatch={(config) => {
+            onStartMatch={async (config) => {
               setIsSetupOpen(false);
-              const socket = getSocket();
+              const socket = lobbySocket || (await loadSocketClient().catch(() => null));
               // Nếu đã đăng nhập: Khởi tạo phòng đấu với Bot trên Server để bạn bè có thể xem trực tiếp (Spectator Mode)
               if (socket && user && onJoinOnlineMatch) {
                 socket.emit('room:create', { user }, (res) => {
@@ -1543,8 +1619,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           <div className="relative w-full max-w-lg bg-[#0f1422]/95 border-2 border-primary-container/60 rounded-3xl p-6 sm:p-7 shadow-[0_0_70px_rgba(0,210,255,0.35)] flex flex-col gap-5 overflow-hidden">
             
             {/* Glow effect */}
-            <div className="absolute -top-24 -left-24 w-60 h-60 bg-primary-container/20 rounded-full blur-[90px] pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-rose-500/15 rounded-full blur-[90px] pointer-events-none" />
+            <div className="absolute -top-24 -left-24 w-60 h-60 bg-[radial-gradient(closest-side,rgba(0,210,255,0.22),transparent)] rounded-full pointer-events-none" />
+            <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-[radial-gradient(closest-side,rgba(244,63,94,0.18),transparent)] rounded-full pointer-events-none" />
 
             {/* Header */}
             <div className="flex items-center gap-3.5 border-b border-white/10 pb-4">
@@ -1687,8 +1763,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
               <button
                 type="button"
-                onClick={() => {
-                  const socket = getSocket();
+                onClick={async () => {
+                  const socket = lobbySocket || (await loadSocketClient().catch(() => null));
                   if (socket) {
                     const myId = user?._id || user?.id || localStorage.getItem('neo_user_id');
                     socket.emit('game:forfeit', { code: rejoinOnlineRoomCode, userId: myId });
@@ -1863,7 +1939,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               setFriendsRoomCode(null);
             }}
             user={user}
-            socket={getSocket()}
+            socket={lobbySocket}
             currentRoomCode={friendsRoomCode}
             onOpenAuth={onOpenAuth}
             onOpenChat={(friend) => setActiveChatFriend(friend)}
@@ -1886,11 +1962,11 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         <FriendChatBox
           friend={activeChatFriend}
           currentUser={user}
-          socket={getSocket()}
+          socket={lobbySocket}
           onClose={() => setActiveChatFriend(null)}
-          onInviteToMatch={(friend) => {
+          onInviteToMatch={async (friend) => {
             if (friendsRoomCode) {
-              const s = getSocket();
+              const s = lobbySocket || (await loadSocketClient());
               s.emit('invite:send', {
                 toUserId: friend._id,
                 roomCode: friendsRoomCode,
@@ -2063,7 +2139,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       {/* KHỐI NÚT NỔI GÓC DƯỚI PHẢI (CỬA HÀNG + CHAT MESSENGER NẰM CÙNG KHỐI) */}
       <MessengerDrawer
         user={user}
-        socket={getSocket()}
+        socket={lobbySocket}
         onOpenChat={(friend) => setActiveChatFriend(friend)}
         onOpenFriendsModal={() => setIsFriendsOpen(true)}
         onOpenShop={() => setIsShopOpen(true)}

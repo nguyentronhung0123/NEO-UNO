@@ -1,11 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, Suspense, lazy } from 'react';
 import UnoCard from '../components/UnoCard';
 import { CardBack } from '../components/CardBack';
 import { AvatarFrame } from '../components/AvatarFrame';
 import { useAuth } from '../hooks/useAuth';
-import LeaderboardModal from '../components/LeaderboardModal';
 import { getRankTier } from '../utils/rankTiers';
-import MatchHistoryModal from '../components/MatchHistoryModal';
 import { initGameState, calculateHandPoints, getMaxCardPoint, checkTeamVictory, getTeamForSeat } from '../utils/gameLogic.js';
 import { shuffleDeck } from '../utils/deck.js';
 import { soundEngine } from '../utils/audioFx.js';
@@ -13,9 +11,9 @@ import { getSocket } from '../services/socket.js';
 import { matchApi } from '../apis/matchApi.js';
 import { tournamentApi } from '../apis/tournamentApi.js';
 import { saveActiveMatch, clearActiveMatch, forfeitActiveMatch, getActiveMatch } from '../utils/activeMatchStorage.js';
+import { applyCardDragStyle, resetCardDragStyle } from '../helpers/cardHelpers.js';
 import EmoteWheel from '../components/EmoteWheel';
 import EmoteOverlay from '../components/EmoteOverlay';
-import AudioSettingsModal from '../components/AudioSettingsModal';
 import OrientationNotice from '../components/OrientationNotice';
 import {
   getBotAttackEmote,
@@ -24,6 +22,10 @@ import {
   getBotRetaliationEmote,
   getBotBanterEmote,
 } from '../utils/botDialogue.js';
+
+const LeaderboardModal = lazy(() => import('../components/LeaderboardModal'));
+const MatchHistoryModal = lazy(() => import('../components/MatchHistoryModal'));
+const AudioSettingsModal = lazy(() => import('../components/AudioSettingsModal'));
 
 const COLOR_GLOW_MAP = {
   red: 'bg-rose-500/40 shadow-[0_0_80px_rgba(244,63,94,0.7)]',
@@ -156,9 +158,8 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
   // Khóa đồng bộ chống click nhanh đánh 2-3 lá bài trong cùng 1 lượt (LUẬT: 1 LƯỢT = 1 LÁ)
   const isCardActionLockedRef = useRef(false);
 
-  // Cử chỉ chạm vuốt bài lên để đánh (Task 7: Mobile Touch Gestures)
-  const [swipingCardId, setSwipingCardId] = useState(null);
-  const [swipeDeltaY, setSwipeDeltaY] = useState(0);
+  // Cử chỉ chạm vuốt bài lên để đánh (Task 7: Mobile Touch Gestures - cập nhật trực tiếp qua DOM ref, không re-render 60fps)
+  const swipeCardRef = useRef({ id: null, el: null, deltaY: 0 });
   const touchStartPosRef = useRef({ x: 0, y: 0, time: 0 });
 
   const turnDirectionRef = useRef(turnDirection);
@@ -854,29 +855,43 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // TỰ ĐỘNG ĐỒNG BỘ TRẠNG THÁI VÁN ĐẤU VÀO LOCALSTORAGE
+  // TỰ ĐỘNG ĐỒNG BỘ TRẠNG THÁI VÁN ĐẤU VÀO LOCALSTORAGE (chỉ ghi khi trạng thái bài/lượt đổi hoặc khi ẩn tab, tránh ghi sync mỗi 1s gây giật lag mobile)
   useEffect(() => {
     if (!gameState || winner || isShuffling || isDealing) return;
 
-    saveActiveMatch({
-      matchConfig: matchConfig || { botCount, timeLimit },
-      matchTimeRemaining,
-      playerHand: gameState.playerHand,
-      bots: gameState.bots,
-      drawPile: gameState.drawPile,
-      discardPile: gameState.discardPile,
-      currentTurnIndex,
-      turnDirection,
-      drawTwoStack,
-      drawnCountInTurn,
-      activeColor,
-    });
+    const persistSnapshot = () => {
+      saveActiveMatch({
+        matchConfig: matchConfig || { botCount, timeLimit },
+        matchTimeRemaining: matchTimeRemainingRef.current,
+        playerHand: gameState.playerHand,
+        bots: gameState.bots,
+        drawPile: gameState.drawPile,
+        discardPile: gameState.discardPile,
+        currentTurnIndex,
+        turnDirection,
+        drawTwoStack,
+        drawnCountInTurn,
+        activeColor,
+      });
+    };
+
+    persistSnapshot();
+    const handleVisibilityOrHide = () => {
+      if (document.visibilityState === 'hidden') {
+        persistSnapshot();
+      }
+    };
+    window.addEventListener('pagehide', persistSnapshot);
+    document.addEventListener('visibilitychange', handleVisibilityOrHide);
+    return () => {
+      window.removeEventListener('pagehide', persistSnapshot);
+      document.removeEventListener('visibilitychange', handleVisibilityOrHide);
+    };
   }, [
     gameState,
     matchConfig,
     botCount,
     timeLimit,
-    matchTimeRemaining,
     currentTurnIndex,
     turnDirection,
     drawTwoStack,
@@ -2637,7 +2652,7 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                 {activeDiscard ? (
                   <>
                     <div
-                      className={`absolute -inset-4 rounded-full blur-2xl animate-pulse pointer-events-none transition-colors duration-500 ${
+                      className={`absolute -inset-4 rounded-full pointer-events-none transition-colors duration-500 ${
                         COLOR_GLOW_MAP[activeColor || activeDiscard?.color] || COLOR_GLOW_MAP.red
                       }`}
                     />
@@ -2753,24 +2768,27 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       y: touch.clientY,
                       time: Date.now(),
                     };
-                    setSwipingCardId(card.id);
-                    setSwipeDeltaY(0);
+                    swipeCardRef.current = { id: card.id, el: e.currentTarget, deltaY: 0 };
                   }}
                   onTouchMove={(e) => {
-                    if (swipingCardId !== card.id) return;
+                    const cur = swipeCardRef.current;
+                    if (cur.id !== card.id || !cur.el) return;
                     const touch = e.touches[0];
                     const deltaY = touch.clientY - touchStartPosRef.current.y;
                     if (deltaY < 0) {
-                      setSwipeDeltaY(deltaY);
+                      cur.deltaY = deltaY;
+                      applyCardDragStyle(cur.el, deltaY);
                     } else {
-                      setSwipeDeltaY(0);
+                      cur.deltaY = 0;
+                      resetCardDragStyle(cur.el);
                     }
                   }}
                   onTouchEnd={() => {
-                    if (swipingCardId !== card.id) return;
-                    const swipedDistance = -swipeDeltaY;
-                    setSwipingCardId(null);
-                    setSwipeDeltaY(0);
+                    const cur = swipeCardRef.current;
+                    if (cur.id !== card.id) return;
+                    const swipedDistance = -cur.deltaY;
+                    resetCardDragStyle(cur.el);
+                    swipeCardRef.current = { id: null, el: null, deltaY: 0 };
 
                     // Nếu vuốt lên từ 40px trở lên: ĐÁNH BÀI NGAY! (Task 7: Swipe to Play)
                     if (swipedDistance >= 40) {
@@ -2785,20 +2803,13 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
                       }
                     }
                   }}
-                  style={
-                    swipingCardId === card.id && swipeDeltaY < 0
-                      ? {
-                          transform: `translateY(${Math.max(-90, swipeDeltaY)}px) scale(1.12)`,
-                          zIndex: 60,
-                          boxShadow: '0 0 35px rgba(0, 210, 255, 0.95)',
-                          transition: 'none',
-                        }
-                      : undefined
-                  }
-                  className={`touch-card transform transition-all duration-200 shrink-0 select-none ${
-                    swipingCardId === card.id && swipeDeltaY < 0
-                      ? 'is-dragging ring-4 ring-cyan-300'
-                      : isNewlyDealt
+                  onTouchCancel={() => {
+                    const cur = swipeCardRef.current;
+                    resetCardDragStyle(cur.el);
+                    swipeCardRef.current = { id: null, el: null, deltaY: 0 };
+                  }}
+                  className={`touch-card transform transition-transform duration-200 shrink-0 select-none ${
+                    isNewlyDealt
                       ? 'animate-deal-to-player'
                       : isSelectedWild
                       ? '-translate-y-7 scale-110 z-40 ring-4 ring-primary-container rounded-2xl shadow-[0_0_30px_rgba(0,210,255,0.8)] cursor-pointer'
@@ -3432,22 +3443,34 @@ export default function GameBoard({ matchConfig, onBack, restoredMatchState }) {
       )}
 
       {/* MODAL BẢNG VINH DANH & HỆ THỐNG BẬC RANK */}
-      <LeaderboardModal
-        isOpen={showLeaderboard}
-        onClose={() => setShowLeaderboard(false)}
-      />
+      {showLeaderboard && (
+        <Suspense fallback={null}>
+          <LeaderboardModal
+            isOpen={showLeaderboard}
+            onClose={() => setShowLeaderboard(false)}
+          />
+        </Suspense>
+      )}
 
       {/* MODAL LỊCH SỬ ĐẤU TRƯỜNG */}
-      <MatchHistoryModal
-        isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
-      />
+      {showHistory && (
+        <Suspense fallback={null}>
+          <MatchHistoryModal
+            isOpen={showHistory}
+            onClose={() => setShowHistory(false)}
+          />
+        </Suspense>
+      )}
 
       {/* MODAL CÀI ĐẶT ÂM THANH & BGM MIXER (TASK 1 - TUẦN 4) */}
-      <AudioSettingsModal
-        isOpen={isAudioSettingsOpen}
-        onClose={() => setIsAudioSettingsOpen(false)}
-      />
+      {isAudioSettingsOpen && (
+        <Suspense fallback={null}>
+          <AudioSettingsModal
+            isOpen={isAudioSettingsOpen}
+            onClose={() => setIsAudioSettingsOpen(false)}
+          />
+        </Suspense>
+      )}
     </main>
   );
 }

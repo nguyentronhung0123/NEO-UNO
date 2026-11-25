@@ -37,29 +37,30 @@ class SoundEngine {
     this.isBgmFading = false;
   }
 
+  // Tạo sẵn AudioContext ở trạng thái suspended lúc rảnh (tránh khựng 200ms+ ở lần chạm đầu tiên trên mobile)
+  prewarm() {
+    if (typeof window === 'undefined' || this.ctx) return;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+
+    try {
+      this.ctx = new AudioCtx();
+      this.masterGainNode = this.ctx.createGain();
+      this.bgmGainNode = this.ctx.createGain();
+      this.sfxGainNode = this.ctx.createGain();
+
+      this.sfxGainNode.connect(this.masterGainNode);
+      this.bgmGainNode.connect(this.masterGainNode);
+      this.masterGainNode.connect(this.ctx.destination);
+
+      this.applyGainLevels();
+    } catch {}
+  }
+
   // Khởi tạo hoặc khôi phục AudioContext
   init() {
     if (typeof window === 'undefined') return;
-
-    if (!this.ctx) {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (AudioCtx) {
-        this.ctx = new AudioCtx();
-
-        // 1. Tạo các Node khuếch đại (Gain Nodes)
-        this.masterGainNode = this.ctx.createGain();
-        this.bgmGainNode = this.ctx.createGain();
-        this.sfxGainNode = this.ctx.createGain();
-
-        // 2. Định tuyến (Routing Graph): SFX & BGM -> Master -> Destination
-        this.sfxGainNode.connect(this.masterGainNode);
-        this.bgmGainNode.connect(this.masterGainNode);
-        this.masterGainNode.connect(this.ctx.destination);
-
-        // 3. Áp dụng các mức âm lượng đã lưu
-        this.applyGainLevels();
-      }
-    }
+    this.prewarm();
 
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
@@ -287,7 +288,7 @@ class SoundEngine {
     const stepDuration = 0.28; // giây
 
     const playMeasure = () => {
-      if (!this.ctx || this.settings.currentTrack !== 'lobby') return;
+      if (!this.ctx || this.settings.currentTrack !== 'lobby' || document.hidden) return;
       const now = this.ctx.currentTime;
       const currentChord = chords[chordIndex];
       chordIndex = (chordIndex + 1) % chords.length;
@@ -375,7 +376,7 @@ class SoundEngine {
     const measureDuration = 2.4; // 2.4 giây mỗi ô nhịp (dịu êm, thư thái)
 
     const playChillMeasure = () => {
-      if (!this.ctx || this.settings.currentTrack !== 'battle') return;
+      if (!this.ctx || this.settings.currentTrack !== 'battle' || document.hidden) return;
       const now = this.ctx.currentTime;
       const cur = chillChords[chordIdx];
       chordIdx = (chordIdx + 1) % chillChords.length;

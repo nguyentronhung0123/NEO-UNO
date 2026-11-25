@@ -1,5 +1,35 @@
 import React, { useEffect, useState } from 'react';
 
+let googleGsiLoadPromise = null;
+
+function loadGoogleGsiScript() {
+  if (typeof window === 'undefined') return Promise.resolve(false);
+  if (window.google?.accounts) return Promise.resolve(true);
+  if (googleGsiLoadPromise) return googleGsiLoadPromise;
+
+  googleGsiLoadPromise = new Promise((resolve) => {
+    const existing = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (existing) {
+      existing.addEventListener('load', () => resolve(Boolean(window.google?.accounts)), { once: true });
+      existing.addEventListener('error', () => resolve(false), { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(Boolean(window.google?.accounts));
+    script.onerror = () => {
+      googleGsiLoadPromise = null;
+      resolve(false);
+    };
+    document.head.appendChild(script);
+  });
+
+  return googleGsiLoadPromise;
+}
+
 export default function SocialLoginButtons({
   dividerText = 'ĐĂNG NHẬP ĐỒNG BỘ NHANH',
   onGoogleAuth,
@@ -9,7 +39,7 @@ export default function SocialLoginButtons({
   const [isClicking, setIsClicking] = useState(false);
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-  // Khởi tạo One-Tap ngầm nếu người dùng đã bật sẵn phiên Google trên trình duyệt
+  // Lazy-load Google Identity Services SDK chỉ khi màn hình Đăng nhập được mở
   useEffect(() => {
     if (!clientId) return;
 
@@ -32,12 +62,11 @@ export default function SocialLoginButtons({
       }
     };
 
-    if (window.google?.accounts?.id) {
-      initOneTap();
-    } else {
-      const timer = setTimeout(initOneTap, 1000);
-      return () => clearTimeout(timer);
-    }
+    loadGoogleGsiScript().then((loaded) => {
+      if (loaded && mounted) {
+        initOneTap();
+      }
+    });
 
     return () => {
       mounted = false;
@@ -45,7 +74,7 @@ export default function SocialLoginButtons({
   }, [clientId, onGoogleAuth]);
 
   // Xử lý khi nhấn nút Đăng nhập bằng Google chuẩn Cyberpunk
-  const handleGoogleClick = () => {
+  const handleGoogleClick = async () => {
     if (!clientId) {
       if (setStatusMessage) {
         setStatusMessage({
@@ -57,6 +86,7 @@ export default function SocialLoginButtons({
     }
 
     setIsClicking(true);
+    await loadGoogleGsiScript();
 
     // Sử dụng Google Identity Services OAuth 2.0 Token Client (Mở popup chọn tài khoản chính thống của Google)
     if (window.google?.accounts?.oauth2) {

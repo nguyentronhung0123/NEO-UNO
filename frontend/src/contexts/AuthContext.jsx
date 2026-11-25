@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authApi } from '../apis/authApi';
-import { disconnectSocket } from '../services/socket';
 
 export const AuthContext = createContext(null);
 
@@ -109,7 +108,9 @@ export function AuthProvider({ children }) {
       if (token) {
         authApi.logout(token).catch(() => {});
       }
-      disconnectSocket();
+      import('../services/socket')
+        .then(({ disconnectSocket }) => disconnectSocket())
+        .catch(() => {});
     } catch (err) {
       console.warn('[Auth] Lỗi ngắt socket khi logout:', err);
     }
