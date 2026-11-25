@@ -1,12 +1,10 @@
 /**
- * Service Worker cho NEO-UNO PWA
- * Hỗ trợ Offline Shell, Tải Nhanh (Instant Load) & Quản lý Bộ Nhớ Đệm
+ * Service Worker cho NEO-UNO PWA (v2 - Fix Mobile Cache & Cross-Origin)
+ * Đảm bảo không phục vụ index.html cũ trỏ tới JS hash đã bị xóa sau mỗi lần deploy.
  */
 
-const CACHE_NAME = 'neo-uno-cache-v1';
+const CACHE_NAME = 'neo-uno-cache-v2';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.svg',
   '/icons/icon-192.png',
@@ -14,89 +12,94 @@ const STATIC_ASSETS = [
   '/icons/apple-touch-icon.png',
 ];
 
-// 1. CÀI ĐẶT SERVICE WORKER & LƯU SHELL TĨNH VÀO CACHE
+// 1. CÀI ĐẶT SERVICE WORKER & LƯU ICON/MANIFEST TĨNH
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] 📦 Đang nạp trước bộ nhớ đệm Shell tĩnh cho NEO-UNO...');
-      return cache.addAll(STATIC_ASSETS);
-    }).then(() => {
-      return self.skipWaiting();
-    })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .catch((err) => {
+        console.warn('[SW] ⚠️ Bỏ qua lỗi nạp trước một số asset tĩnh:', err);
+      })
+      .then(() => self.skipWaiting())
   );
 });
 
-// 2. KÍCH HOẠT SERVICE WORKER & DỌN DẸP CACHE PHIÊN BẢN CŨ
+// 2. KÍCH HOẠT SERVICE WORKER & XÓA SẠCH CACHE CŨ (v1)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[SW] 🧹 Dọn dẹp cache phiên bản cũ:', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => {
-      return self.clients.claim();
-    })
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys.map((key) => {
+            if (key !== CACHE_NAME) {
+              console.log('[SW] 🧹 Dọn dẹp cache phiên bản cũ:', key);
+              return caches.delete(key);
+            }
+          })
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
-// 3. ĐIỀU PHỐI YÊU CẦU MẠNG (FETCH STRATEGY)
+// 3. ĐIỀU PHỐI YÊU CẦU MẠNG AN TOÀN
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // A. BỎ QUA các yêu cầu không phải GET hoặc là API / Socket.io / Hot-reload
+  // A. CHỈ xử lý request GET cùng origin (Bỏ qua hoàn toàn Google Fonts, Google GSI, Render API, Socket.io...)
   if (
     event.request.method !== 'GET' ||
+    url.origin !== self.location.origin ||
     url.pathname.startsWith('/api') ||
     url.pathname.startsWith('/socket.io') ||
     url.pathname.includes('/@vite/') ||
     url.pathname.includes('/@fs/')
   ) {
-    return; // Để mạng xử lý trực tiếp thời gian thực
+    return;
   }
 
-  // B. ĐIỀU HƯỚNG TRANG (HTML NAVIGATION): Network-first fallback to Cache
+  // B. ĐIỀU HƯỚNG TRANG (HTML NAVIGATION): Luôn ưu tiên mạng (Network-First)
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          return caches.match('/index.html') || caches.match('/');
-        })
+      fetch(event.request).catch(async () => {
+        const cached = (await caches.match('/index.html')) || (await caches.match('/'));
+        return cached || Response.error();
+      })
     );
     return;
   }
 
-  // C. TÀI NGUYÊN TĨNH (CSS, JS, Fonts, Images): Stale-While-Revalidate
+  // C. TÀI NGUYÊN TĨNH CÙNG ORIGIN (JS/CSS đã hash, Icon, Ảnh):
+  // Luôn ưu tiên mạng hoặc cache có fallback hợp lệ (không bao giờ trả về undefined)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          // Bỏ qua lỗi mạng nền nếu đã có cache
-        });
+      if (cachedResponse) {
+        // Revalidate ngầm với các file không phải hashed asset
+        if (!url.pathname.startsWith('/assets/')) {
+          fetch(event.request)
+            .then((networkResponse) => {
+              if (networkResponse && networkResponse.status === 200) {
+                caches.open(CACHE_NAME).then((cache) => {
+                  cache.put(event.request, networkResponse.clone());
+                });
+              }
+            })
+            .catch(() => {});
+        }
+        return cachedResponse;
+      }
 
-      return cachedResponse || fetchPromise;
+      return fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, clone);
+          });
+        }
+        return networkResponse;
+      });
     })
   );
 });
