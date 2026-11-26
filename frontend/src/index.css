@@ -977,5 +977,324 @@ html, body {
   contain-intrinsic-block-size: auto 10rem;
 }
 
+/* ================= RESPONSIVE ADAPTATION: LANDSCAPE & MULTITASKING ================= */
+/* Chỉ hiển thị Quick Dock trên màn hình desktop đủ rộng & cao để header không bị tràn ở mobile xoay ngang / split-screen */
+.desktop-dock-only {
+  display: none;
+}
 
+@media (min-width: 1100px) and (min-height: 560px) {
+  .desktop-dock-only {
+    display: flex;
+  }
+}
+
+/* Sảnh chính (Lobby) khi xoay ngang trên điện thoại hoặc cửa sổ đa nhiệm thấp (<= 540px height) */
+@media (max-height: 540px) and (min-width: 560px) {
+  .lobby-main {
+    max-width: 62rem;
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: 1rem;
+    padding-inline: 0.5rem 3.5rem;
+  }
+
+  .lobby-hero {
+    margin-bottom: 0 !important;
+  }
+
+  .lobby-card-fan {
+    height: 6.25rem !important;
+    transform: scale(0.66);
+    transform-origin: center center;
+  }
+
+  .lobby-title {
+    font-size: 1.85rem !important;
+    line-height: 1.1 !important;
+    margin-top: 0.15rem !important;
+  }
+
+  .lobby-subtitle {
+    font-size: 0.72rem !important;
+    line-height: 1.3 !important;
+    max-width: 17rem !important;
+  }
+
+  .lobby-panel {
+    margin-bottom: 0 !important;
+    padding: 0.85rem 1rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .lobby-panel .lobby-btn-hero {
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+    font-size: 0.9rem;
+  }
+
+  .lobby-panel .lobby-btn-sub {
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+    font-size: 0.78rem;
+  }
+
+  .lobby-feature-grid {
+    grid-column: 1 / -1;
+    margin-top: 0.25rem;
+  }
+}
+
+@media (max-height: 540px) {
+  .modal-compact-panel {
+    padding: 0.9rem 1rem !important;
+    gap: 0.65rem !important;
+  }
+
+  .modal-compact-slot {
+    width: 3.1rem !important;
+    height: 3.1rem !important;
+  }
+
+  .messenger-fab-dock {
+    bottom: 0.5rem !important;
+    right: 0.5rem !important;
+    gap: 0.25rem !important;
+    padding: 0.25rem !important;
+  }
+
+  .messenger-fab-btn {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+  }
+}
+
+/* Đấu trường (GameBoard / OnlineGameBoard) trên màn hình thấp (mobile landscape / split-screen <= 560px height) */
+@media (max-height: 560px) {
+  .arena-board .arena-shell {
+    min-height: 100dvh;
+    padding-top: max(0.2rem, env(safe-area-inset-top, 0px));
+    padding-bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+    padding-inline: max(0.4rem, env(safe-area-inset-left, 0px)) max(0.4rem, env(safe-area-inset-right, 0px));
+  }
+
+  .arena-board .arena-top-hud {
+    padding-bottom: 0.12rem;
+  }
+
+  .arena-board .arena-top-hud button,
+  .arena-board .arena-top-hud > div > div {
+    padding-top: 0.2rem;
+    padding-bottom: 0.2rem;
+  }
+
+  .arena-board .arena-top-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.22rem 0.7rem;
+    transform: none !important;
+  }
+
+  .arena-board .arena-top-fan {
+    padding-top: 0;
+    min-height: 1.5rem;
+  }
+
+  .arena-board .arena-mini-card {
+    width: 1.05rem !important;
+    height: 1.55rem !important;
+    border-radius: 4px !important;
+  }
+
+  .arena-board .arena-side-bot {
+    width: 6.5rem;
+    padding: 0.25rem 0.35rem;
+    transform: none !important;
+  }
+
+  .arena-board .arena-side-spacer {
+    width: 3rem;
+  }
+
+  .arena-board .arena-side-cards {
+    min-height: 1.4rem;
+    margin-top: 0.15rem;
+  }
+
+  .arena-board .arena-center-oval {
+    padding: 0.32rem 0.85rem;
+    gap: 0.85rem;
+  }
+
+  .arena-board .arena-orbit-svg {
+    inset: -1rem;
+  }
+
+  .arena-board .arena-discard-slot {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .arena-board .arena-deck-card {
+    width: 3.25rem !important;
+    height: 4.85rem !important;
+    border-radius: 12px !important;
+  }
+
+  .arena-board .arena-deck-card [class*="text-[5px]"] {
+    display: none;
+  }
+
+  .arena-board .arena-deck-card .italic {
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  .arena-board .uno-card-root {
+    width: 3.6rem !important;
+    height: 5.4rem !important;
+    border-radius: 0.7rem !important;
+    padding: 0.22rem !important;
+  }
+
+  .arena-board .arena-center-oval .uno-card-root {
+    width: 3.25rem !important;
+    height: 4.85rem !important;
+    border-radius: 0.65rem !important;
+    padding: 0.2rem !important;
+  }
+
+  .arena-board .uno-card-root .text-3xl,
+  .arena-board .uno-card-root .sm\:text-4xl {
+    font-size: 1.35rem;
+    line-height: 1;
+  }
+
+  .arena-board .uno-card-root .text-2xl,
+  .arena-board .uno-card-root .sm\:text-3xl {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .arena-board .uno-card-root .text-xs,
+  .arena-board .uno-card-root .sm\:text-sm,
+  .arena-board .uno-card-root .md\:text-sm {
+    font-size: 0.625rem;
+    line-height: 1;
+  }
+
+  .arena-board .arena-bottom-section {
+    padding-top: 0.1rem;
+    gap: 0.25rem;
+  }
+
+  .arena-board .arena-player-hand {
+    min-height: 0;
+    padding: 0.55rem 0.65rem 0.2rem;
+    border-radius: 1.1rem;
+  }
+
+  .arena-board .arena-player-hud {
+    padding: 0.24rem 0.8rem;
+    max-width: min(26rem, calc(100% - 7.5rem));
+    transform: none !important;
+  }
+
+  .arena-board .arena-turn-pill {
+    top: -0.55rem;
+    font-size: 9px;
+    padding: 0.05rem 0.65rem;
+  }
+
+  .arena-board .arena-corner-actions {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 0.35rem;
+    bottom: max(0.3rem, env(safe-area-inset-bottom, 0px));
+    right: max(0.45rem, env(safe-area-inset-right, 0px));
+  }
+
+  .arena-board .arena-emote-btn {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+  }
+
+  .arena-board .arena-uno-btn {
+    width: 3rem !important;
+    height: 3rem !important;
+  }
+
+  .arena-board .arena-uno-btn.is-active {
+    width: 3.35rem !important;
+    height: 3.35rem !important;
+  }
+
+  .arena-board .arena-uno-label {
+    font-size: 0.85rem !important;
+  }
+}
+
+/* Điện thoại xoay ngang chuẩn (360px - 430px height như iPhone SE/14/15/16 & Android) */
+@media (max-height: 430px) {
+  .arena-board .uno-card-root {
+    width: 3.2rem !important;
+    height: 4.8rem !important;
+    border-radius: 0.65rem !important;
+    padding: 0.2rem !important;
+  }
+
+  .arena-board .arena-center-oval .uno-card-root,
+  .arena-board .arena-deck-card {
+    width: 2.9rem !important;
+    height: 4.35rem !important;
+    border-radius: 10px !important;
+  }
+
+  .arena-board .uno-card-root .text-3xl,
+  .arena-board .uno-card-root .sm\:text-4xl {
+    font-size: 1.2rem;
+  }
+
+  .arena-board .arena-top-card {
+    padding: 0.18rem 0.6rem;
+    gap: 0.45rem;
+  }
+
+  .arena-board .arena-center-oval {
+    padding: 0.25rem 0.7rem;
+    gap: 0.7rem;
+  }
+
+  .arena-board .arena-player-hud {
+    padding: 0.18rem 0.75rem;
+  }
+}
+
+/* Cửa sổ đa nhiệm / Split-Screen hẹp ngang (<= 720px width) */
+@media (max-width: 720px) {
+  .arena-board .arena-side-spacer {
+    display: none;
+  }
+
+  .arena-board .arena-side-bot {
+    width: 5.5rem;
+    padding: 0.25rem 0.3rem;
+    transform: none !important;
+  }
+
+  .arena-board .arena-player-hud {
+    margin-left: 0;
+    margin-right: auto;
+    width: calc(100% - 7.5rem);
+    max-width: calc(100% - 7.5rem);
+    padding: 0.25rem 0.75rem;
+  }
+
+  .arena-board .arena-center-oval {
+    padding: 0.4rem 0.7rem;
+    gap: 0.65rem;
+  }
+}
 

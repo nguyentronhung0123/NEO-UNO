@@ -605,7 +605,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
+          relative uno-card-root w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${hTheme.border} ${hTheme.bg} ${hTheme.shadow}
           transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -644,7 +644,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
+          relative uno-card-root w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${cTheme.border} ${cTheme.bg} ${cTheme.shadow}
           transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -691,7 +691,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
+          relative uno-card-root w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${gTheme.border} ${gTheme.bg} ${gTheme.shadow}
           transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -738,7 +738,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
+          relative uno-card-root w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${dTheme.border} ${dTheme.bg} ${dTheme.shadow}
           transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -785,7 +785,7 @@ function UnoCard({
       <div
         onClick={!disabled && onClick ? onClick : undefined}
         className={`
-          relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
+          relative uno-card-root w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
           border-2 ${lTheme.border} ${lTheme.bg} ${lTheme.shadow}
           transition-transform duration-200 ease-out transform-gpu contain-card
           ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}
@@ -832,7 +832,7 @@ function UnoCard({
     <div
       onClick={!disabled && onClick ? onClick : undefined}
       className={`
-        relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
+        relative uno-card-root w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 select-none flex flex-col justify-between
         border ${theme.border} ${theme.bg} ${theme.textColor} ${theme.shadow}
         transition-transform duration-200 ease-out transform-gpu contain-card
         ${disabled ? 'opacity-40 cursor-not-allowed grayscale-[40%]' : 'cursor-pointer hover:-translate-y-2 hover:scale-105 active:scale-95'}

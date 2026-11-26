@@ -450,7 +450,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0e17] flex flex-col justify-between p-3 sm:p-5 text-slate-100 relative overflow-hidden font-body selection:bg-primary-container selection:text-black">
+    <div className="min-h-[100dvh] bg-[#0b0e17] flex flex-col justify-between p-2.5 sm:p-5 safe-pt safe-pb safe-pl safe-pr text-slate-100 relative overflow-x-hidden font-body selection:bg-primary-container selection:text-black">
       {/* Background Soft Glows (Radial gradients - Zero GPU blur pass trên mobile) */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[720px] h-[340px] bg-[radial-gradient(closest-side,rgba(0,210,255,0.12),transparent)] rounded-full"></div>
@@ -460,27 +460,27 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       </div>
 
       {/* ================= HEADER FULL-WIDTH CỰC ĐẸP ĐỐI XỨNG ================= */}
-      <header className="relative z-30 w-full max-w-7xl mx-auto flex items-center justify-between gap-3 px-2 sm:px-6 pt-1 pb-4">
+      <header className="relative z-30 w-full max-w-7xl mx-auto flex items-center justify-between gap-1 sm:gap-3 px-0 sm:px-6 pt-0.5 sm:pt-1 pb-2 sm:pb-4 min-w-0 max-[319px]:flex-wrap max-[319px]:gap-y-2">
         
         {/* 1. GÓC TRÊN TRÁI: LOGO GAME & CHẾ ĐỘ CHƠI */}
-        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
-          <div className="flex bg-surface-container-low/90 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-outline-variant/30 items-center gap-2 shadow-sm">
-            <span className="material-symbols-outlined text-primary-container text-xl">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 min-w-0">
+          <div className="flex bg-surface-container-low/90 backdrop-blur-md px-2 sm:px-3.5 py-1 sm:py-1.5 rounded-xl sm:rounded-2xl border border-outline-variant/30 items-center gap-1 sm:gap-2 shadow-sm whitespace-nowrap">
+            <span className="material-symbols-outlined text-primary-container text-base sm:text-xl">
               style
             </span>
-            <span className="font-headline text-lg sm:text-xl font-black tracking-wider uppercase text-white">
+            <span className="font-headline text-xs sm:text-xl font-black tracking-wider uppercase text-white">
               NEO <span className="text-primary-container">UNO</span>
             </span>
           </div>
 
-          <div className="hidden md:flex bg-tertiary-container/15 border border-tertiary-container/40 text-tertiary px-3 py-1 rounded-full items-center gap-1.5 text-[10px] font-bold uppercase shadow-[0_0_10px_rgba(72,217,158,0.2)]">
+          <div className="hidden lg:flex bg-tertiary-container/15 border border-tertiary-container/40 text-tertiary px-3 py-1 rounded-full items-center gap-1.5 text-[10px] font-bold uppercase shadow-[0_0_10px_rgba(72,217,158,0.2)] whitespace-nowrap">
             <span className="w-1.5 h-1.5 bg-tertiary-container rounded-full animate-pulse"></span>
             OFFLINE AI ARENA
           </div>
         </div>
 
         {/* 2. CHÍNH GIỮA: CỤM TÍNH NĂNG NHANH CĂN TÂM TRỤC HOÀN HẢO (CYBER QUICK DOCK) */}
-        <div className="hidden lg:flex items-center gap-1 sm:gap-1.5 bg-[#101524]/80 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-inner">
+        <div className="desktop-dock-only items-center gap-1 sm:gap-1.5 bg-[#101524]/80 backdrop-blur-md p-1 rounded-full border border-white/10 shadow-inner">
           {/* NÚT VÒNG QUAY MAY MẮN (TASK 3 - TUẦN 5) */}
           <button
             onClick={() => {
@@ -575,12 +575,12 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         </div>
 
         {/* 3. GÓC TRÊN PHẢI: BẠN BÈ, ÂM THANH & PROFILE DROPDOWN */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink">
           
           {/* NÚT BẠN BÈ & LỜI MỜI */}
           <button
             onClick={() => handleOpenFriends()}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group relative hover:scale-105 active:scale-95 shrink-0"
             title="Hệ thống bạn bè & lời mời đấu trực tuyến"
           >
             <span className="material-symbols-outlined text-base group-hover:scale-110 transition-transform">
@@ -600,8 +600,9 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               soundEngine.playCardSlide();
               setIsAudioSettingsOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-slate-200 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group shrink-0 hover:scale-105 active:scale-95"
+            className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-full bg-[#131826]/90 hover:bg-[#1c2336] border border-cyan-500/30 hover:border-cyan-400 text-slate-200 font-headline font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md group shrink-0 hover:scale-105 active:scale-95"
             title="Bộ trộn âm thanh đa kênh & Nhạc nền Cyberpunk"
+            aria-label="Cài đặt âm thanh"
           >
             <span className={`material-symbols-outlined text-base ${audioSettings.isMuted ? 'text-rose-400' : 'text-cyan-400 group-hover:scale-110'} transition-transform`}>
               {audioSettings.isMuted ? 'volume_off' : 'tune'}
@@ -633,19 +634,19 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
           {isGuest && (
             <button
               onClick={() => onOpenAuth && onOpenAuth()}
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-headline font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.45)] hover:shadow-[0_0_25px_rgba(0,210,255,0.7)] transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-4 py-1 sm:py-2 rounded-full bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-headline font-black text-[10px] sm:text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.45)] hover:shadow-[0_0_25px_rgba(0,210,255,0.7)] transition-all cursor-pointer hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap"
               title="Bấm để Đăng nhập hoặc Tạo tài khoản leo Rank"
             >
-              <span className="material-symbols-outlined text-base">login</span>
+              <span className="hidden sm:inline material-symbols-outlined text-base">login</span>
               <span>Đăng Nhập</span>
             </button>
           )}
 
           {/* Profile Capsule (Bấm để mở Menu Tab / Mobile Bottom Sheet) */}
-          <div className="relative" ref={profileMenuRef}>
+          <div className="relative min-w-0 shrink" ref={profileMenuRef}>
             <div
               onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-              className={`relative flex items-center gap-2 sm:gap-3 bg-[#131826]/90 hover:bg-[#1a2233] px-2.5 sm:px-3.5 py-1.5 rounded-full border transition-all cursor-pointer shadow-md select-none group shrink-0 ${
+              className={`relative flex items-center gap-1 sm:gap-3 bg-[#131826]/90 hover:bg-[#1a2233] px-1.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border transition-all cursor-pointer shadow-md select-none group min-w-0 ${
                 isProfileMenuOpen
                   ? 'border-cyan-400/80 shadow-[0_0_25px_rgba(0,210,255,0.35)]'
                   : 'border-outline-variant/30 hover:border-cyan-400/50'
@@ -677,13 +678,13 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                 />
               </AvatarFrame>
 
-              <div className="flex flex-col text-left">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-xs sm:text-sm text-white max-w-[85px] sm:max-w-[130px] truncate group-hover:text-cyan-300 transition-colors">
+              <div className="flex flex-col text-left min-w-0">
+                <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
+                  <span className={`font-bold text-[11px] sm:text-sm text-white ${isGuest ? 'max-w-[60px]' : 'max-w-[115px]'} sm:max-w-[130px] truncate group-hover:text-cyan-300 transition-colors`}>
                     {user?.nickname || 'Khách Chơi Thử'}
                   </span>
                   <span
-                    className={`text-[8px] px-1.5 py-0.2 rounded-sm uppercase font-black ${
+                    className={`hidden sm:inline-block text-[8px] px-1.5 py-0.2 rounded-sm uppercase font-black shrink-0 ${
                       isGuest
                         ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                         : 'bg-primary-container/20 text-primary-container'
@@ -692,10 +693,15 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                     {isGuest ? 'KHÁCH' : 'VIP'}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono">
-                  <span>{isGuest ? 'Chưa Xếp Hạng' : `${user?.elo || 1000} ELO • Lv.${user?.level || 1}`}</span>
+                <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] text-slate-400 font-mono min-w-0">
+                  <span className="hidden sm:inline truncate">
+                    {isGuest ? 'Chưa Xếp Hạng' : `${user?.elo || 1000} ELO • Lv.${user?.level || 1}`}
+                  </span>
+                  <span className="sm:hidden truncate">
+                    {isGuest ? 'Chưa hạng' : `${user?.elo || 1000} ELO`}
+                  </span>
                   {user?.equippedTitle && (
-                    <span className="hidden sm:inline-block px-1.5 py-0.2 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[9px] font-bold">
+                    <span className="hidden md:inline-block px-1.5 py-0.2 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[9px] font-bold">
                       {user.equippedTitle}
                     </span>
                   )}
@@ -703,7 +709,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               </div>
 
               <span
-                className={`material-symbols-outlined text-slate-400 text-sm transition-transform duration-200 ${
+                className={`material-symbols-outlined text-slate-400 text-sm transition-transform duration-200 shrink-0 ${
                   isProfileMenuOpen ? 'rotate-180 text-cyan-400' : 'group-hover:text-cyan-300'
                 }`}
               >
@@ -1260,12 +1266,12 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
       </header>
 
       {/* ================= KHU VỰC THÂN CHÍNH (CENTER CONTENT) ================= */}
-      <main className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center my-auto">
+      <main className="lobby-main relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center my-auto">
         
         {/* HERO SHOWCASE */}
-        <div className="relative mb-5 flex flex-col items-center text-center">
+        <div className="lobby-hero relative mb-5 flex flex-col items-center text-center">
           {/* Card Fan (Xòe 4 lá bài Neon biểu tượng đối xứng hoàn hảo) */}
-          <div className="relative h-40 sm:h-48 w-72 sm:w-80 flex items-center justify-center mx-auto">
+          <div className="lobby-card-fan relative h-40 sm:h-48 w-72 sm:w-80 flex items-center justify-center mx-auto">
             {/* Lá 1 (Red Skip) */}
             <div className="absolute transform -translate-x-16 -rotate-12 hover:-translate-y-4 hover:-rotate-6 transition-all duration-300 cursor-pointer shadow-[0_0_30px_rgba(255,43,112,0.3)] z-10">
               <UnoCard color="red" value="skip" />
@@ -1287,16 +1293,16 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
             </div>
           </div>
 
-          <h1 className="font-headline text-4xl sm:text-5xl font-black tracking-wide uppercase text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] mt-1 text-center">
+          <h1 className="lobby-title font-headline text-4xl sm:text-5xl font-black tracking-wide uppercase text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.2)] mt-1 text-center">
             NEO <span className="text-secondary-container">UNO</span>
           </h1>
-          <p className="text-slate-400 text-xs sm:text-sm mt-0.5 max-w-md text-center font-medium">
+          <p className="lobby-subtitle text-slate-400 text-xs sm:text-sm mt-0.5 max-w-md text-center font-medium">
             Đấu trường thẻ bài UNO trực tuyến đỉnh cao với phong cách Cyberpunk và luật chơi chuẩn quốc tế
           </p>
         </div>
 
         {/* KHUNG ĐIỀU KHIỂN CHÍNH (SẢNH THI ĐẤU) - ĐÃ LOẠI BỎ CÁC NÚT RỜI RẠC XẤU */}
-        <div className="w-full max-w-lg bg-[#111520]/80 backdrop-blur-xl border border-outline-variant/30 rounded-3xl p-6 sm:p-7 shadow-[0_15px_50px_rgba(0,0,0,0.6)] flex flex-col items-center gap-4 text-center mb-6">
+        <div className="lobby-panel w-full max-w-lg bg-[#111520]/80 backdrop-blur-xl border border-outline-variant/30 rounded-3xl p-5 sm:p-7 shadow-[0_15px_50px_rgba(0,0,0,0.6)] flex flex-col items-center gap-3.5 sm:gap-4 text-center mb-6">
           
           {/* Badge thông số ván đấu */}
           <div className="flex flex-wrap items-center justify-center gap-2 w-full">
@@ -1330,7 +1336,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
                 setMatchmakingMode('4_PLAYERS');
                 setIsMatchmakingOpen(true);
               }}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-300 hover:to-rose-400 text-slate-950 font-headline text-base sm:text-lg font-black uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-[0_0_35px_rgba(245,158,11,0.5)] hover:shadow-[0_0_50px_rgba(245,158,11,0.7)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer relative overflow-hidden group"
+              className="lobby-btn-hero w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 hover:from-amber-300 hover:to-rose-400 text-slate-950 font-headline text-base sm:text-lg font-black uppercase tracking-wider flex items-center justify-center gap-2.5 shadow-[0_0_35px_rgba(245,158,11,0.5)] hover:shadow-[0_0_50px_rgba(245,158,11,0.7)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer relative overflow-hidden group"
             >
               <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 pointer-events-none"></div>
               <span className="material-symbols-outlined text-2xl font-black animate-pulse">
@@ -1393,7 +1399,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               {/* Nút 1: Đấu với Bot (Luôn mở cho cả Khách & Đấu thủ) */}
               <button
                 onClick={() => setIsSetupOpen(true)}
-                className="flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,210,255,0.35)] hover:shadow-[0_0_35px_rgba(0,210,255,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+                className="lobby-btn-sub flex-1 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-primary-container to-cyan-400 text-black font-headline text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,210,255,0.35)] hover:shadow-[0_0_35px_rgba(0,210,255,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
               >
                 <span className="material-symbols-outlined text-xl">smart_toy</span>
                 <span>ĐẤU VỚI BOT AI</span>
@@ -1402,7 +1408,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
               {/* Nút 2: Đấu Online Bạn Bè */}
               <button
                 onClick={handleOnlineMultiplayerClick}
-                className="flex-1 py-3.5 px-4 rounded-2xl border border-purple-500/50 bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 hover:text-white font-headline text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:shadow-[0_0_35px_rgba(168,85,247,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer relative overflow-hidden"
+                className="lobby-btn-sub flex-1 py-3.5 px-4 rounded-2xl border border-purple-500/50 bg-purple-600/25 hover:bg-purple-600/40 text-purple-200 hover:text-white font-headline text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:shadow-[0_0_35px_rgba(168,85,247,0.5)] hover:scale-[1.02] active:scale-95 transition-all cursor-pointer relative overflow-hidden"
               >
                 <span className="material-symbols-outlined text-xl text-purple-300">
                   groups
@@ -1417,7 +1423,7 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
         </div>
 
         {/* 3 THẺ CHỨC NĂNG DƯỚI CÙNG */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-4xl">
+        <div className="lobby-feature-grid grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-4xl">
           
           {/* Thẻ 1: Hồ sơ / Xếp hạng */}
           <div
@@ -1503,8 +1509,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
       {/* MODAL THÔNG BÁO CHO CHẾ ĐỘ KHÁCH KHI BẤM ĐẤU ONLINE */}
       {showGuestOnlineModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-md bg-[#121622] border border-amber-500/40 rounded-3xl p-6 sm:p-7 shadow-[0_0_60px_rgba(245,158,11,0.25)] flex flex-col items-center text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain bg-[#121622] border border-amber-500/40 rounded-3xl p-5 sm:p-7 shadow-[0_0_60px_rgba(245,158,11,0.25)] flex flex-col items-center text-center">
             <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-300 flex items-center justify-center mb-4 text-3xl">
               <span className="material-symbols-outlined text-3xl">lock</span>
             </div>
@@ -1615,8 +1621,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
       {/* ================= MODAL PHÁT HIỆN TRẬN ĐẤU DỞ DANG (TIẾP TỤC CHƠI / AFK) ================= */}
       {rejoinMatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
-          <div className="relative w-full max-w-lg bg-[#0f1422]/95 border-2 border-primary-container/60 rounded-3xl p-6 sm:p-7 shadow-[0_0_70px_rgba(0,210,255,0.35)] flex flex-col gap-5 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="relative w-full max-w-lg max-h-[92dvh] overflow-y-auto overscroll-contain bg-[#0f1422]/95 border-2 border-primary-container/60 rounded-3xl p-5 sm:p-7 shadow-[0_0_70px_rgba(0,210,255,0.35)] flex flex-col gap-5">
             
             {/* Glow effect */}
             <div className="absolute -top-24 -left-24 w-60 h-60 bg-[radial-gradient(closest-side,rgba(0,210,255,0.22),transparent)] rounded-full pointer-events-none" />
@@ -1740,8 +1746,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
       {/* MODAL PHÁT HIỆN TRẬN ĐẤU ONLINE DỞ DANG (TASK 4 - RECONNECT ONLINE) */}
       {!rejoinMatch && rejoinOnlineRoomCode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
-          <div className="relative max-w-lg w-full p-6 sm:p-8 rounded-[32px] bg-[#121622]/95 border-2 border-primary-container shadow-[0_0_80px_rgba(0,210,255,0.4)] flex flex-col gap-5 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="relative max-w-lg w-full max-h-[92dvh] overflow-y-auto overscroll-contain p-5 sm:p-8 rounded-[32px] bg-[#121622]/95 border-2 border-primary-container shadow-[0_0_80px_rgba(0,210,255,0.4)] flex flex-col gap-5 text-center">
             <div className="w-16 h-16 rounded-3xl bg-primary-container/20 border border-primary-container/50 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(0,210,255,0.5)]">
               <span className="material-symbols-outlined text-4xl text-primary-container animate-spin">
                 sync
@@ -1854,8 +1860,8 @@ export default function LobbyPage({ onJoinOfflineMatch, onOpenRules, onOpenAuth,
 
       {/* MODAL LỰA CHỌN CHẾ ĐỘ ĐỒNG ĐỘI 2V2: ONLINE GHÉP NGƯỜI vs OFFLINE ĐẤU BOT */}
       {isTeam2v2ModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
-          <div className="relative w-full max-w-lg p-6 sm:p-8 rounded-3xl bg-[#121622] border-2 border-cyan-500/40 shadow-[0_0_80px_rgba(0,210,255,0.35)] flex flex-col items-center text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="modal-compact-panel relative w-full max-w-lg max-h-[92dvh] overflow-y-auto overscroll-contain p-5 sm:p-8 rounded-3xl bg-[#121622] border-2 border-cyan-500/40 shadow-[0_0_80px_rgba(0,210,255,0.35)] flex flex-col items-center text-center">
             <button
               onClick={() => setIsTeam2v2ModalOpen(false)}
               className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"

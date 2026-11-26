@@ -133,7 +133,7 @@ export default function MessengerDrawer({
     <>
       {/* ================= BẢNG DANH SÁCH CHAT MESSENGER (POPOVER) ================= */}
       {isOpen && !isGuest && (
-        <div className="fixed bottom-[140px] sm:bottom-[160px] right-3 sm:right-6 z-[85] w-[calc(100vw-24px)] max-w-sm sm:w-92 h-[480px] max-h-[calc(100vh-160px)] bg-[#0c101d]/95 border-2 border-cyan-400/50 rounded-3xl shadow-[0_0_60px_rgba(0,210,255,0.35)] backdrop-blur-2xl flex flex-col overflow-hidden animate-slide-up font-body">
+        <div className="fixed bottom-[112px] sm:bottom-[160px] right-3 sm:right-6 z-[85] w-[calc(100vw-24px)] max-w-sm sm:w-92 h-[480px] max-h-[calc(100dvh-130px)] bg-[#0c101d]/95 border-2 border-cyan-400/50 rounded-3xl shadow-[0_0_60px_rgba(0,210,255,0.35)] backdrop-blur-2xl flex flex-col overflow-hidden animate-slide-up font-body">
           {/* HEADER */}
           <div className="flex items-center justify-between px-4 py-3 bg-[#111728] border-b border-white/10">
             <div className="flex items-center gap-2 min-w-0">
@@ -349,13 +349,13 @@ export default function MessengerDrawer({
       )}
 
       {/* ================= KHỐI NÚT NỔI GÓC DƯỚI PHẢI (CỬA HÀNG + CHAT MESSENGER NẰM CÙNG KHỐI) ================= */}
-      <div className="fixed bottom-3.5 right-3.5 sm:bottom-6 sm:right-6 z-[80] flex flex-col items-center p-1 sm:p-1.5 rounded-full bg-[#0c101d]/85 border border-cyan-500/30 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.7),0_0_25px_rgba(0,210,255,0.2)] gap-2 sm:gap-2.5">
+      <div className="messenger-fab-dock fixed bottom-3.5 right-3 sm:bottom-6 sm:right-6 z-[80] flex flex-col items-center p-1 sm:p-1.5 rounded-full bg-[#0c101d]/85 border border-cyan-500/30 backdrop-blur-xl shadow-[0_10px_40px_rgba(0,0,0,0.7),0_0_25px_rgba(0,210,255,0.2)] gap-2 sm:gap-2.5 safe-pb">
         
         {/* 1. NÚT CỬA HÀNG (ICON NẰM PHÍA TRÊN NÚT CHAT) */}
         {onOpenShop && (
           <button
             onClick={onOpenShop}
-            className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 group bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 hover:-translate-y-0.5 ring-2 ring-amber-400/60 shadow-[0_0_25px_rgba(245,158,11,0.5)]"
+            className="messenger-fab-btn relative w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 group bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 hover:-translate-y-0.5 ring-2 ring-amber-400/60 shadow-[0_0_25px_rgba(245,158,11,0.5)]"
             title="Cửa Hàng Skin & Khung Avatar độc quyền"
             aria-label="Mở Cửa Hàng"
           >
@@ -385,7 +385,7 @@ export default function MessengerDrawer({
         {!isGuest && (
           <button
             onClick={() => setIsOpen((prev) => !prev)}
-            className={`relative w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 group ${
+            className={`messenger-fab-btn relative w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer active:scale-95 group ${
               isOpen
                 ? 'bg-gradient-to-tr from-rose-600 to-purple-600 ring-4 ring-rose-400/40 shadow-[0_0_35px_rgba(244,63,94,0.6)]'
                 : 'bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 hover:brightness-110 hover:-translate-y-0.5 ring-2 ring-cyan-400/60 shadow-[0_0_25px_rgba(0,210,255,0.45)]'

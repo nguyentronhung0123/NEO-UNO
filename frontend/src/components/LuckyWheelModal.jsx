@@ -233,8 +233,8 @@ export default function LuckyWheelModal({
   const currentCoins = user?.coins ?? wheelStatus?.userCoins ?? 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg bg-gradient-to-b from-[#131b2e] to-[#0a0f1d] border-2 border-cyan-500/40 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.25)] overflow-hidden flex flex-col text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-lg max-h-[92dvh] overflow-y-auto overscroll-contain bg-gradient-to-b from-[#131b2e] to-[#0a0f1d] border-2 border-cyan-500/40 rounded-3xl shadow-[0_0_60px_rgba(6,182,212,0.25)] flex flex-col text-white">
         
         {/* Nền hiệu ứng Cyberpunk Grid & Glow */}
         <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px]" />

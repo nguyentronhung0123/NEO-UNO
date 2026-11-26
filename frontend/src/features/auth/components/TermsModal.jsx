@@ -5,7 +5,7 @@ export default function TermsModal({ isOpen, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-md bg-[#131722] rounded-[24px] border border-primary-container/40 p-6 shadow-[0_0_40px_rgba(0,210,255,0.25)] text-slate-200">
+      <div className="relative w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain bg-[#131722] rounded-[24px] border border-primary-container/40 p-5 sm:p-6 shadow-[0_0_40px_rgba(0,210,255,0.25)] text-slate-200">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 mb-4 border-b border-outline-variant/30">
           <div className="flex items-center gap-2">

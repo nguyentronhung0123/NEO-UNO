@@ -72,7 +72,7 @@ export default function ReportModal({
       />
 
       {/* Modal Container */}
-      <div className="relative w-full max-w-lg bg-[#0e1320] border border-rose-500/40 rounded-3xl shadow-[0_0_60px_rgba(244,63,94,0.25)] overflow-hidden animate-in zoom-in-95 duration-200 text-white">
+      <div className="relative w-full max-w-lg max-h-[92dvh] overflow-y-auto overscroll-contain bg-[#0e1320] border border-rose-500/40 rounded-3xl shadow-[0_0_60px_rgba(244,63,94,0.25)] animate-in zoom-in-95 duration-200 text-white">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-rose-500/20 bg-gradient-to-r from-rose-950/40 via-red-900/20 to-transparent">
           <div className="flex items-center gap-3">

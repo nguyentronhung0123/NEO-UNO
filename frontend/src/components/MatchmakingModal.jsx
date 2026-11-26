@@ -170,7 +170,7 @@ export default function MatchmakingModal({
       {/* Background radial glow */}
       <div className="absolute w-[500px] h-[500px] bg-[radial-gradient(closest-side,rgba(0,210,255,0.14),transparent)] rounded-full pointer-events-none"></div>
 
-      <div className="relative z-10 w-full max-w-lg bg-[#0e121d]/95 border border-primary-container/40 rounded-3xl p-6 sm:p-8 shadow-[0_0_60px_rgba(0,210,255,0.25)] flex flex-col items-center text-center overflow-hidden">
+      <div className="modal-compact-panel relative z-10 w-full max-w-lg max-h-[92dvh] overflow-y-auto overscroll-contain bg-[#0e121d]/95 border border-primary-container/40 rounded-3xl p-5 sm:p-8 shadow-[0_0_60px_rgba(0,210,255,0.25)] flex flex-col items-center text-center">
         
         {/* Nút đóng góc phải (khi chưa ghép) */}
         {!matchedRoom && (

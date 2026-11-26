@@ -145,7 +145,7 @@ export default function EmoteWheel({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`relative w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl cursor-pointer select-none ${
+        className={`arena-emote-btn relative w-12 h-12 sm:w-13 sm:h-13 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl cursor-pointer select-none ${
           isOpen
             ? 'bg-gradient-to-tr from-amber-400 via-orange-500 to-rose-500 text-white shadow-[0_0_30px_rgba(245,158,11,0.7)] scale-110 ring-2 ring-yellow-300'
             : cooldownRemaining > 0
@@ -169,7 +169,7 @@ export default function EmoteWheel({
 
       {/* POPOVER BẢNG BIỂU CẢM GLASSMORPHISM CAO CẤP */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 z-50 w-76 sm:w-84 bg-[#0a0e1a]/95 border border-white/15 rounded-3xl p-3.5 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(251,191,36,0.2)] backdrop-blur-2xl flex flex-col gap-3 animate-scale-up">
+        <div className="absolute bottom-14 sm:bottom-16 right-0 z-50 w-72 sm:w-84 max-h-[75dvh] overflow-y-auto overscroll-contain bg-[#0a0e1a]/95 border border-white/15 rounded-3xl p-3.5 shadow-[0_20px_60px_rgba(0,0,0,0.85),0_0_35px_rgba(251,191,36,0.2)] backdrop-blur-2xl flex flex-col gap-3 animate-scale-up">
           
           {/* HEADER: TIÊU ĐỀ & CHỌN MỤC TIÊU NÉM */}
           <div className="flex items-center justify-between pb-2 border-b border-white/10">

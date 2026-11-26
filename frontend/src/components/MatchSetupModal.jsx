@@ -74,8 +74,8 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
-      <div className={`relative w-full max-w-xl bg-[#0f1422]/95 border border-primary-container/30 rounded-3xl p-5 sm:p-7 shadow-[0_0_60px_rgba(0,210,255,0.25)] flex flex-col gap-5 overflow-hidden ${
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+      <div className={`modal-compact-panel relative w-full max-w-xl max-h-[92dvh] overflow-y-auto overscroll-contain bg-[#0f1422]/95 border border-primary-container/30 rounded-3xl p-4 sm:p-7 shadow-[0_0_60px_rgba(0,210,255,0.25)] flex flex-col gap-3.5 sm:gap-5 ${
         isShaking ? 'animate-shake' : ''
       }`}>
         
@@ -184,11 +184,11 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
           </div>
 
           {/* 4 Ô TRÒN NGANG NHAU */}
-          <div className="grid grid-cols-4 gap-2 sm:gap-3 p-4 sm:p-5 rounded-2xl bg-surface-container-high/40 border border-white/10">
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 p-3 sm:p-5 rounded-2xl bg-surface-container-high/40 border border-white/10">
             
             {/* Ô 1: BẠN (CỐ ĐỊNH) */}
             <div className="flex flex-col items-center gap-2 text-center">
-              <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-primary-container/20 to-cyan-950/60 border-2 border-primary-container flex items-center justify-center shadow-[0_0_20px_rgba(0,210,255,0.45)]">
+              <div className="modal-compact-slot relative w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-primary-container/20 to-cyan-950/60 border-2 border-primary-container flex items-center justify-center shadow-[0_0_20px_rgba(0,210,255,0.45)]">
                 <span className="absolute -top-2 px-2 py-0.2 rounded-full bg-primary-container text-black font-headline font-black text-[9px] uppercase tracking-wider shadow-md">
                   P1
                 </span>
@@ -218,7 +218,7 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
                     /* Trạng thái: ĐÃ THÊM BOT */
                     <div
                       onClick={() => handleToggleSlot(index)}
-                      className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#181f2f] border-2 border-amber-400 flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.35)] cursor-pointer group transition-all hover:scale-105"
+                      className="modal-compact-slot relative w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-[#181f2f] border-2 border-amber-400 flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.35)] cursor-pointer group transition-all hover:scale-105"
                       title="Bấm dấu X để gỡ Bot này"
                     >
                       {/* Huy hiệu P2 / P3 / P4 */}
@@ -251,7 +251,7 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
                     <button
                       type="button"
                       onClick={() => handleAddSlot(index)}
-                      className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center group active:scale-95 ${
+                      className={`modal-compact-slot relative w-14 h-14 sm:w-20 sm:h-20 rounded-full border-2 border-dashed transition-all cursor-pointer flex flex-col items-center justify-center group active:scale-95 ${
                         error
                           ? 'border-rose-400 bg-rose-500/10 hover:border-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
                           : 'border-cyan-400/40 hover:border-cyan-400 bg-white/[0.03] hover:bg-cyan-400/10 shadow-sm'
@@ -338,7 +338,7 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
         )}
 
         {/* ================= KHU VỰC THỜI GIAN VÁN ĐẤU (5 PHÚT) ================= */}
-        <div className="flex flex-col gap-2 p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+        <div className="flex flex-col gap-1.5 sm:gap-2 p-2.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-400 font-headline font-bold text-xs sm:text-sm uppercase">
               <span>⏱️</span>
@@ -354,18 +354,18 @@ export default function MatchSetupModal({ isOpen, onClose, onStartMatch }) {
         </div>
 
         {/* ================= HÀNG NÚT HÀNH ĐỘNG DƯỚI CÙNG ================= */}
-        <div className="flex items-center gap-3 pt-1">
+        <div className="sticky bottom-0 -mx-4 sm:-mx-7 -mb-4 sm:-mb-7 px-4 sm:px-7 py-2.5 sm:py-3.5 bg-[#0f1422]/98 backdrop-blur-md border-t border-white/10 z-20 flex items-center gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 sm:py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-slate-300 hover:text-white font-headline text-xs font-bold uppercase transition-colors cursor-pointer"
+            className="flex-1 py-2.5 sm:py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-slate-300 hover:text-white font-headline text-xs font-bold uppercase transition-colors cursor-pointer"
           >
             Hủy Bỏ
           </button>
           <button
             type="button"
             onClick={handleStart}
-            className={`flex-2 py-3.5 rounded-full font-headline text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg ${
+            className={`flex-2 py-2.5 sm:py-3.5 rounded-full font-headline text-xs sm:text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg ${
               activeBotCount === 0
                 ? 'bg-primary-container/40 text-slate-900 border border-primary-container/30 hover:bg-primary-container hover:scale-[1.01]'
                 : 'bg-gradient-to-r from-primary-container to-cyan-400 hover:from-cyan-300 hover:to-primary-container text-black shadow-[0_0_30px_rgba(0,210,255,0.4)] hover:shadow-[0_0_40px_rgba(0,210,255,0.6)] hover:scale-[1.02]'

@@ -131,7 +131,7 @@ export default function PwaInstallPrompt({ onInstalled }) {
       {/* 2. MODAL HƯỚNG DẪN CÀI ĐẶT CHO IPHONE / IPAD (IOS SAFARI) */}
       {showIosGuide && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#0f1424] border border-cyan-500/40 p-5 shadow-2xl text-center flex flex-col items-center">
+          <div className="relative w-full max-w-sm max-h-[92dvh] overflow-y-auto overscroll-contain rounded-3xl bg-[#0f1424] border border-cyan-500/40 p-5 shadow-2xl text-center flex flex-col items-center">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-3xl mb-3 shadow-lg">
               📱
             </div>
@@ -234,7 +234,7 @@ export function PwaInstallHeaderButton() {
       {/* Guide cho iOS nếu nhấn nút header */}
       {showIosGuide && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#0f1424] border border-cyan-500/40 p-5 shadow-2xl text-center flex flex-col items-center">
+          <div className="relative w-full max-w-sm max-h-[92dvh] overflow-y-auto overscroll-contain rounded-3xl bg-[#0f1424] border border-cyan-500/40 p-5 shadow-2xl text-center flex flex-col items-center">
             <h3 className="font-headline font-black text-base text-white uppercase mb-2">
               Cài Đặt Trên iOS
             </h3>

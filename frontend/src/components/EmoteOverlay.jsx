@@ -113,23 +113,35 @@ export default function EmoteOverlay({
 
         // BÓNG THOẠI BAY NỔI TRÊN ĐẦU AVATAR NGƯỜI NÓI (Quick Chat & Emoji - Thoại người chơi hoặc Bot)
         const senderPos = getSeatPosition(item.senderSeatIndex);
+        const isNearLeft = senderPos.x <= 25;
+        const isNearRight = senderPos.x >= 75;
 
         return (
           <div
             key={item.id}
-            className="absolute z-50 -translate-x-1/2 -translate-y-full mb-4 animate-speech-bubble"
+            className={`absolute z-50 -translate-y-full mb-3 animate-speech-bubble ${
+              isNearLeft || isNearRight ? '' : '-translate-x-1/2'
+            }`}
             style={{
-              left: `${senderPos.x}%`,
+              ...(isNearLeft
+                ? { left: '0.75rem' }
+                : isNearRight
+                ? { right: '0.75rem' }
+                : { left: `${senderPos.x}%` }),
               top: `${senderPos.y}%`,
             }}
           >
-            <div className="relative px-3.5 py-1.5 rounded-2xl bg-[#0b0f19]/95 border-2 border-amber-400 text-white shadow-[0_0_30px_rgba(251,191,36,0.6)] flex items-center gap-2 whitespace-nowrap backdrop-blur-xl">
-              <span className="text-2xl animate-pulse shrink-0">{item.emote?.icon}</span>
-              <span className="text-xs font-headline font-black text-yellow-300 tracking-wide">
+            <div className="relative px-3 py-1.5 rounded-2xl bg-[#0b0f19]/95 border-2 border-amber-400 text-white shadow-[0_0_30px_rgba(251,191,36,0.6)] flex items-center gap-1.5 max-w-[230px] sm:max-w-xs backdrop-blur-xl">
+              <span className="text-xl sm:text-2xl animate-pulse shrink-0">{item.emote?.icon}</span>
+              <span className="text-[11px] sm:text-xs font-headline font-black text-yellow-300 tracking-wide truncate">
                 {item.emote?.label}
               </span>
               {/* Mũi tên chỉ xuống avatar */}
-              <div className="absolute left-1/2 -bottom-2 -translate-x-1/2 w-0 h-0 border-x-6 border-x-transparent border-t-8 border-t-amber-400" />
+              <div
+                className={`absolute -bottom-2 w-0 h-0 border-x-6 border-x-transparent border-t-8 border-t-amber-400 ${
+                  isNearLeft ? 'left-6' : isNearRight ? 'right-6' : 'left-1/2 -translate-x-1/2'
+                }`}
+              />
             </div>
           </div>
         );

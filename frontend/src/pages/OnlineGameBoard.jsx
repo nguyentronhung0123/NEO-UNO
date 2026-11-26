@@ -1172,13 +1172,13 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
   // Helper render Bot / Người chơi bên Cánh Trái & Phải (GIỐNG 100% GAMEBOARD.JSX)
   const renderSidePlayer = (player, side) => {
-    if (!player) return <div className="w-28 sm:w-36" />;
+    if (!player) return <div className="arena-side-spacer w-28 sm:w-36" />;
     const isCurrent = gameState?.currentTurnIndex === player.seatIndex;
     const cardCount = isDealing ? dealingRound : player.handCount;
 
     return (
       <div
-        className={`relative group flex flex-col items-center p-2.5 sm:p-3 rounded-2xl transition-all duration-300 w-32 sm:w-40 backdrop-blur-md shadow-lg transform-gpu cursor-pointer ${
+        className={`arena-side-bot relative group flex flex-col items-center p-2.5 sm:p-3 rounded-2xl transition-all duration-300 w-32 sm:w-40 backdrop-blur-md shadow-lg transform-gpu cursor-pointer ${
           isCurrent
             ? 'bg-gradient-to-b from-amber-500/25 via-slate-900/95 to-amber-950/40 border-2 border-amber-300 ring-4 ring-amber-400/80 shadow-[0_0_40px_rgba(251,191,36,0.85)] scale-110 z-30 animate-bot-spotlight'
             : 'bg-surface-container-high/40 border border-white/5 opacity-75'
@@ -1227,13 +1227,13 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         </div>
 
         {/* Compact Fan of Cards */}
-        <div className="flex -space-x-3.5 mt-1 min-h-[36px] items-center justify-center max-w-full overflow-hidden">
+        <div className="arena-side-cards flex -space-x-3.5 mt-1 min-h-[36px] items-center justify-center max-w-full overflow-hidden">
           {Array.from({ length: Math.min(7, cardCount) }).map((_, cIdx) => (
             <div key={cIdx} className="shrink-0">
               <CardBack
                 skinId={player.equippedCardSkin || 'skin_classic'}
                 size="sm"
-                className="w-5 h-8 sm:w-6 sm:h-9"
+                className="arena-mini-card w-5 h-8 sm:w-6 sm:h-9"
               />
             </div>
           ))}
@@ -1295,7 +1295,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
   if (!gameState) {
     return (
-      <main className="w-full min-h-screen bg-background relative overflow-x-hidden flex items-center justify-center">
+      <main className="w-full min-h-[100dvh] bg-background relative overflow-x-hidden flex items-center justify-center">
         <OrientationNotice onExit={onBack} />
         <div className="text-primary-container font-headline font-bold text-lg animate-pulse flex items-center gap-2">
           <span className="material-symbols-outlined animate-spin text-2xl">autorenew</span>
@@ -1307,7 +1307,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
   return (
     <main
-      className={`w-full min-h-screen bg-background relative overflow-x-hidden select-none transition-all duration-300 ${
+      className={`arena-board w-full min-h-[100dvh] bg-background relative overflow-x-hidden select-none transition-all duration-300 ${
         unoCountdown !== null ? 'animate-emergency-border' : ''
       }`}
     >
@@ -1317,10 +1317,10 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       {/* LỚP PHỦ BIỂU CẢM & CHAT NHANH (TASK 3) */}
       <EmoteOverlay activeEmotes={activeEmotes} getSeatPosition={getSeatPosition} />
 
-      <div className="relative z-10 w-full min-h-screen flex flex-col justify-between p-2 sm:p-4 max-w-7xl mx-auto safe-pt safe-pb safe-pl safe-pr">
+      <div className="arena-shell relative z-10 w-full min-h-[100dvh] flex flex-col justify-between p-1.5 sm:p-4 max-w-7xl mx-auto safe-pt safe-pb safe-pl safe-pr">
         
         {/* ================= 1. TOP HEADER HUD (GIỐNG 100% GAMEBOARD.JSX) ================= */}
-        <div className="w-full flex items-center justify-between pb-1 border-b border-white/5">
+        <div className="arena-top-hud w-full flex items-center justify-between pb-1 border-b border-white/5">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsExitModalOpen(true)}
@@ -1477,7 +1477,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
               return (
                 <div
-                  className={`relative group flex flex-col items-center px-6 py-2 rounded-2xl backdrop-blur-md border shadow-md transition-all transform-gpu cursor-pointer ${
+                  className={`arena-top-card relative group flex flex-col items-center px-6 py-2 rounded-2xl backdrop-blur-md border shadow-md transition-all transform-gpu cursor-pointer ${
                     isTopActive
                       ? 'bg-gradient-to-b from-amber-500/25 via-slate-900/95 to-amber-950/40 border-2 border-amber-300 ring-4 ring-amber-400/80 text-white shadow-[0_0_40px_rgba(251,191,36,0.85)] scale-110 z-30 animate-bot-spotlight'
                       : 'bg-surface-container-low/90 border-white/10 text-slate-300 opacity-75'
@@ -1578,7 +1578,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                   </div>
 
                   {/* Fan of Face-down cards */}
-                  <div className="flex -space-x-3.5 pt-1 min-h-[42px] items-center">
+                  <div className="arena-top-fan flex -space-x-3.5 pt-1 min-h-[42px] items-center">
                     {Array.from({ length: Math.min(8, cardCount) }).map((_, cIdx) => {
                       const rotationDegree = -8 + (cIdx * 16) / Math.max(1, cardCount - 1);
                       return (
@@ -1590,7 +1590,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                           <CardBack
                             skinId={topOpponent.equippedCardSkin || 'skin_classic'}
                             size="sm"
-                            className="w-7 h-10"
+                            className="arena-mini-card w-7 h-10"
                           />
                         </div>
                       );
@@ -1625,11 +1625,11 @@ export default function OnlineGameBoard({ room, user, onBack }) {
           </div>
 
           {/* TRUNG TÂM: CENTER PILE (Draw Pile & Discard Pile + Orbit Ring 60 FPS) */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="relative flex items-center justify-center gap-5 sm:gap-8 md:gap-10 py-5 px-6 sm:px-8 md:px-10 rounded-full bg-surface-container-lowest/40 backdrop-blur-xl border border-white/[0.06] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <div className="flex flex-col items-center gap-1.5 sm:gap-2">
+            <div className="arena-center-oval relative flex items-center justify-center gap-5 sm:gap-8 md:gap-10 py-5 px-6 sm:px-8 md:px-10 rounded-full bg-surface-container-lowest/40 backdrop-blur-xl border border-white/[0.06] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
 
               {/* 4 MŨI TÊN VÒNG CUNG CHỈ THEO LƯỢT NGƯỜI CHƠI (60 FPS GPU-ACCELERATED) */}
-              <div className="absolute -inset-10 sm:-inset-14 md:-inset-16 pointer-events-none z-10 flex items-center justify-center">
+              <div className="arena-orbit-svg absolute -inset-10 sm:-inset-14 md:-inset-16 pointer-events-none z-10 flex items-center justify-center">
                 <svg
                   viewBox="0 0 500 320"
                   className="w-full h-full overflow-visible max-w-[620px] max-h-[400px]"
@@ -1749,12 +1749,12 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 }
               >
                 <div
-                  className={`absolute -top-1.5 -left-1.5 w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] bg-[#660022] border border-white/10 opacity-70 pointer-events-none ${
+                  className={`arena-deck-card absolute -top-1.5 -left-1.5 w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] bg-[#660022] border border-white/10 opacity-70 pointer-events-none ${
                     isShuffling ? 'animate-shuffle-left' : ''
                   }`}
                 />
                 <div
-                  className={`absolute -top-0.5 -left-0.5 w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] bg-[#88002d] border border-white/15 opacity-85 pointer-events-none ${
+                  className={`arena-deck-card absolute -top-0.5 -left-0.5 w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] bg-[#88002d] border border-white/15 opacity-85 pointer-events-none ${
                     isShuffling ? 'animate-shuffle-right' : ''
                   }`}
                 />
@@ -1781,7 +1781,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 )}
 
                 <div
-                  className={`relative w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] transition-transform duration-200 select-none ${
+                  className={`arena-deck-card relative w-15 h-22 sm:w-18 sm:h-26 md:w-22 md:h-32 rounded-[14px] sm:rounded-[18px] transition-transform duration-200 select-none ${
                     isMyTurn && !isShuffling && !isDealing ? 'hover:scale-105 active:scale-95 cursor-pointer ring-2 ring-cyan-400/80 shadow-[0_0_20px_rgba(0,210,255,0.4)]' : ''
                   }`}
                 >
@@ -1806,7 +1806,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               </div>
 
               {/* Discard Pile: Chồng bài đã đánh */}
-              <div className="relative flex items-center justify-center min-w-[70px] sm:min-w-[90px] md:min-w-[100px] min-h-[100px] sm:min-h-[125px] md:min-h-[140px]">
+              <div className="arena-discard-slot relative flex items-center justify-center min-w-[70px] sm:min-w-[90px] md:min-w-[100px] min-h-[100px] sm:min-h-[125px] md:min-h-[140px]">
                 {/* Hiệu ứng đánh bài bay vào chồng bài bỏ */}
                 {flyingPlay && (
                   <div
@@ -1852,34 +1852,34 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                         skinId={gameState?.myEquippedCardSkin || user?.equippedCardSkin || 'skin_classic'}
                       />
                     </div>
-
-                    {gameState?.activeColor && (
-                      <div className="absolute -bottom-6 flex items-center gap-1 text-[10px] font-bold text-slate-300 bg-black/70 px-2.5 py-0.5 rounded-full border border-white/20 backdrop-blur-sm whitespace-nowrap">
-                        <span>Màu hiện tại:</span>
-                        <span
-                          className={`uppercase font-black ${
-                            gameState.activeColor === 'red'
-                              ? 'text-rose-400'
-                              : gameState.activeColor === 'blue'
-                              ? 'text-sky-400'
-                              : gameState.activeColor === 'green'
-                              ? 'text-emerald-400'
-                              : 'text-amber-400'
-                          }`}
-                        >
-                          {COLOR_NAME_MAP[gameState.activeColor] || gameState.activeColor}
-                        </span>
-                      </div>
-                    )}
                   </>
                 ) : (
-                  <div className="w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] border-2 border-dashed border-white/20 flex items-center justify-center text-slate-400 text-xs font-mono">
+                  <div className="arena-deck-card w-18 h-26 sm:w-20 sm:h-28 md:w-24 md:h-34 rounded-[18px] border-2 border-dashed border-white/20 flex items-center justify-center text-slate-400 text-xs font-mono">
                     {isShuffling ? 'Đang xáo...' : isDealing ? `Chia ${dealingRound}/7` : 'Đang chia...'}
                   </div>
                 )}
               </div>
 
             </div>
+
+            {gameState?.topCard && !isDealing && !isShuffling && gameState?.activeColor && (
+              <div className="relative z-20 flex items-center gap-1 text-[10px] sm:text-xs font-bold text-slate-300 bg-black/75 px-3 py-0.5 rounded-full border border-white/20 backdrop-blur-sm whitespace-nowrap shadow-md">
+                <span>Màu hiện tại:</span>
+                <span
+                  className={`uppercase font-black ${
+                    gameState.activeColor === 'red'
+                      ? 'text-rose-400'
+                      : gameState.activeColor === 'blue'
+                      ? 'text-sky-400'
+                      : gameState.activeColor === 'green'
+                      ? 'text-emerald-400'
+                      : 'text-amber-400'
+                  }`}
+                >
+                  {COLOR_NAME_MAP[gameState.activeColor] || gameState.activeColor}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* CÁNH PHẢI */}
@@ -1933,7 +1933,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
         </div>
 
         {/* ================= 4. BOTTOM SECTION: BẠN HOẶC THANH ĐIỀU KHIỂN KHÁN GIẢ (TASK 2) ================= */}
-        <div className="w-full flex flex-col items-center gap-2 pt-1 z-20">
+        <div className="arena-bottom-section w-full flex flex-col items-center gap-2 pt-1 z-20">
           {isSpectator ? (
             <div className="w-full max-w-2xl flex flex-col items-center gap-2.5 pb-2">
               {bottomSpectatorPlayer && (
@@ -2015,7 +2015,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
             <>
               {/* Player Hand - TRÊN */}
               <div
-                className={`flex items-end justify-center -space-x-4 sm:-space-x-3 md:-space-x-5 hover:-space-x-1 transition-all duration-300 px-2 sm:px-4 py-1.5 sm:py-2 overflow-x-auto max-w-full min-h-[105px] sm:min-h-[135px] rounded-3xl ${
+                className={`arena-player-hand flex items-end justify-center -space-x-4 sm:-space-x-3 md:-space-x-5 hover:-space-x-1 transition-all duration-300 px-2 sm:px-4 py-1.5 sm:py-2 overflow-x-auto max-w-full min-h-[105px] sm:min-h-[135px] rounded-3xl ${
                   isMyTurn
                     ? 'bg-primary-container/10 border-2 border-primary-container/40 shadow-[0_0_35px_rgba(0,210,255,0.25)]'
                     : ''
@@ -2120,7 +2120,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
               {/* Player HUD - DƯỚI */}
               <div
-                className={`w-full max-w-xl flex items-center justify-between px-5 py-2.5 rounded-full backdrop-blur-md shadow-md relative transition-all duration-300 transform-gpu ${
+                className={`arena-player-hud w-full max-w-xl flex items-center justify-between px-5 py-2.5 rounded-full backdrop-blur-md shadow-md relative transition-all duration-300 transform-gpu ${
                   isMyTurn
                     ? 'bg-gradient-to-r from-primary-container/30 via-cyan-950/90 to-primary-container/30 border-2 border-primary-container ring-4 ring-primary-container/70 shadow-[0_0_45px_rgba(0,210,255,0.7)] scale-102 animate-player-spotlight'
                     : 'bg-surface-container-low/90 border border-white/10 opacity-80'
@@ -2128,7 +2128,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               >
                 {/* Banner nổi bật khi đến lượt bạn */}
                 {isMyTurn && (
-                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-primary-container text-black font-headline font-black text-[10px] uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.8)] animate-pulse whitespace-nowrap z-30">
+                  <div className="arena-turn-pill absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-0.5 rounded-full bg-gradient-to-r from-cyan-400 to-primary-container text-black font-headline font-black text-[10px] uppercase tracking-wider shadow-[0_0_20px_rgba(0,210,255,0.8)] animate-pulse whitespace-nowrap z-30">
                     <span className="material-symbols-outlined text-xs">play_circle</span>
                     <span>✨ LƯỢT ĐÁNH CỦA BẠN ({gameState?.turnTimeRemaining}s)</span>
                   </div>
@@ -2207,7 +2207,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       </div>
 
       {/* ================= KHU VỰC THAO TÁC GÓC DƯỚI PHẢI: BÁNH XE BIỂU CẢM (TASK 3) & NÚT BÁO/BẮT UNO ================= */}
-      <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-40 flex flex-col items-center gap-2">
+      <div className="arena-corner-actions fixed bottom-4 right-4 sm:bottom-6 sm:right-6 md:bottom-8 md:right-8 z-40 flex flex-col items-center gap-2">
         {/* NÚT BÁNH XE BIỂU CẢM & CHAT NHANH */}
         <EmoteWheel
           onSendEmote={handleSendEmote}
@@ -2235,7 +2235,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
               <button
                 onClick={handleCallUnoClick}
                 disabled={!canCallUno && !hasCalledUno && !canCatchUno}
-                className={`relative group flex flex-col items-center justify-center transition-all duration-300 rounded-full select-none transform-gpu ${
+                className={`arena-uno-btn ${(canCallUno || canCatchUno) ? 'is-active' : ''} relative group flex flex-col items-center justify-center transition-all duration-300 rounded-full select-none transform-gpu ${
                   canCallUno
                     ? handCount === 1
                       ? 'w-22 h-22 sm:w-26 sm:h-26 bg-gradient-to-tr from-red-600 via-rose-600 to-amber-500 border-4 border-white shadow-[0_0_50px_rgba(244,63,94,0.95)] ring-4 ring-yellow-400 hover:scale-110 active:scale-95 animate-bounce cursor-pointer'
@@ -2271,7 +2271,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
                 )}
 
                 <span
-                  className={`font-headline font-black italic tracking-tighter drop-shadow-lg ${
+                  className={`arena-uno-label font-headline font-black italic tracking-tighter drop-shadow-lg ${
                     canCallUno || canCatchUno
                       ? 'text-2xl sm:text-3xl text-white'
                       : hasCalledUno
@@ -2317,7 +2317,7 @@ export default function OnlineGameBoard({ room, user, onBack }) {
       {/* ================= MODAL CHỌN MÀU (WILD COLOR PICKER - NỀN TRONG SUỐT NHÌN BÀI) ================= */}
       {colorPickerOpen && pendingWildCard && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-none flex flex-col items-center justify-center pb-28 sm:pb-36 z-50 animate-fade-in p-4"
+          className="fixed inset-0 bg-black/40 backdrop-blur-none flex flex-col items-center justify-center pb-10 sm:pb-32 z-50 animate-fade-in p-3 sm:p-4"
           onClick={() => {
             setColorPickerOpen(false);
             setPendingWildCard(null);
@@ -2421,8 +2421,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
       {/* ================= MODAL KẾT QUẢ VÁN ĐẤU (GAME OVER) ================= */}
       {gameResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
-          <div className="relative w-full max-w-md p-6 rounded-3xl bg-[#121622] border-2 border-primary-container/50 shadow-[0_0_80px_rgba(0,210,255,0.4)] flex flex-col items-center text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="modal-compact-panel relative w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain p-5 sm:p-6 rounded-3xl bg-[#121622] border-2 border-primary-container/50 shadow-[0_0_80px_rgba(0,210,255,0.4)] flex flex-col items-center text-center">
             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 flex items-center justify-center text-3xl shadow-lg mb-2">
               🏆
             </div>
@@ -2638,8 +2638,8 @@ export default function OnlineGameBoard({ room, user, onBack }) {
 
       {/* ================= MODAL CẢNH BÁO BỎ CUỘC & XỬ THUA FORFEIT (TASK 4) ================= */}
       {isExitModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
-          <div className="p-6 rounded-3xl bg-[#121622] border-2 border-rose-500/50 shadow-[0_0_50px_rgba(244,63,94,0.4)] flex flex-col items-center text-center max-w-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-fade-in font-body">
+          <div className="modal-compact-panel p-5 sm:p-6 max-h-[92dvh] overflow-y-auto overscroll-contain rounded-3xl bg-[#121622] border-2 border-rose-500/50 shadow-[0_0_50px_rgba(244,63,94,0.4)] flex flex-col items-center text-center max-w-sm">
             <span className="material-symbols-outlined text-5xl text-rose-500 mb-2 animate-bounce">warning</span>
             <h3 className="font-headline font-black text-base text-white uppercase tracking-wider mb-2">
               BẠN MUỐN RỜI TRẬN ĐẤU?
